@@ -253,20 +253,20 @@ export default function ResultPage({
       : "โทนสีและแสงของแต่ละรูปมีความหลากหลายค่อนข้างสูง แนะนำให้เลือก 2-3 โทนสีหลักเพื่อคุมมู้ดโดยรวมของฟีด");
 
   return (
-    <section className="preview shell" style={{ paddingBlock: "50px 90px" }}>
+    <section className="preview shell" style={{ paddingBlock: "clamp(28px, 5vw, 50px) clamp(60px, 8vw, 90px)" }}>
       {/* Top Navigation & Action Toolbar */}
-      <div className="flex justify-between items-center flex-wrap gap-3.5 mb-7 border-b border-ink/15 pb-4">
+      <div className="flex justify-between items-center flex-wrap gap-3 mb-6 border-b border-ink/15 pb-4">
         <button
           onClick={onBackToHome}
-          className="bg-white border-1.5 border-ink rounded-full px-4 py-2 text-xs font-bold cursor-pointer inline-flex items-center gap-1.5 hover:bg-paper transition-colors"
+          className="bg-white border-1.5 border-ink rounded-full px-3.5 py-1.5 text-xs font-bold cursor-pointer inline-flex items-center gap-1.5 hover:bg-paper transition-colors shadow-[2px_2px_0_var(--ink)]"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>วิเคราะห์โปรไฟล์ใหม่</span>
         </button>
 
-        <div className="flex gap-2.5 flex-wrap items-center">
+        <div className="flex gap-2 flex-wrap items-center w-full sm:w-auto">
           <button
-            className="action-btn action-btn-story inline-flex items-center gap-2 bg-purple text-white hover:bg-[#6643c7] font-extrabold border-2 border-ink shadow-[3px_3px_0_var(--ink)] active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer"
+            className="action-btn action-btn-story flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 bg-purple text-white hover:bg-[#6643c7] font-extrabold border-2 border-ink shadow-[3px_3px_0_var(--ink)] active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer py-2.5 px-3.5 text-xs sm:text-sm"
             onClick={onOpenStoryModal}
             disabled={isAnalyzing}
             style={isAnalyzing ? { opacity: 0.5, cursor: "not-allowed" } : undefined}
@@ -277,7 +277,7 @@ export default function ResultPage({
 
           {onOpenStoryPlayer && (
             <button
-              className="action-btn bg-white hover:bg-paper text-ink inline-flex items-center gap-2 border-2 border-ink shadow-[2px_2px_0_var(--ink)] active:translate-x-0.5 active:translate-y-0.5 transition-all font-bold cursor-pointer"
+              className="action-btn bg-white hover:bg-paper text-ink inline-flex items-center justify-center gap-2 border-2 border-ink shadow-[2px_2px_0_var(--ink)] active:translate-x-0.5 active:translate-y-0.5 transition-all font-bold cursor-pointer py-2.5 px-3 text-xs sm:text-sm"
               onClick={onOpenStoryPlayer}
               disabled={isAnalyzing}
               style={isAnalyzing ? { opacity: 0.5, cursor: "not-allowed" } : undefined}
@@ -289,7 +289,7 @@ export default function ResultPage({
           )}
 
           <button
-            className="action-btn action-btn-ethics inline-flex items-center gap-1.5 text-xs text-muted hover:text-ink font-semibold border-1.5 border-ink/40 bg-white hover:bg-paper rounded-full px-3.5 py-1.5 transition-colors"
+            className="action-btn action-btn-ethics inline-flex items-center justify-center gap-1.5 text-xs text-muted hover:text-ink font-semibold border-1.5 border-ink/40 bg-white hover:bg-paper rounded-full px-3 py-1.5 transition-colors"
             onClick={onOpenHowItWorks}
           >
             <HelpCircle className="w-3.5 h-3.5 text-purple" />

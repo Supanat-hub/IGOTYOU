@@ -34,6 +34,29 @@ export default function StoryCardModal({ isOpen, onClose, data }: StoryCardModal
     setCustomHandle(data.username || "@my.profile");
   }, [data.persona.title, data.username]);
 
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const calculateScale = () => {
+      // Allow at least 20px horizontal margin each side (40px total)
+      const availW = window.innerWidth - 40;
+      // Top controls (~44px) + 2-tier action buttons (~116px) + vertical gaps & safe areas (~50px)
+      const availH = window.innerHeight - 210;
+
+      const scaleW = availW / 360;
+      const scaleH = availH / 640;
+
+      const targetScale = Math.min(1, Math.min(scaleW, scaleH));
+      // Clamp between 0.65 and 1.0 (crisp on mobile, doesn't over-stretch on desktop)
+      setScale(Math.max(0.65, Math.min(1, targetScale)));
+    };
+
+    calculateScale();
+    window.addEventListener("resize", calculateScale);
+    return () => window.removeEventListener("resize", calculateScale);
+  }, [isOpen]);
+
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -101,14 +124,17 @@ export default function StoryCardModal({ isOpen, onClose, data }: StoryCardModal
       style={{
         position: "fixed",
         inset: 0,
-        backgroundColor: "rgba(23, 23, 17, 0.85)",
-        backdropFilter: "blur(8px)",
+        backgroundColor: "rgba(23, 23, 17, 0.88)",
+        backdropFilter: "blur(10px)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: "12px 8px",
+        padding:
+          "max(14px, env(safe-area-inset-top, 14px)) max(18px, env(safe-area-inset-right, 18px)) max(20px, env(safe-area-inset-bottom, 20px)) max(18px, env(safe-area-inset-left, 18px))",
         overflowY: "auto",
+        overflowX: "hidden",
         zIndex: 9999,
+        WebkitOverflowScrolling: "touch",
       }}
       onClick={onClose}
     >
@@ -118,10 +144,8 @@ export default function StoryCardModal({ isOpen, onClose, data }: StoryCardModal
           flexDirection: "column",
           alignItems: "center",
           gap: "12px",
-          maxHeight: "96vh",
           maxWidth: "100%",
-          overflowY: "auto",
-          overflowX: "hidden",
+          margin: "auto",
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -131,7 +155,7 @@ export default function StoryCardModal({ isOpen, onClose, data }: StoryCardModal
             display: "flex",
             gap: "8px",
             width: "100%",
-            maxWidth: "360px",
+            maxWidth: `${Math.min(360, Math.max(280, Math.round(360 * scale)))}px`,
             justifyContent: "space-between",
             alignItems: "center",
             flexWrap: "wrap",
@@ -238,12 +262,28 @@ export default function StoryCardModal({ isOpen, onClose, data }: StoryCardModal
           </div>
         </div>
 
-        {/* 9:16 Card Container */}
+        {/* 9:16 Card Scaled Container */}
         <div
-          ref={cardRef}
           style={{
-            width: "360px",
-            height: "640px",
+            width: `${Math.round(360 * scale)}px`,
+            height: `${Math.round(640 * scale)}px`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          <div
+            style={{
+              transform: `scale(${scale})`,
+              transformOrigin: "center center",
+            }}
+          >
+            <div
+              ref={cardRef}
+              style={{
+                width: "360px",
+                height: "640px",
             background: isNoir ? "#171711" : "var(--paper)",
             border: isNoir ? "3px solid #2d2d24" : "3px solid var(--ink)",
             borderRadius: "24px",
@@ -716,75 +756,96 @@ export default function StoryCardModal({ isOpen, onClose, data }: StoryCardModal
             <span>#IGOTYOU</span>
           </div>
         </div>
+      </div>
+    </div>
 
-        {/* Action Buttons Below the Card */}
-        <div style={{ display: "flex", gap: "8px", width: "100%", maxWidth: "360px" }}>
-          <button
-            type="button"
-            onClick={downloadCard}
-            disabled={isExporting}
-            style={{
-              flex: 1,
-              background: "var(--acid)",
-              color: "var(--ink)",
-              border: "2px solid var(--ink)",
-              borderRadius: "12px",
-              padding: "11px 14px",
-              fontWeight: 800,
-              fontSize: "13px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "6px",
-              boxShadow: "3px 3px 0 var(--ink)",
-              transition: "all 0.15s ease",
-            }}
-          >
-            <Download className="w-4 h-4 text-ink" />
-            <span>{isExporting ? "กำลังสร้างภาพ..." : "บันทึกภาพ IG Story"}</span>
-          </button>
-          <button
-            type="button"
-            onClick={copyCardImage}
-            disabled={isExporting}
-            style={{
-              background: "var(--white)",
-              color: "var(--ink)",
-              border: "2px solid var(--ink)",
-              borderRadius: "12px",
-              padding: "11px 14px",
-              fontWeight: 800,
-              fontSize: "13px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "6px",
-              boxShadow: "3px 3px 0 var(--ink)",
-              transition: "all 0.15s ease",
-            }}
-            title="คัดลอกรูปภาพลง Clipboard เพื่อนำไปแปะใน Story ทันที"
-          >
-            {copiedImage ? <Check className="w-4 h-4 text-green-700" /> : <Copy className="w-4 h-4 text-ink" />}
-            <span>{copiedImage ? "คัดลอกแล้ว!" : "คัดลอกรูป"}</span>
-          </button>
+        {/* Action Buttons Below the Card (2-tier mobile-optimized layout with safe area) */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "10px",
+            width: "100%",
+            maxWidth: `${Math.min(360, Math.max(280, Math.round(360 * scale)))}px`,
+            paddingBottom: "max(10px, env(safe-area-inset-bottom, 10px))",
+          }}
+        >
+          {/* Row 1: Save & Copy */}
+          <div style={{ display: "flex", gap: "8px", width: "100%" }}>
+            <button
+              type="button"
+              onClick={downloadCard}
+              disabled={isExporting}
+              style={{
+                flex: 1.35,
+                background: "var(--acid)",
+                color: "var(--ink)",
+                border: "2px solid var(--ink)",
+                borderRadius: "14px",
+                padding: "12px 14px",
+                fontWeight: 800,
+                fontSize: "14px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "6px",
+                boxShadow: "3px 3px 0 var(--ink)",
+                transition: "all 0.15s ease",
+              }}
+            >
+              <Download className="w-4 h-4 text-ink" />
+              <span>{isExporting ? "กำลังสร้างภาพ..." : "บันทึกภาพ IG Story"}</span>
+            </button>
+            <button
+              type="button"
+              onClick={copyCardImage}
+              disabled={isExporting}
+              style={{
+                flex: 1,
+                background: "var(--white)",
+                color: "var(--ink)",
+                border: "2px solid var(--ink)",
+                borderRadius: "14px",
+                padding: "12px 14px",
+                fontWeight: 800,
+                fontSize: "13px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "6px",
+                boxShadow: "3px 3px 0 var(--ink)",
+                transition: "all 0.15s ease",
+              }}
+              title="คัดลอกรูปภาพลง Clipboard เพื่อนำไปแปะใน Story ทันที"
+            >
+              {copiedImage ? <Check className="w-4 h-4 text-green-700" /> : <Copy className="w-4 h-4 text-ink" />}
+              <span>{copiedImage ? "คัดลอกแล้ว!" : "คัดลอกรูป"}</span>
+            </button>
+          </div>
+
+          {/* Row 2: Full-width Close Button */}
           <button
             type="button"
             onClick={onClose}
             style={{
-              background: "rgba(255,255,255,0.15)",
+              width: "100%",
+              background: "rgba(255,255,255,0.14)",
               color: "white",
-              border: "2px solid rgba(255,255,255,0.4)",
-              borderRadius: "12px",
+              border: "1.5px solid rgba(255,255,255,0.35)",
+              borderRadius: "14px",
               padding: "11px 14px",
               fontWeight: 700,
               fontSize: "13px",
               cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
               transition: "all 0.15s ease",
             }}
           >
-            ปิด
+            ปิดหน้าต่างตัวอย่าง
           </button>
         </div>
       </div>
