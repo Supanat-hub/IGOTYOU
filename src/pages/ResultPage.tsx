@@ -639,7 +639,17 @@ export default function ResultPage({
 
             {/* 05 Grid Card (Uses real uploaded images) */}
             <article className="grid-card">
-              <div className="grid-images">
+              <div
+                className="grid-images"
+                style={{
+                  gridTemplateColumns:
+                    result.topContent.images.length === 1
+                      ? "1fr"
+                      : result.topContent.images.length === 2
+                      ? "repeat(2, 1fr)"
+                      : "repeat(3, 1fr)",
+                }}
+              >
                 {result.topContent.images.map((image, index) => (
                   <img alt={`ภาพที่วิเคราะห์ ${index + 1}`} key={index} src={image} />
                 ))}

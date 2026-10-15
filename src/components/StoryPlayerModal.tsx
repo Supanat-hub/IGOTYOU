@@ -445,7 +445,17 @@ export default function StoryPlayerModal({
 
                 {/* Cropped Photo Grid Preview */}
                 <div className="border-2 border-ink rounded-2xl overflow-hidden shadow-[4px_4px_0_var(--ink)] sm:shadow-[5px_5px_0_var(--ink)] bg-ink">
-                  <div className="grid grid-cols-3 gap-1 p-1">
+                  <div
+                    className="grid gap-1 p-1"
+                    style={{
+                      gridTemplateColumns:
+                        data.topContent.images.length === 1
+                          ? "1fr"
+                          : data.topContent.images.length === 2
+                          ? "repeat(2, 1fr)"
+                          : "repeat(3, 1fr)",
+                    }}
+                  >
                     {data.topContent.images.slice(0, 6).map((img, idx) => (
                       <div key={idx} className="aspect-[3/4] overflow-hidden bg-black/40">
                         <img

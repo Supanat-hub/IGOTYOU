@@ -286,7 +286,9 @@ async function downscaleImageForGemini(
 }
 
 /**
- * Creates a 6-item gallery array using cropped images or user's uploaded images
+ * Builds user gallery array using actual cropped images or user's uploaded images.
+ * If the user has fewer than 6 photos (e.g. 2 posts), preserves the authentic count
+ * without synthetic duplicates or holes.
  */
 export function buildUserGridImages(
   croppedImages: string[],
@@ -294,27 +296,11 @@ export function buildUserGridImages(
   fallbackImages: string[] = []
 ): string[] {
   if (croppedImages && croppedImages.length > 0) {
-    if (croppedImages.length >= 6) {
-      return croppedImages.slice(0, 6);
-    }
-    const grid: string[] = [];
-    while (grid.length < 6) {
-      for (const img of croppedImages) {
-        if (grid.length < 6) grid.push(img);
-      }
-    }
-    return grid;
+    return croppedImages.slice(0, 6);
   }
 
   if (files && files.length > 0) {
-    const urls = files.map((f) => URL.createObjectURL(f));
-    const grid: string[] = [];
-    while (grid.length < 6) {
-      for (const u of urls) {
-        if (grid.length < 6) grid.push(u);
-      }
-    }
-    return grid;
+    return files.map((f) => URL.createObjectURL(f)).slice(0, 6);
   }
 
   return fallbackImages;

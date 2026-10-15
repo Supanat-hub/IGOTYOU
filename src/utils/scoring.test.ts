@@ -188,18 +188,14 @@ test("computeTileFingerprint and areTilesDuplicate detect duplicate tiles", () =
   assert.equal(areTilesDuplicate(fp1, fp3), false);
 });
 
-test("buildUserGridImages cycles user real photos smoothly without fake presets", () => {
+test("buildUserGridImages preserves authentic count of user real photos without duplicate padding", () => {
   // User with 2 real post photos
   const twoPhotos = ["data:image/jpeg;base64,photo1", "data:image/jpeg;base64,photo2"];
   const grid = buildUserGridImages(twoPhotos);
 
-  assert.equal(grid.length, 6);
+  assert.equal(grid.length, 2);
   assert.equal(grid[0], "data:image/jpeg;base64,photo1");
   assert.equal(grid[1], "data:image/jpeg;base64,photo2");
-  assert.equal(grid[2], "data:image/jpeg;base64,photo1");
-  assert.equal(grid[3], "data:image/jpeg;base64,photo2");
-  assert.equal(grid[4], "data:image/jpeg;base64,photo1");
-  assert.equal(grid[5], "data:image/jpeg;base64,photo2");
 
   // User with 9 photos gets first 6
   const manyPhotos = [
@@ -235,6 +231,34 @@ test("findGridHorizontalBounds detects letterboxing side pillars on tablets", ()
   const bounds = findGridHorizontalBounds(buf);
   assert.equal(bounds.left >= 98 && bounds.left <= 101, true);
   assert.equal(bounds.width >= 298 && bounds.width <= 302, true);
+});
+
+test("findGridHorizontalBounds preserves 3-column grid width when user has only 2 posts", () => {
+  const w = 600, h = 400;
+  const data = new Uint8Array(w * h * 4);
+
+  // Tablet layout with 100px left rail, post 1 (100..249), post 2 (251..400), col 3 is empty background
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const idx = (y * w + x) * 4;
+      if (x < 100 || x === 250 || x >= 401) {
+        data[idx] = 18;
+        data[idx + 1] = 20;
+        data[idx + 2] = 24;
+      } else {
+        data[idx] = 160;
+        data[idx + 1] = 120;
+        data[idx + 2] = 90;
+      }
+      data[idx + 3] = 255;
+    }
+  }
+
+  const buf: PixelBuffer = { width: w, height: h, data };
+  const bounds = findGridHorizontalBounds(buf);
+  // Column width is 150px, so 3 columns = 450px + gap
+  assert.equal(bounds.left >= 98 && bounds.left <= 101, true);
+  assert.equal(bounds.width >= 445 && bounds.width <= 460, true);
 });
 
 test("findGridRowHeight detects modern Instagram 3:4 portrait grid ratio", () => {

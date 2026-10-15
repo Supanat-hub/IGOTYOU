@@ -125,38 +125,92 @@ export function findGridHorizontalBounds(
     return { left: rawLeft, width: rawRight - rawLeft };
   }
 
-  // Scan full-height background columns to trim letterboxing side pillars (iPad / Tablet)
+  // Scan left in expected grid area: y in [0.40*h .. 0.85*h]
+  // We look for continuous width >= 20px of non-background to avoid navigation rail icons
   let left = 0;
   for (let x = 0; x < Math.floor(w * 0.45); x += 2) {
-    let bgCount = 0;
-    let total = 0;
-    for (let y = 0; y < h; y += 12) {
-      const idx = (y * w + x) * 4;
-      if (isAppBackground(buf.data[idx], buf.data[idx + 1], buf.data[idx + 2])) {
-        bgCount++;
+    let continuousRunsTotal = 0;
+    let count = 0;
+    for (let y = Math.floor(h * 0.4); y < Math.floor(h * 0.85); y += 12) {
+      let run = 0;
+      for (let dx = 0; dx < Math.min(120, w - x); dx += 2) {
+        const idx = (y * w + (x + dx)) * 4;
+        if (!isAppBackground(buf.data[idx], buf.data[idx + 1], buf.data[idx + 2])) {
+          run += 2;
+        } else {
+          break;
+        }
       }
-      total++;
+      continuousRunsTotal += run;
+      count++;
     }
-    if (total > 0 && bgCount / total < 0.92) {
+    const avgRun = count > 0 ? continuousRunsTotal / count : 0;
+    if (avgRun >= 20) {
       left = Math.max(0, x - 1);
       break;
     }
   }
 
+  // Scan right from w - 1 inward
   let right = w;
-  for (let x = w - 1; x >= Math.floor(w * 0.55); x -= 2) {
-    let bgCount = 0;
-    let total = 0;
-    for (let y = 0; y < h; y += 12) {
-      const idx = (y * w + x) * 4;
-      if (isAppBackground(buf.data[idx], buf.data[idx + 1], buf.data[idx + 2])) {
-        bgCount++;
+  for (let x = w - 1; x >= Math.floor(w * 0.45); x -= 2) {
+    let continuousRunsTotal = 0;
+    let count = 0;
+    for (let y = Math.floor(h * 0.4); y < Math.floor(h * 0.85); y += 12) {
+      let run = 0;
+      for (let dx = 0; dx < Math.min(120, x); dx += 2) {
+        const idx = (y * w + (x - dx)) * 4;
+        if (!isAppBackground(buf.data[idx], buf.data[idx + 1], buf.data[idx + 2])) {
+          run += 2;
+        } else {
+          break;
+        }
       }
-      total++;
+      continuousRunsTotal += run;
+      count++;
     }
-    if (total > 0 && bgCount / total < 0.92) {
+    const avgRun = count > 0 ? continuousRunsTotal / count : 0;
+    if (avgRun >= 20) {
       right = Math.min(w, x + 1);
       break;
+    }
+  }
+
+  const rightPillar = w - right;
+
+  // Phone screen check:
+  // On mobile phone screens, Instagram grid is always edge-to-edge full width.
+  if (left < 24) {
+    left = 0;
+    right = w;
+  } else if (Math.abs(left - rightPillar) <= Math.max(left, rightPillar) * 0.35) {
+    // Symmetrical tablet pillars (e.g. iPad layout with equal margins on both sides)
+    // Keep detected left and right
+  } else {
+    // Asymmetric bounds (e.g. tablet with left navigation rail where column 2 or 3 is empty background)
+    const span = right - left;
+    const mid = Math.floor((left + right) / 2);
+    let gapDetected = false;
+    for (let mx = mid - 8; mx <= mid + 8; mx++) {
+      let bgCount = 0;
+      let total = 0;
+      for (let y = Math.floor(h * 0.45); y < Math.floor(h * 0.85); y += 8) {
+        const idx = (y * w + mx) * 4;
+        if (isAppBackground(buf.data[idx], buf.data[idx + 1], buf.data[idx + 2])) {
+          bgCount++;
+        }
+        total++;
+      }
+      if (total > 0 && bgCount / total > 0.3) {
+        gapDetected = true;
+        break;
+      }
+    }
+
+    if (gapDetected || (span / w >= 0.45 && span / w <= 0.65)) {
+      // 2 columns detected: span is 2 columns out of 3
+      const colW = Math.floor(span / 2);
+      right = Math.min(w, left + colW * 3 + 4);
     }
   }
 
@@ -178,73 +232,69 @@ export function findExactGridStartY(
   const colW = colWidth || Math.floor(width / 3);
 
   const startScanY = Math.max(
-    0,
+    Math.round(height * 0.22),
     typeof approxY === "number" && approxY > 20
-      ? Math.round(approxY) - 45
-      : Math.round(height * 0.15)
+      ? Math.round(approxY) - 50
+      : Math.round(height * 0.3)
   );
 
   const maxScanY = Math.min(
-    height - 40,
+    Math.round(height * 0.82),
     typeof approxY === "number" && approxY > 20
-      ? Math.round(approxY) + 120
-      : Math.round(height * 0.75)
+      ? Math.round(approxY) + 160
+      : Math.round(height * 0.78)
   );
 
+  // Post photos have sustained continuous content for at least colW * 0.45 px vertically,
+  // whereas UI buttons and highlights have short heights (< 40px) or background gaps.
+  const checkH = Math.max(28, Math.round(colW * 0.45));
+
   for (let y = startScanY; y < maxScanY; y++) {
-    // Scan across column 0
-    let maxRun0 = 0;
-    let curRun0 = 0;
-    for (let x = gridLeft + 12; x < gridLeft + colW - 12; x++) {
-      if (x >= width) break;
-      const idx = (y * width + x) * 4;
-      if (!isAppBackground(buf.data[idx], buf.data[idx + 1], buf.data[idx + 2])) {
-        curRun0++;
-        if (curRun0 > maxRun0) maxRun0 = curRun0;
-      } else {
-        curRun0 = 0;
+    let hasGap = false;
+    let nonBgRowCount = 0;
+    let steps = 0;
+
+    for (let dy = 0; dy < checkH; dy += 4) {
+      const curY = y + dy;
+      if (curY >= height) {
+        hasGap = true;
+        break;
       }
+
+      let c0 = 0;
+      let t0 = 0;
+      for (let x = gridLeft + 15; x < gridLeft + colW - 15; x += 3) {
+        if (x >= width) break;
+        const idx = (curY * width + x) * 4;
+        if (!isAppBackground(buf.data[idx], buf.data[idx + 1], buf.data[idx + 2])) c0++;
+        t0++;
+      }
+
+      let c1 = 0;
+      let t1 = 0;
+      for (let x = gridLeft + colW + 15; x < gridLeft + colW * 2 - 15; x += 3) {
+        if (x >= width) break;
+        const idx = (curY * width + x) * 4;
+        if (!isAppBackground(buf.data[idx], buf.data[idx + 1], buf.data[idx + 2])) c1++;
+        t1++;
+      }
+
+      const r0 = t0 > 0 ? c0 / t0 : 0;
+      const r1 = t1 > 0 ? c1 / t1 : 0;
+      const maxR = Math.max(r0, r1);
+
+      if (maxR < 0.2) {
+        hasGap = true;
+        break;
+      }
+      if (maxR >= 0.55) {
+        nonBgRowCount++;
+      }
+      steps++;
     }
 
-    // Scan across column 1
-    let maxRun1 = 0;
-    let curRun1 = 0;
-    for (let x = gridLeft + colW + 12; x < gridLeft + colW * 2 - 12; x++) {
-      if (x >= width) break;
-      const idx = (y * width + x) * 4;
-      if (!isAppBackground(buf.data[idx], buf.data[idx + 1], buf.data[idx + 2])) {
-        curRun1++;
-        if (curRun1 > maxRun1) maxRun1 = curRun1;
-      } else {
-        curRun1 = 0;
-      }
-    }
-
-    if (Math.max(maxRun0, maxRun1) >= 28) {
-      // Check subsequent rows to confirm sustained photographic content
-      let sustained = true;
-      for (let dy = 2; dy <= 6; dy += 2) {
-        if (y + dy >= height) break;
-        let c0 = 0;
-        let c1 = 0;
-        for (let x = gridLeft + 15; x < gridLeft + colW - 15; x += 4) {
-          if (x >= width) break;
-          const idx = ((y + dy) * width + x) * 4;
-          if (!isAppBackground(buf.data[idx], buf.data[idx + 1], buf.data[idx + 2])) c0++;
-        }
-        for (let x = gridLeft + colW + 15; x < gridLeft + colW * 2 - 15; x += 4) {
-          if (x >= width) break;
-          const idx = ((y + dy) * width + x) * 4;
-          if (!isAppBackground(buf.data[idx], buf.data[idx + 1], buf.data[idx + 2])) c1++;
-        }
-        if (c0 < 5 && c1 < 5) {
-          sustained = false;
-          break;
-        }
-      }
-      if (sustained) {
-        return y;
-      }
+    if (!hasGap && steps > 0 && nonBgRowCount >= steps * 0.75) {
+      return y;
     }
   }
 
