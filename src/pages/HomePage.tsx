@@ -8,9 +8,20 @@ interface HomePageProps {
   onFilesChange: (files: File[]) => void;
   onDragStateChange: (dragging: boolean) => void;
   onAnalyze: () => void;
-  onSelectPreset: (key: string) => void;
   onNavigateToHowItWorks: () => void;
 }
+
+const MARQUEE_ITEMS = [
+  "PROFILE VIBE",
+  "COLOR DNA",
+  "GRID MOOD",
+  "BIO REMIX",
+  "AESTHETIC SCORE",
+  "SPOTIFY-WRAPPED VIBE",
+  "9:16 STORY CARD",
+  "COMPOSITION AUDIT",
+  "HONEST CRITIQUE",
+];
 
 export default function HomePage({
   files,
@@ -19,7 +30,6 @@ export default function HomePage({
   onFilesChange,
   onDragStateChange,
   onAnalyze,
-  onSelectPreset,
   onNavigateToHowItWorks,
 }: HomePageProps) {
   const fileInput = useRef<HTMLInputElement>(null);
@@ -48,7 +58,7 @@ export default function HomePage({
             <Sparkles className="w-3.5 h-3.5 fill-purple text-purple" />
             <span>YOUR PROFILE, UNWRAPPED</span>
           </div>
-          <h1 className="text-ink font-extrabold tracking-tight">
+          <h1 className="text-ink font-extrabold">
             ไบโอของคุณ<br />
             บอกอะไรได้บ้าง?
           </h1>
@@ -154,43 +164,30 @@ export default function HomePage({
             )}
           </button>
 
-          {/* 1-Click Demo Profiles */}
-          <div className="preset-section">
-            <span className="preset-title flex items-center gap-1.5 text-xs text-muted font-bold">
-              <Sparkles className="w-3.5 h-3.5 text-purple fill-purple" />
-              หรือเลือกลองจากโปรไฟล์ตัวอย่าง:
-            </span>
-            <div className="preset-chips flex flex-wrap gap-2 mt-2">
-              <button
-                className="preset-chip px-3 py-1.5 rounded-full border border-ink text-xs font-semibold bg-white hover:bg-paper transition-colors"
-                onClick={() => onSelectPreset("cafe")}
-              >
-                ☕ สายคาเฟ่มินิมอล
-              </button>
-              <button
-                className="preset-chip px-3 py-1.5 rounded-full border border-ink text-xs font-semibold bg-white hover:bg-paper transition-colors"
-                onClick={() => onSelectPreset("outdoor")}
-              >
-                🌲 สายท่องเที่ยวธรรมชาติ
-              </button>
-              <button
-                className="preset-chip px-3 py-1.5 rounded-full border border-ink text-xs font-semibold bg-white hover:bg-paper transition-colors"
-                onClick={() => onSelectPreset("creative")}
-              >
-                🎨 สายครีเอทีฟสตรีท
-              </button>
-            </div>
-          </div>
-
           <p className="consent text-[11px] text-muted text-center mt-3 leading-relaxed">
             เมื่อใช้งานต่อ คุณยืนยันว่าเป็นภาพของคุณหรือได้รับอนุญาตแล้ว · ภาพจะถูกส่งไปประมวลผลชั่วคราวผ่าน Google Gemini Vision API โดยไม่มีการบันทึกภาพลงฐานข้อมูลของระบบ
           </p>
         </div>
       </section>
 
-      <section className="marquee" aria-label="คุณสมบัติ">
-        <div>
-          PROFILE VIBE <span>✦</span> COLOR DNA <span>✦</span> GRID MOOD <span>✦</span> BIO REMIX <span>✦</span> AESTHETIC SCORE <span>✦</span> PROFILE VIBE
+      <section className="marquee-banner" aria-label="คุณสมบัติเด่นของ IGOTYOU">
+        <div className="marquee-wrapper">
+          <div className="marquee-track" aria-hidden="true">
+            {MARQUEE_ITEMS.map((item, idx) => (
+              <span key={`t1-${idx}`} className="marquee-item">
+                <span className="marquee-text">{item}</span>
+                <span className="marquee-star">✦</span>
+              </span>
+            ))}
+          </div>
+          <div className="marquee-track" aria-hidden="true">
+            {MARQUEE_ITEMS.map((item, idx) => (
+              <span key={`t2-${idx}`} className="marquee-item">
+                <span className="marquee-text">{item}</span>
+                <span className="marquee-star">✦</span>
+              </span>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -212,7 +209,7 @@ export default function HomePage({
             </div>
             <h3 style={{ margin: "0 0 8px", fontSize: "20px" }}>แคปหน้าจอโปรไฟล์</h3>
             <p style={{ margin: 0, color: "var(--muted)", fontSize: "14px", lineHeight: 1.6 }}>
-              ถ่ายภาพหน้าจอหน้าไบโอและส่วนหัวของกริดโพสต์ IG สูงสุด 3 ภาพ หรือเลือกจากพรีเซ็ตตัวอย่าง
+              ถ่ายภาพหน้าจอหน้าไบโอและกริดโพสต์ IG ส่วนตัวของคุณ 1 ถึง 3 ภาพเพื่อความแม่นยำ
             </p>
           </div>
 

@@ -117,13 +117,13 @@ function WrappedSkeletonGrid({ onCancel }: { onCancel?: () => void }) {
           <div className="score-ring border-dashed border-ink/30">
             <span className="score-number opacity-30">--</span>
           </div>
-          <div className="grid gap-2.5">
-            <div className="skeleton-shimmer w-[65%] h-7" />
-            <div className="skeleton-shimmer w-[95%] h-4" />
-            <div className="skeleton-shimmer w-[80%] h-4" />
-          </div>
-          <div className="meter">
-            <span className="skeleton-shimmer w-[60%] h-full block" />
+          <div className="score-content">
+            <div className="skeleton-shimmer w-[65%] h-7 rounded-lg" />
+            <div className="skeleton-shimmer w-[95%] h-4 rounded" />
+            <div className="skeleton-shimmer w-[80%] h-4 rounded" />
+            <div className="meter">
+              <span className="skeleton-shimmer w-[60%] h-full block" />
+            </div>
           </div>
           <div className="col-span-full w-full mt-3 pt-3 border-t border-ink/15 grid grid-cols-1 sm:grid-cols-3 gap-2">
             <div className="skeleton-shimmer h-11 rounded-xl" />
@@ -193,14 +193,19 @@ function WrappedSkeletonGrid({ onCancel }: { onCancel?: () => void }) {
         <article className={`remix-card transition-all duration-300 ${stepIndex === 2 ? 'ring-2 ring-acid shadow-[0_0_16px_rgba(217,255,67,0.35)]' : ''}`}>
           <div className="card-topline">
             <span>BIO REMIX</span>
-            <span>05</span>
+            <span>06</span>
           </div>
-          <Wand2 className="w-7 h-7 text-acid justify-self-center" />
-          <div className="grid gap-2.5">
-            <div className="skeleton-shimmer-light w-[85%] h-6" />
-            <div className="skeleton-shimmer-light w-[55%] h-4" />
+          <div className="remix-content-row">
+            <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-black/20 flex items-center justify-center shrink-0">
+              <Wand2 className="w-6 h-6 md:w-7 md:h-7 text-acid/50" />
+            </div>
+            <div className="flex-1 min-w-0 grid gap-2.5">
+              <div className="skeleton-shimmer-light w-36 h-4 rounded-full" />
+              <div className="skeleton-shimmer-light w-[90%] h-8 rounded-xl" />
+              <div className="skeleton-shimmer-light w-[60%] h-4 rounded" />
+            </div>
+            <div className="skeleton-shimmer-light w-28 h-10 rounded-xl shrink-0" />
           </div>
-          <div className="skeleton-shimmer-light w-28 h-9 rounded-full justify-self-end" />
         </article>
       </div>
     </>
@@ -219,11 +224,18 @@ export default function ResultPage({
   isAnalyzing,
 }: ResultPageProps) {
   const [copied, setCopied] = useState(false);
+  const [copiedHex, setCopiedHex] = useState<string | null>(null);
 
   const handleCopyBio = () => {
     navigator.clipboard?.writeText(result.bioRemix.text);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleCopyHex = (hex: string) => {
+    navigator.clipboard?.writeText(hex);
+    setCopiedHex(hex);
+    window.setTimeout(() => setCopiedHex(null), 2000);
   };
 
   const breakdown = result.aestheticScore.breakdown || {
@@ -252,21 +264,9 @@ export default function ResultPage({
           <span>วิเคราะห์โปรไฟล์ใหม่</span>
         </button>
 
-        <div className="flex gap-2.5 flex-wrap">
-          {onOpenStoryPlayer && (
-            <button
-              className="action-btn bg-acid text-ink hover:bg-[#d5f822] inline-flex items-center gap-2 border-2 border-ink shadow-[3px_3px_0_var(--ink)] active:translate-x-0.5 active:translate-y-0.5 transition-all font-black cursor-pointer"
-              onClick={onOpenStoryPlayer}
-              disabled={isAnalyzing}
-              style={isAnalyzing ? { opacity: 0.5, cursor: "not-allowed" } : undefined}
-              title="เปิดดูเรื่องราว Wrapped แบบสไลด์ 9:16 เต็มจอ"
-            >
-              <Play className="w-4 h-4 fill-ink" />
-              <span>ดูแบบ Story Wrapped</span>
-            </button>
-          )}
+        <div className="flex gap-2.5 flex-wrap items-center">
           <button
-            className="action-btn action-btn-story inline-flex items-center gap-2"
+            className="action-btn action-btn-story inline-flex items-center gap-2 bg-purple text-white hover:bg-[#6643c7] font-extrabold border-2 border-ink shadow-[3px_3px_0_var(--ink)] active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer"
             onClick={onOpenStoryModal}
             disabled={isAnalyzing}
             style={isAnalyzing ? { opacity: 0.5, cursor: "not-allowed" } : undefined}
@@ -274,12 +274,26 @@ export default function ResultPage({
             <Download className="w-4 h-4" />
             <span>{isAnalyzing ? "กำลังประมวลผล..." : "บันทึกการ์ด IG Story (9:16)"}</span>
           </button>
+
+          {onOpenStoryPlayer && (
+            <button
+              className="action-btn bg-white hover:bg-paper text-ink inline-flex items-center gap-2 border-2 border-ink shadow-[2px_2px_0_var(--ink)] active:translate-x-0.5 active:translate-y-0.5 transition-all font-bold cursor-pointer"
+              onClick={onOpenStoryPlayer}
+              disabled={isAnalyzing}
+              style={isAnalyzing ? { opacity: 0.5, cursor: "not-allowed" } : undefined}
+              title="เปิดดูเรื่องราว Wrapped แบบสไลด์ 9:16 เต็มจอ"
+            >
+              <Play className="w-3.5 h-3.5 fill-ink" />
+              <span>ดูแบบ Story</span>
+            </button>
+          )}
+
           <button
-            className="action-btn action-btn-ethics inline-flex items-center gap-2"
+            className="action-btn action-btn-ethics inline-flex items-center gap-1.5 text-xs text-muted hover:text-ink font-semibold border-1.5 border-ink/40 bg-white hover:bg-paper rounded-full px-3.5 py-1.5 transition-colors"
             onClick={onOpenHowItWorks}
           >
-            <HelpCircle className="w-4 h-4" />
-            <span>วิธีคำนวณคะแนน ➜</span>
+            <HelpCircle className="w-3.5 h-3.5 text-purple" />
+            <span>วิธีคำนวณคะแนน</span>
           </button>
         </div>
       </div>
@@ -324,21 +338,21 @@ export default function ResultPage({
         <>
           {/* Degraded State Notice if AI analysis is offline */}
           {result.isAiDegraded && (
-            <div className="bg-[#fff9e6] border-2 border-ink rounded-2xl p-4 md:p-5 mb-7 flex justify-between items-center flex-wrap gap-3.5 shadow-[4px_4px_0_var(--ink)]">
-              <div>
+            <div className="bg-[#fff9e6] border-2 border-ink rounded-2xl p-4 md:p-5 mb-7 flex justify-between items-center flex-wrap gap-4 shadow-[4px_4px_0_var(--ink)]">
+              <div className="max-w-[620px]">
                 <div className="flex items-center gap-2 font-extrabold text-sm text-ink">
                   <span className="text-orange text-base">●</span>
                   <span>โหมดวิเคราะห์พิกเซลภาพถ่าย (AI ข้อความออฟไลน์)</span>
                 </div>
-                <p className="m-0 mt-1 text-xs md:text-sm text-muted max-w-[620px] leading-relaxed">
-                  ระบบวัดค่า Color DNA และตัดรูปภาพจากโปรไฟล์จริงของคุณเรียบร้อยแล้ว หากต้องการให้ AI สรุปฉายาและตัวเลขใหม่อัตโนมัติ สามารถกดลองอีกครั้ง หรือแก้ไขข้อมูลบนการ์ดได้ทันที
+                <p className="m-0 mt-1 text-xs md:text-sm text-muted leading-relaxed">
+                  ระบบวัดค่า Color DNA และตัดรูปภาพจากโปรไฟล์จริงของคุณเรียบร้อยแล้ว {result.degradedReason ? `(เหตุผล: ${result.degradedReason})` : "เนื่องจากต่อ Gemini AI ไม่สำเร็จ"} หากต้องการให้ AI สรุปฉายาและตัวเลขใหม่อัตโนมัติ สามารถกดลองอีกครั้ง หรือแก้ไขข้อมูลบนการ์ดได้ทันที
                 </p>
               </div>
               {onRetry && (
                 <button
                   onClick={onRetry}
                   disabled={isAnalyzing}
-                  className="bg-ink text-acid border-2 border-ink rounded-full px-4 py-2 text-xs font-extrabold cursor-pointer inline-flex items-center gap-1.5 hover:bg-purple hover:text-white transition-colors"
+                  className="bg-ink text-acid border-2 border-ink rounded-full px-4 py-2 text-xs font-extrabold cursor-pointer inline-flex items-center gap-1.5 hover:bg-purple hover:text-white transition-colors shadow-[2px_2px_0_var(--ink)]"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${isAnalyzing ? "animate-spin" : ""}`} />
                   <span>{isAnalyzing ? "กำลังวิเคราะห์..." : "ลองวิเคราะห์ AI อีกครั้ง"}</span>
@@ -386,12 +400,6 @@ export default function ResultPage({
             <h1 className="text-3xl md:text-5xl font-extrabold text-ink tracking-tight mt-1 mb-2">
               นี่คือ vibe ประจำโปรไฟล์ของคุณ
             </h1>
-            {result.isPresetDemo && (
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple text-white font-extrabold text-xs rounded-full border border-ink shadow-[2px_2px_0_var(--ink)] my-1">
-                <span>✦</span>
-                <span>โหมดตัวอย่าง (Preset Demo) — ไม่ได้อัปโหลดภาพจริง</span>
-              </div>
-            )}
             <p>วิเคราะห์จากข้อมูลและโทนสีของภาพหน้าจอ ผลลัพธ์นี้สร้างขึ้นเพื่อความสนุกสนาน</p>
           </div>
 
@@ -408,19 +416,22 @@ export default function ResultPage({
                 <Sparkles className="w-14 h-14 text-acid fill-acid" />
               </div>
               <p>{result.persona.description}</p>
-              <textarea
-                value={result.persona.title}
-                onChange={(e) =>
-                  onUpdateResult({
-                    ...result,
-                    persona: { ...result.persona, title: e.target.value },
-                  })
-                }
-                rows={2}
-                aria-label="แก้ไขฉายา Persona"
-                className="w-full bg-transparent border border-dashed border-white/35 rounded-lg p-1 text-white text-3xl font-extrabold tracking-tight leading-none resize-none outline-none focus:border-acid"
-                title="คลิกเพื่อแก้ไขฉายา"
-              />
+              <div className="relative group my-1">
+                <textarea
+                  value={result.persona.title}
+                  onChange={(e) =>
+                    onUpdateResult({
+                      ...result,
+                      persona: { ...result.persona, title: e.target.value },
+                    })
+                  }
+                  rows={2}
+                  aria-label="แก้ไขฉายา Persona"
+                  className="w-full bg-transparent border border-dashed border-white/35 rounded-lg p-2 text-white text-3xl font-extrabold tracking-tight leading-snug resize-none outline-none focus:border-acid transition-colors cursor-text pr-8"
+                  title="คลิกเพื่อแก้ไขฉายา"
+                />
+                <Pencil className="w-3.5 h-3.5 text-white/50 absolute right-2.5 top-2.5 pointer-events-none group-hover:text-acid transition-colors" />
+              </div>
               <div className="tag-row mt-3.5">
                 {result.persona.tags.map((tag, i) => (
                   <span key={i}>#{tag}</span>
@@ -438,24 +449,27 @@ export default function ResultPage({
                 <span className="score-number">{result.aestheticScore.score}</span>
                 <span>/100</span>
               </div>
-              <div className="grid gap-1.5">
-                <input
-                  type="text"
-                  value={result.aestheticScore.verdict}
-                  onChange={(e) =>
-                    onUpdateResult({
-                      ...result,
-                      aestheticScore: { ...result.aestheticScore, verdict: e.target.value },
-                    })
-                  }
-                  aria-label="แก้ไขคำตัดสิน Aesthetic Verdict"
-                  className="bg-transparent border border-dashed border-ink/30 rounded px-1.5 py-0.5 text-2xl font-extrabold text-ink outline-none w-full focus:border-ink"
-                  title="คลิกเพื่อแก้ไขคำตัดสิน"
-                />
-                <p>{result.aestheticScore.description}</p>
-              </div>
-              <div className="meter">
-                <span style={{ width: `${result.aestheticScore.score}%` }} />
+              <div className="score-content">
+                <div className="relative group w-full">
+                  <input
+                    type="text"
+                    value={result.aestheticScore.verdict}
+                    onChange={(e) =>
+                      onUpdateResult({
+                        ...result,
+                        aestheticScore: { ...result.aestheticScore, verdict: e.target.value },
+                      })
+                    }
+                    aria-label="แก้ไขคำตัดสิน Aesthetic Verdict"
+                    className="bg-transparent border border-dashed border-ink/30 rounded-lg px-2 py-1 text-xl sm:text-2xl font-extrabold text-ink outline-none w-full focus:border-ink transition-colors pr-7"
+                    title="คลิกเพื่อแก้ไขคำตัดสิน"
+                  />
+                  <Pencil className="w-3.5 h-3.5 text-ink/40 absolute right-2 top-2.5 pointer-events-none group-hover:text-ink transition-colors" />
+                </div>
+                <p className="score-desc">{result.aestheticScore.description}</p>
+                <div className="meter">
+                  <span style={{ width: `${result.aestheticScore.score}%` }} />
+                </div>
               </div>
 
               {/* 3D Breakdown Metrics & Honest Critique */}
@@ -531,20 +545,50 @@ export default function ResultPage({
                 <span>COLOR DNA</span>
                 <span>03</span>
               </div>
-              <h3>โทนสีประจำตัว</h3>
-              <div className="swatches">
-                {result.colorDNA.map((c, i) => (
-                  <span
+              <div className="flex items-center justify-between mt-6 mb-3">
+                <h3 className="!m-0 text-xl font-extrabold tracking-tight">โทนสีประจำตัว</h3>
+                {copiedHex ? (
+                  <span className="text-[11px] font-bold text-purple bg-purple/10 border border-purple/20 px-2 py-0.5 rounded-full animate-pulse">
+                    คัดลอก {copiedHex} แล้ว!
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-muted font-bold tracking-wider uppercase">
+                    แตะที่สีเพื่อคัดลอก HEX
+                  </span>
+                )}
+              </div>
+              <div className="swatches border-2 border-ink shadow-[2px_2px_0_var(--ink)]">
+                {result.colorDNA.slice(0, 4).map((c, i) => (
+                  <button
                     key={i}
-                    className={`swatch swatch-${i + 1}`}
+                    type="button"
+                    onClick={() => handleCopyHex(c.hex)}
+                    className={`swatch swatch-${i + 1} flex items-center justify-center group outline-none border-r last:border-r-0 border-ink/20`}
                     style={{ background: c.hex }}
-                    title={`${c.name} (${c.hex})`}
-                  />
+                    title={`คลิกเพื่อคัดลอก HEX ${c.hex} (${c.name})`}
+                  >
+                    <span className="opacity-0 group-hover:opacity-100 bg-ink/80 text-white text-[10px] font-mono font-bold px-1.5 py-0.5 rounded transition-opacity">
+                      {copiedHex === c.hex ? "✓" : c.hex}
+                    </span>
+                  </button>
                 ))}
               </div>
-              <div className="palette-labels">
-                {result.colorDNA.slice(0, 3).map((c, i) => (
-                  <span key={i}>{c.name}</span>
+              <div className="grid grid-cols-4 gap-1 mt-3 text-center">
+                {result.colorDNA.slice(0, 4).map((c, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => handleCopyHex(c.hex)}
+                    className="flex flex-col items-center hover:opacity-80 transition-opacity cursor-pointer group text-left sm:text-center"
+                    title={`คลิกเพื่อคัดลอก ${c.hex}`}
+                  >
+                    <span className="font-bold text-[11px] text-ink truncate w-full group-hover:text-purple">
+                      {c.name}
+                    </span>
+                    <span className="font-mono text-[10px] text-muted tracking-tight">
+                      {c.hex}
+                    </span>
+                  </button>
                 ))}
               </div>
             </article>
@@ -615,32 +659,58 @@ export default function ResultPage({
             <article className="remix-card">
               <div className="card-topline">
                 <span>BIO REMIX</span>
-                <span>05</span>
+                <span>06</span>
               </div>
-              <Wand2 className="w-7 h-7 text-acid justify-self-center" />
-              <div className="grid gap-1.5">
-                <input
-                  type="text"
-                  value={result.bioRemix.text}
-                  onChange={(e) =>
-                    onUpdateResult({
-                      ...result,
-                      bioRemix: { ...result.bioRemix, text: e.target.value },
-                    })
-                  }
-                  aria-label="แก้ไขคำแซวไบโอ"
-                  className="w-full bg-transparent border border-dashed border-white/35 rounded px-2 py-1 text-white text-2xl font-bold tracking-tight outline-none focus:border-acid"
-                  title="คลิกเพื่อแก้ไขคำแซวไบโอ"
-                />
-                <p className="text-white/80 text-xs md:text-sm">{result.bioRemix.subtext}</p>
+              <div className="remix-content-row">
+                <div className="flex items-center gap-3 shrink-0">
+                  <div className="w-11 h-11 md:w-14 md:h-14 rounded-2xl bg-black/25 border-2 border-white/20 flex items-center justify-center shrink-0 shadow-[2px_2px_0_rgba(0,0,0,0.2)]">
+                    <Wand2 className="w-5 h-5 md:w-7 md:h-7 text-acid" />
+                  </div>
+                  <div className="sm:hidden flex items-center gap-2">
+                    <span className="text-[10px] font-extrabold tracking-wider text-acid uppercase bg-black/35 border border-acid/30 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                      <Sparkles className="w-3 h-3 text-acid" />
+                      ไบโอฉบับปั่น แนะนำโดย AI
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex-1 min-w-0 w-full">
+                  <div className="hidden sm:flex items-center gap-2 mb-1.5 flex-wrap">
+                    <span className="text-[11px] font-extrabold tracking-wider text-acid uppercase bg-black/35 border border-acid/30 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                      <Sparkles className="w-3 h-3 text-acid" />
+                      ไบโอฉบับปั่น แนะนำโดย AI
+                    </span>
+                    <span className="text-white/60 text-[11px]">(คลิกข้อความเพื่อแก้ไข)</span>
+                  </div>
+                  <div className="relative group">
+                    <input
+                      type="text"
+                      value={result.bioRemix.text}
+                      onChange={(e) =>
+                        onUpdateResult({
+                          ...result,
+                          bioRemix: { ...result.bioRemix, text: e.target.value },
+                        })
+                      }
+                      aria-label="แก้ไขคำแซวไบโอ"
+                      className="w-full bg-white/10 hover:bg-white/15 focus:bg-black/35 border border-white/25 focus:border-acid rounded-xl px-3.5 py-2.5 text-white text-base md:text-xl font-bold tracking-tight outline-none transition-all pr-8"
+                      title="คลิกเพื่อแก้ไขคำแซวไบโอ"
+                    />
+                    <Pencil className="w-3.5 h-3.5 text-white/50 absolute right-2.5 top-3.5 pointer-events-none group-hover:text-acid transition-colors" />
+                  </div>
+                  <p className="text-white/85 text-xs md:text-sm mt-1.5 leading-relaxed">{result.bioRemix.subtext}</p>
+                </div>
+
+                <div className="shrink-0 w-full sm:w-auto flex sm:self-center">
+                  <button
+                    onClick={handleCopyBio}
+                    className="w-full sm:w-auto bg-acid text-ink hover:bg-white border-2 border-ink rounded-xl px-5 py-3 text-xs md:text-sm font-extrabold cursor-pointer shadow-[3px_3px_0_var(--ink)] inline-flex items-center justify-center gap-2 transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                  >
+                    {copied ? <Check className="w-4 h-4 text-ink" /> : <Copy className="w-4 h-4 text-ink" />}
+                    <span>{copied ? "คัดลอกแล้ว!" : "คัดลอกไบโอ"}</span>
+                  </button>
+                </div>
               </div>
-              <button
-                onClick={handleCopyBio}
-                className="inline-flex items-center gap-2 cursor-pointer hover:bg-white/10 transition-colors"
-              >
-                {copied ? <Check className="w-4 h-4 text-acid" /> : <Copy className="w-4 h-4" />}
-                <span>{copied ? "คัดลอกแล้ว" : "คัดลอกไบโอ"}</span>
-              </button>
             </article>
           </div>
 

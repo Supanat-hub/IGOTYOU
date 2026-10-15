@@ -92,19 +92,6 @@ export default function App() {
     navigateTo("home");
   };
 
-  const handleSelectPreset = (key: string) => {
-    setErrorMessage(null);
-    setIsAnalyzing(true);
-    navigateTo("result");
-    window.setTimeout(() => {
-      if (PRESETS[key]) {
-        setResult({ ...PRESETS[key], isPresetDemo: true });
-      }
-      setHasResult(true);
-      setIsAnalyzing(false);
-    }, 1800);
-  };
-
   return (
     <main>
       <Navbar
@@ -155,7 +142,6 @@ export default function App() {
           onFilesChange={setFiles}
           onDragStateChange={setIsDragging}
           onAnalyze={handleAnalyze}
-          onSelectPreset={handleSelectPreset}
           onNavigateToHowItWorks={() => navigateTo("how-it-works")}
         />
       )}

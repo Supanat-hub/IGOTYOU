@@ -3,6 +3,7 @@ import { ExtractedColor, BoundingBox, extractColorDNA } from "./colorExtractor";
 export interface AnalysisResult {
   username: string;
   isAiDegraded?: boolean;
+  degradedReason?: string;
   isValidProfile?: boolean;
   invalidReason?: string;
   isPresetDemo?: boolean;
@@ -53,9 +54,9 @@ export const PRESETS: Record<string, AnalysisResult> = {
     username: "@minimal.vibes",
     isPresetDemo: true,
     persona: {
-      title: "สายคาเฟ่\nมินิมอล",
+      title: "เทสดีมีสไตล์ · คล้ายพี่ดารา",
       description: "ฉายาประจำโปรไฟล์ของคุณคือ",
-      tags: ["slow life", "cafe hopping", "warm grain"],
+      tags: ["เทสดีมีสไตล์", "cafe hopping", "warm aesthetic"],
     },
     aestheticScore: {
       score: 92,
@@ -115,7 +116,7 @@ export const PRESETS: Record<string, AnalysisResult> = {
     username: "@wanderer.peak",
     isPresetDemo: true,
     persona: {
-      title: "นักเดินทาง\nธรรมชาติบำบัด",
+      title: "นักสะสมสเปซ · และแสงธรรมชาติ",
       description: "ฉายาประจำโปรไฟล์ของคุณคือ",
       tags: ["into the wild", "trekking", "green vibes"],
     },
@@ -176,9 +177,9 @@ export const PRESETS: Record<string, AnalysisResult> = {
     username: "@neon.curator",
     isPresetDemo: true,
     persona: {
-      title: "ครีเอทีฟ\nสตรีทอาร์ต",
+      title: "ตัวตึงคุมโทน · โดดเด่นเกินต้าน",
       description: "ฉายาประจำโปรไฟล์ของคุณคือ",
-      tags: ["urban cool", "creative edge", "bold contrast"],
+      tags: ["ตัวตึงคุมโทน", "creative edge", "bold contrast"],
     },
     aestheticScore: {
       score: 95,
@@ -317,86 +318,10 @@ function buildUserGridImages(
 async function callAnalyzeProxy(
   images: { mimeType: string; data: string }[]
 ): Promise<any> {
-  const prompt = `You are IGOTYOU, an objective, insightful, culturally-attuned Instagram aesthetic & profile analyzer (like Spotify Wrapped, but for Instagram visual identity).
-Analyze the provided screenshot(s).
-
-TASKS:
-0. CRITICAL PROFILE VALIDATION:
-   First, inspect if the uploaded image is actually an Instagram profile screen (has handle/username, bio, avatar, or post grid).
-   - If the image is completely unrelated (e.g. a payment slip/receipt, random meme, standalone landscape/food photo with no IG UI, chat screenshot, document, or non-Instagram picture):
-     Set "isValidProfile": false,
-     Set "invalidReason": "ภาพที่อัปโหลดไม่ตรงกับหน้าจอโปรไฟล์ Instagram (ไม่พบแถบชื่อผู้ใช้หรือกริดรูปภาพ) กรุณาแคปภาพหน้าโปรไฟล์ Instagram แล้วลองใหม่อีกครั้ง"
-     You may leave other fields with minimal placeholder values.
-   - If the image is a genuine Instagram profile screen:
-     Set "isValidProfile": true, "invalidReason": ""
-
-1. Extract exact username (@username). Look at the top handle text.
-2. Read bio text, category, school/university, MBTI, interests, and photo mood carefully to understand their core vibe.
-3. Extract stats: post count, followers count, following count, and calculate follower-to-following ratio (e.g. 1.1x).
-4. For each image (indexed 0 to ${images.length - 1}), identify the active photo bounding boxes [ymin, xmin, ymax, xmax] (0 to 1000):
-   - "post_grid": bounding box of the actual photos in the post grid. If a row has only 1 or 2 posts, xmax MUST only cover the actual photos, NOT empty space!
-   - "avatar": bounding box of the circular profile avatar.
-   Include "image_index" (0 to ${images.length - 1}) in each detected box.
-
-5. STRICT COMPOSITION & COHESION SCORING (NO FLATTERY BIAS):
-   Evaluate compositionScore honestly on a 25 to 98 scale:
-   - 90–98: Master curation (unified cohesive color story, consistent lighting/shadows, intentional grid flow).
-   - 75–89: Good aesthetic taste, but has 1-2 photos with disjointed lighting or color deviation.
-   - 55–74: Casual everyday uncurated feed (mixed subjects, random lighting, no deliberate color theme).
-   - 35–54: Chaotic/clashing (mismatched neon vs dull tones, harsh conflicting lighting, jarring angles).
-   - < 35: Extremely messy or cluttered visuals.
-
-6. Persona title in Thai:
-   - Create a witty, prestigious, or delightfully relatable Spotify-Wrapped ARCHETYPE BADGE in Thai (or mixed Thai/English aesthetic).
-   - EXAMPLES OF GREAT PERSONAS:
-     "สถาปนิกเงา\\nผู้คุมมู้ดดาร์ก"
-     "The Quiet Curator\\nนักสะสมความเงียบ"
-     "เด็กสถาปัตย์\\nสายนกฮูกกลางคืน"
-     "Monochrome Soul\\nกวีแห่งแสงเงา"
-     "สายดาร์กมินิมอล\\nผู้รักความสงบ"
-     "นักสะสมสเปซ\\nและแสงธรรมชาติ"
-   - STRICT PROHIBITION: NEVER simply join words from their bio, school acronyms, or MBTI with dots (DO NOT output things like "KMITL · INTP สายอาร์ต" or "Chula · ENFP สายเที่ยว")! That is robotic and lacks insight. Instead, synthesize their visual world, aesthetics, and lifestyle into a meaningful persona title they will proudly share on IG Story.
-   - Max 14-22 characters. Use "\\n" between the 2 natural halves so it splits cleanly onto 2 lines.
-   - Tags: 2-3 creative aesthetic tags (e.g. "dark academia", "shadow play", "concrete poetry", "monochrome vibes"), NOT raw school acronyms.
-
-7. Aesthetic score verdict & honest critique:
-   - verdict: Short punchy phrase reflecting reality (e.g. "คุมโทนระดับมาสเตอร์", "โทนภาพมีเอกลักษณ์", "ฟีดตามใจฉัน สไตล์ไลฟ์สไตล์", "สีและแสงค่อนข้างตีกัน").
-   - description: 1-2 thoughtful sentences explaining their visual harmony and color choice.
-   - honestCritique: A truthful 1-sentence critique in Thai pointing out both what works and what reduced the score (e.g. "โทนสีสตรีทมีความดิบเท่ แต่ภาพที่มีแสงแฟลชสว่างโดดออกมาจากโทนรวม ทำให้ความกลมกลืนของกริดลดลง").
-
-8. Top 3 content pillars in Thai (e.g. แสงเงาสตรีท · สถาปัตยกรรมมืด · มุมมองขาวดำ).
-9. A witty, poetic 1-line English bio remix with a clever Thai subtext.
-
-Return ONLY valid JSON matching this exact structure:
-{
-  "isValidProfile": true,
-  "invalidReason": "",
-  "username": "@username",
-  "detectedBoxes": [
-    { "image_index": 0, "ymin": 150, "xmin": 0, "ymax": 950, "xmax": 660, "label": "post_grid" },
-    { "image_index": 1, "ymin": 80, "xmin": 30, "ymax": 260, "xmax": 300, "label": "avatar" }
-  ],
-  "persona": { "title": "...", "description": "ฉายาประจำโปรไฟล์ของคุณคือ", "tags": ["tag1", "tag2"] },
-  "aestheticScore": { "verdict": "...", "description": "...", "honestCritique": "..." },
-  "compositionScore": 72,
-  "stats": { "followerRatio": "1.1×", "postDensity": "2", "ocrNote": "ประเมินจากภาพถ่ายหน้าจอ" },
-  "topContent": { "category": "TOP CONTENT", "description": "..." },
-  "bioRemix": { "text": "...", "subtext": "..." }
-}`;
-
-  const customKey =
-    sessionStorage.getItem("IGOTYOU_GEMINI_KEY") ||
-    localStorage.getItem("IGOTYOU_GEMINI_KEY") ||
-    "";
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (customKey) {
-    headers["x-gemini-key"] = customKey;
-  }
-
   const res = await fetch("/api/analyze", {
     method: "POST",
-    headers,
-    body: JSON.stringify({ prompt, images }),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ images }),
   });
 
   if (!res.ok) {
@@ -446,6 +371,7 @@ export async function analyzeProfile(files: File[], presetKey?: string): Promise
     return PRESETS[presetKey];
   }
 
+  let lastAnalysisError = "";
   if (files && files.length > 0) {
     try {
       // 1. Client-side downscaling for fast upload
@@ -546,8 +472,9 @@ export async function analyzeProfile(files: File[], presetKey?: string): Promise
 
         return parsed as AnalysisResult;
       }
-    } catch (e) {
+    } catch (e: any) {
       console.warn("AI analysis service unavailable, activating honest degraded mode:", e);
+      lastAnalysisError = e?.message || "";
     }
   }
 
@@ -562,14 +489,43 @@ export async function analyzeProfile(files: File[], presetKey?: string): Promise
   const contrast = extractionResult.metrics.contrastScore;
   const honestScore = calculateDegradedScore(harmony, contrast);
 
+  // Dynamic witty & rhyming persona for degraded/offline analysis
+  const getOfflinePersona = (score: number, cont: number) => {
+    if (score >= 82) {
+      return {
+        title: "เทสดีมีสไตล์ · คล้ายพี่ดารา",
+        tags: ["เทสดีมีสไตล์", "star quality", "aesthetic curation"],
+      };
+    }
+    if (cont >= 60) {
+      return {
+        title: "กวีแห่งแสงเงา · เล่าเรื่องด้วยมู้ด",
+        tags: ["shadow poetry", "deep mood", "contrast play"],
+      };
+    }
+    if (score >= 65) {
+      return {
+        title: "ตัวตึงคุมโทน · โดดเด่นเกินต้าน",
+        tags: ["ตัวตึงคุมโทน", "clean palette", "cohesive vibe"],
+      };
+    }
+    return {
+      title: "สเปซคูลๆ · ดูดีทุกองศา",
+      tags: ["casual chic", "real photo dna", "natural vibe"],
+    };
+  };
+
+  const offlinePersona = getOfflinePersona(honestScore, contrast);
+
   return {
     username: "@my.profile",
     isAiDegraded: true,
+    degradedReason: lastAnalysisError,
     isValidProfile: true,
     persona: {
-      title: "สไตล์เฉพาะตัว\nโทนสีชัดเจน",
+      title: offlinePersona.title,
       description: "สกัดโทนสีจากรูปถ่ายจริงของคุณเรียบร้อยแล้ว",
-      tags: ["real photo dna", "custom vibe"],
+      tags: offlinePersona.tags,
     },
     aestheticScore: {
       score: honestScore,
