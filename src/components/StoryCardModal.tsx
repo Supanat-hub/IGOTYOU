@@ -296,7 +296,7 @@ export default function StoryCardModal({ isOpen, onClose, data }: StoryCardModal
               style={{
                 background: "var(--acid)",
                 color: "var(--ink)",
-                border: "1.5px solid var(--ink)",
+                border: "2px solid var(--ink)",
                 borderRadius: "99px",
                 padding: "4px 10px",
                 fontSize: "10px",
@@ -424,9 +424,9 @@ export default function StoryCardModal({ isOpen, onClose, data }: StoryCardModal
                     width: "100%",
                     borderRadius: "10px",
                     overflow: "hidden",
-                    border: isNoir ? "1.5px solid rgba(255,255,255,0.2)" : "1.5px solid var(--ink)",
+                    border: isNoir ? "2px solid rgba(255,255,255,0.25)" : "2px solid var(--ink)",
                     boxShadow: isNoir ? "2px 2px 0 rgba(0,0,0,0.4)" : "2px 2px 0 var(--ink)",
-                    background: isNoir ? "#202018" : "#f0ede6",
+                    background: "var(--ink)",
                     transition: "aspect-ratio 0.2s ease",
                   }}
                 >
@@ -439,6 +439,8 @@ export default function StoryCardModal({ isOpen, onClose, data }: StoryCardModal
                       objectFit: "cover",
                       objectPosition: "center",
                       display: "block",
+                      transform: "scale(1.02)",
+                      transformOrigin: "center",
                     }}
                   />
                 </div>
@@ -488,13 +490,13 @@ export default function StoryCardModal({ isOpen, onClose, data }: StoryCardModal
                 style={{
                   background: "var(--acid)",
                   color: "var(--ink)",
-                  border: "1.5px solid var(--ink)",
+                  border: "2px solid var(--ink)",
                   borderRadius: "99px",
                   padding: "2px 9px",
                   display: "flex",
                   alignItems: "baseline",
                   gap: "2px",
-                  boxShadow: "1.5px 1.5px 0 var(--ink)",
+                  boxShadow: "2px 2px 0 var(--ink)",
                 }}
               >
                 <span style={{ font: "800 17px/1 Manrope, sans-serif" }}>
@@ -508,32 +510,75 @@ export default function StoryCardModal({ isOpen, onClose, data }: StoryCardModal
             <div>
               <div
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(4, 1fr)",
+                  display: "flex",
                   height: "26px",
                   borderRadius: "8px",
                   overflow: "hidden",
-                  border: isNoir ? "1.5px solid rgba(255,255,255,0.2)" : "1.5px solid var(--ink)",
+                  border: isNoir ? "2px solid rgba(255,255,255,0.25)" : "2px solid var(--ink)",
+                  background: "var(--ink)",
                 }}
               >
                 {data.colorDNA.slice(0, 4).map((c, i) => (
-                  <div key={i} style={{ background: c.hex }} title={c.name} />
+                  <div
+                    key={i}
+                    style={{
+                      flex: 1,
+                      height: "100%",
+                      background: c.hex,
+                    }}
+                    title={c.name}
+                  />
                 ))}
               </div>
               <div
                 style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  fontSize: "9px",
-                  color: isNoir ? "rgba(255,255,255,0.6)" : "var(--muted)",
-                  fontWeight: 700,
-                  marginTop: "4px",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
+                  display: "grid",
+                  gridTemplateColumns: "repeat(4, 1fr)",
+                  gap: "4px",
+                  marginTop: "6px",
+                  width: "100%",
                 }}
               >
-                {data.colorDNA.slice(0, 4).map((c) => c.name).join(" · ")}
+                {data.colorDNA.slice(0, 4).map((c, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      minWidth: 0,
+                      textAlign: "center",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: "9px",
+                        fontWeight: 800,
+                        color: isNoir ? "rgba(255,255,255,0.9)" : "var(--ink)",
+                        width: "100%",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        lineHeight: 1.2,
+                      }}
+                      title={c.name}
+                    >
+                      {c.name}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: "8px",
+                        fontFamily: "monospace",
+                        fontWeight: 700,
+                        color: isNoir ? "rgba(255,255,255,0.5)" : "var(--muted)",
+                        lineHeight: 1.1,
+                        marginTop: "1px",
+                      }}
+                    >
+                      {c.hex.toUpperCase()}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -585,7 +630,7 @@ export default function StoryCardModal({ isOpen, onClose, data }: StoryCardModal
             <div
               style={{
                 background: isNoir ? "#202018" : "var(--white)",
-                border: isNoir ? "1.5px solid rgba(255,255,255,0.18)" : "1.5px solid var(--ink)",
+                border: isNoir ? "2px solid rgba(255,255,255,0.18)" : "2px solid var(--ink)",
                 borderRadius: "12px",
                 padding: "7px 10px",
                 textAlign: "center",
@@ -615,7 +660,7 @@ export default function StoryCardModal({ isOpen, onClose, data }: StoryCardModal
             <div
               style={{
                 background: isNoir ? "#202018" : "var(--white)",
-                border: isNoir ? "1.5px solid rgba(255,255,255,0.18)" : "1.5px solid var(--ink)",
+                border: isNoir ? "2px solid rgba(255,255,255,0.18)" : "2px solid var(--ink)",
                 borderRadius: "12px",
                 padding: "7px 10px",
                 textAlign: "center",
