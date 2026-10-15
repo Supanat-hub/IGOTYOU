@@ -670,6 +670,106 @@ function calculatePhotoMetrics(
   return { harmonyScore, contrastScore };
 }
 
+export interface ColorBucketItem {
+  r: number;
+  g: number;
+  b: number;
+  count: number;
+  weight: number;
+  isChromatic: boolean;
+}
+
+/**
+ * Selects a smart, 4-color aesthetic palette prioritizing chromatic colors over neutral tones.
+ * Solves the issue where uniform colors (white/black/gray) or concrete backgrounds dominate raw pixel counts.
+ */
+export function selectColorPaletteFromBuckets(
+  colorBuckets: Record<string, ColorBucketItem> | ColorBucketItem[],
+  defaultPalette: ExtractedColor[] = [
+    { hex: "#e8dcc3", name: "Oat Milk" },
+    { hex: "#9da77a", name: "Matcha" },
+    { hex: "#6c4434", name: "Espresso" },
+    { hex: "#d8a16f", name: "Warm Amber" },
+  ]
+): ExtractedColor[] {
+  const allBuckets = Array.isArray(colorBuckets) ? colorBuckets : Object.values(colorBuckets);
+  const chromatic = allBuckets
+    .filter((b) => b.isChromatic)
+    .sort((a, b) => b.weight - a.weight);
+  const neutrals = allBuckets
+    .filter((b) => !b.isChromatic)
+    .sort((a, b) => b.count - a.count);
+
+  const selected: ExtractedColor[] = [];
+
+  const canSelect = (item: { r: number; g: number; b: number }) => {
+    const hex = rgbToHex(item.r, item.g, item.b);
+    const name = getAestheticColorName(item.r, item.g, item.b);
+    if (selected.some((s) => s.name === name)) return null;
+    const isTooClose = selected.some((s) => {
+      const dr = Math.abs(parseInt(s.hex.slice(1, 3), 16) - item.r);
+      const dg = Math.abs(parseInt(s.hex.slice(3, 5), 16) - item.g);
+      const db = Math.abs(parseInt(s.hex.slice(5, 7), 16) - item.b);
+      return dr + dg + db < 65;
+    });
+    if (isTooClose) return null;
+    return { hex, name };
+  };
+
+  // 1. Pick up to 3 distinct chromatic colors first (so uniforms/concrete don't hijack the palette)
+  for (const item of chromatic) {
+    const res = canSelect(item);
+    if (res) {
+      selected.push(res);
+    }
+    if (selected.length >= 3) break;
+  }
+
+  // 2. Allow at most 1 neutral grounding color (e.g. Concrete Gray or Charcoal)
+  for (const item of neutrals) {
+    if (selected.length >= 4) break;
+    const res = canSelect(item);
+    if (res) {
+      selected.push(res);
+      break;
+    }
+  }
+
+  // 3. Fill remaining slots with additional chromatic colors
+  for (const item of chromatic) {
+    if (selected.length >= 4) break;
+    const res = canSelect(item);
+    if (res) {
+      selected.push(res);
+    }
+  }
+
+  // 4. If the feed is completely monochrome/B&W, fill remaining slots from neutrals
+  for (const item of neutrals) {
+    if (selected.length >= 4) break;
+    const res = canSelect(item);
+    if (res) {
+      selected.push(res);
+    }
+  }
+
+  // Backfill with default colors ensuring distinct names and hexes
+  for (const def of defaultPalette) {
+    if (selected.length >= 4) break;
+    if (
+      !selected.some(
+        (s) =>
+          s.name === def.name ||
+          s.hex.toLowerCase() === def.hex.toLowerCase()
+      )
+    ) {
+      selected.push(def);
+    }
+  }
+
+  return selected;
+}
+
 /**
  * Fully Automatic Adaptive Instagram Grid Cropper & Color DNA Extractor:
  * 1. Supports modern Instagram vertical grids (3:4 / 4:5 portrait) as well as classic 1:1 squares.
@@ -701,7 +801,7 @@ export async function extractColorDNA(
 
   const croppedImages: string[] = [];
   const existingFingerprints: number[][] = [];
-  const colorBuckets: Record<string, { r: number; g: number; b: number; count: number }> = {};
+  const colorBuckets: Record<string, ColorBucketItem> = {};
   const sampledLuminances: number[] = [];
   let avatarImage: string | undefined;
 
@@ -859,15 +959,20 @@ export async function extractColorDNA(
               const lum = (r * 299 + g * 587 + b * 114) / 1000;
               sampledLuminances.push(lum);
 
-              const qR = Math.floor(r / 32) * 32;
-              const qG = Math.floor(g / 32) * 32;
-              const qB = Math.floor(b / 32) * 32;
+              const qR = Math.floor(r / 24) * 24;
+              const qG = Math.floor(g / 24) * 24;
+              const qB = Math.floor(b / 24) * 24;
               const key = `${qR},${qG},${qB}`;
+              const diff = Math.max(qR, qG, qB) - Math.min(qR, qG, qB);
+              const isChromatic = diff >= 18;
+              // Boost colorful pixels so uniform/concrete gray doesn't drown out mood colors
+              const weight = 1 + (isChromatic ? Math.min(2.5, diff / 40) : 0);
 
               if (!colorBuckets[key]) {
-                colorBuckets[key] = { r: qR, g: qG, b: qB, count: 0 };
+                colorBuckets[key] = { r: qR, g: qG, b: qB, count: 0, weight: 0, isChromatic };
               }
               colorBuckets[key].count++;
+              colorBuckets[key].weight += weight;
             }
           }
         }
@@ -882,44 +987,7 @@ export async function extractColorDNA(
     croppedImages.push(avatarImage);
   }
 
-  // Sort color buckets by frequency
-  const sorted = Object.values(colorBuckets).sort((a, b) => b.count - a.count);
-
-  let selected: ExtractedColor[] = [];
-  if (sorted.length > 0) {
-    for (const item of sorted) {
-      const hex = rgbToHex(item.r, item.g, item.b);
-      const name = getAestheticColorName(item.r, item.g, item.b);
-
-      const isTooClose = selected.some((s) => {
-        const dr = Math.abs(parseInt(s.hex.slice(1, 3), 16) - item.r);
-        const dg = Math.abs(parseInt(s.hex.slice(3, 5), 16) - item.g);
-        const db = Math.abs(parseInt(s.hex.slice(5, 7), 16) - item.b);
-        return dr + dg + db < 70;
-      });
-
-      const isDuplicateName = selected.some((s) => s.name === name);
-
-      if (!isTooClose && !isDuplicateName) {
-        selected.push({ hex, name });
-      }
-      if (selected.length >= 4) break;
-    }
-  }
-
-  // Backfill with default colors ensuring distinct names and hexes
-  for (const def of defaultPalette) {
-    if (selected.length >= 4) break;
-    if (
-      !selected.some(
-        (s) =>
-          s.name === def.name ||
-          s.hex.toLowerCase() === def.hex.toLowerCase()
-      )
-    ) {
-      selected.push(def);
-    }
-  }
+  const selected = selectColorPaletteFromBuckets(colorBuckets, defaultPalette);
 
   const metrics = calculatePhotoMetrics(sampledLuminances, selected);
 

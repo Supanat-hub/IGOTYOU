@@ -17,6 +17,8 @@ import {
   findGridHorizontalBounds,
   refineGridColumns,
   findGridRowHeight,
+  selectColorPaletteFromBuckets,
+  ColorBucketItem,
   PixelBuffer,
 } from "./colorExtractor";
 
@@ -317,4 +319,47 @@ test("refineGridColumns recovers true column width when only 1 post is visible o
   assert.equal(Math.abs((refined as { colW: number }).colW - 178) <= 3, true);
   assert.equal(Math.abs((refined as { left: number }).left - 88) <= 2, true);
 });
+
+test("selectColorPaletteFromBuckets prioritizes chromatic colors over dominant uniform gray/concrete backgrounds", () => {
+  // Simulate a profile where 85% of pixels are uniform shirt/skirt/concrete grays with massive raw counts
+  const mockBuckets: ColorBucketItem[] = [
+    // Dominant neutral grays with huge raw counts
+    { r: 192, g: 192, b: 192, count: 80000, weight: 80000, isChromatic: false }, // Concrete Gray / Warm Oat
+    { r: 160, g: 160, b: 160, count: 65000, weight: 65000, isChromatic: false },
+    { r: 128, g: 128, b: 128, count: 50000, weight: 50000, isChromatic: false },
+    { r: 64, g: 64, b: 64, count: 40000, weight: 40000, isChromatic: false },
+    { r: 32, g: 32, b: 32, count: 30000, weight: 30000, isChromatic: false },
+    // Chromatic mood colors with smaller raw counts but significant weight
+    { r: 240, g: 216, b: 96, count: 8000, weight: 25000, isChromatic: true }, // Golden Mustard
+    { r: 96, g: 192, b: 192, count: 7000, weight: 22000, isChromatic: true },  // Sage/Teal
+    { r: 216, g: 120, b: 96, count: 6000, weight: 19000, isChromatic: true },  // Terracotta
+  ];
+
+  const palette = selectColorPaletteFromBuckets(mockBuckets);
+  assert.equal(palette.length, 4);
+
+  // Neutral colors must be capped at 1
+  const neutralNames = ["Concrete Gray", "Charcoal Ink", "Deep Slate", "Obsidian Shadow", "Warm Oat", "Pitch Black"];
+  const neutralCount = palette.filter((c) => neutralNames.includes(c.name)).length;
+  assert.equal(neutralCount <= 1, true, `Expected <= 1 neutral, got ${neutralCount}`);
+
+  // At least 3 chromatic colors should be selected
+  const chromaticColors = palette.filter((c) => !neutralNames.includes(c.name));
+  assert.equal(chromaticColors.length >= 3, true, `Expected >= 3 chromatic colors, got ${chromaticColors.length}`);
+});
+
+test("selectColorPaletteFromBuckets handles pure monochrome feeds gracefully", () => {
+  // Pure B&W feed with only grays
+  const mockMonochrome: ColorBucketItem[] = [
+    { r: 216, g: 216, b: 216, count: 5000, weight: 5000, isChromatic: false },
+    { r: 168, g: 168, b: 168, count: 4000, weight: 4000, isChromatic: false },
+    { r: 120, g: 120, b: 120, count: 3000, weight: 3000, isChromatic: false },
+    { r: 48, g: 48, b: 48, count: 2000, weight: 2000, isChromatic: false },
+  ];
+
+  const palette = selectColorPaletteFromBuckets(mockMonochrome);
+  assert.equal(palette.length, 4);
+  assert.ok(palette.every((c) => typeof c.hex === "string" && typeof c.name === "string"));
+});
+
 
