@@ -15,6 +15,7 @@ import {
   areTilesDuplicate,
   findExactGridStartY,
   findGridHorizontalBounds,
+  refineGridColumns,
   findGridRowHeight,
   PixelBuffer,
 } from "./colorExtractor";
@@ -292,5 +293,28 @@ test("findGridRowHeight detects modern Instagram 3:4 portrait grid ratio", () =>
   const buf: PixelBuffer = { width: w, height: h, data };
   const detectedH = findGridRowHeight(buf, 50, 0, colW, 0, 480);
   assert.equal(detectedH >= 132 && detectedH <= 134, true);
+});
+
+
+test("refineGridColumns recovers true column width when only 1 post is visible on a tablet", () => {
+  const w = 683, h = 600;
+  const data = new Uint8Array(w * h * 4);
+  // Dark background, one 3:4 photo 178x237 at x=88,y=100
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const idx = (y * w + x) * 4;
+      const inPhoto = x >= 88 && x < 266 && y >= 100 && y < 337;
+      data[idx] = inPhoto ? 120 + ((x * 7 + y * 3) % 80) : 12;
+      data[idx + 1] = inPhoto ? 90 + ((x * 5) % 60) : 17;
+      data[idx + 2] = inPhoto ? 70 + ((y * 5) % 60) : 21;
+      data[idx + 3] = 255;
+    }
+  }
+  const buf: PixelBuffer = { width: w, height: h, data };
+  // Wrong base geometry (e.g. 3 cols assumed across a too-wide span)
+  const refined = refineGridColumns(buf, 88, 596, 100, 1, 560);
+  assert.notEqual(refined, null);
+  assert.equal(Math.abs((refined as { colW: number }).colW - 178) <= 3, true);
+  assert.equal(Math.abs((refined as { left: number }).left - 88) <= 2, true);
 });
 

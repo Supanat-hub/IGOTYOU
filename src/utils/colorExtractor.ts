@@ -103,6 +103,96 @@ export function isAppBackground(r: number, g: number, b: number): boolean {
 }
 
 /**
+ * Refines column width for tablet / letterboxed screenshots where the last row(s)
+ * may contain fewer than 3 photos (so the visible content is narrower than the grid).
+ * Uses the measured pixel span + grid height to find the (columns, aspect, rows)
+ * combination that best explains the layout. Returns null if not confident.
+ */
+export function refineGridColumns(
+  buf: PixelBuffer,
+  left: number,
+  width: number,
+  startY: number,
+  gap: number,
+  maxAllowedY: number
+): { left: number; width: number; colW: number } | null {
+  const w = buf.width;
+  const h = buf.height;
+  // Phone screenshots: grid is edge-to-edge, 3 equal columns
+  if (left < 24 && width >= w * 0.95) return null;
+
+  const bg = (x: number, y: number) => {
+    const i = (y * w + x) * 4;
+    return isAppBackground(buf.data[i], buf.data[i + 1], buf.data[i + 2]);
+  };
+
+  // 1. Vertical extent of the contiguous grid block (sampled across the first column,
+  //    which always holds a photo when the profile has at least one post)
+  const firstCol = (width - 2 * gap) / 3;
+  const xs: number[] = [];
+  for (let i = 1; i <= 8; i++) xs.push(Math.min(w - 1, left + Math.floor((firstCol * i) / 9)));
+  const limit = Math.min(h, Math.round(maxAllowedY));
+  let endY = startY;
+  let bgRun = 0;
+  for (let y = startY; y < limit; y++) {
+    const isBgRow = xs.filter((x) => bg(x, y)).length / xs.length >= 0.85;
+    if (isBgRow) {
+      bgRun++;
+      if (bgRun >= 6) break;
+    } else {
+      bgRun = 0;
+      endY = y + 1;
+    }
+  }
+  const gridH = endY - startY;
+  if (gridH < 40) return null;
+
+  // If the base geometry already explains the grid height (rows × aspect), keep it.
+  const baseCol = (width - 2 * gap) / 3;
+  for (const r of [4 / 3, 5 / 4, 1]) {
+    for (let n = 1; n <= 4; n++) {
+      if (Math.abs(n * baseCol * r + (n - 1) * gap - gridH) / gridH < 0.02) return null;
+    }
+  }
+
+  // 2. Horizontal span of photo content just below the grid start
+  const ys: number[] = [];
+  const bandEnd = Math.min(h, startY + Math.max(60, Math.round(width * 0.25)));
+  for (let y = startY + 8; y < bandEnd; y += 5) ys.push(y);
+  if (ys.length === 0) return null;
+  const photoCol = (x: number) => ys.filter((y) => !bg(x, y)).length / ys.length >= 0.4;
+  let cLeft = -1;
+  let cRight = -1;
+  for (let x = Math.max(0, left - 10); x < w; x++) {
+    if (photoCol(x)) {
+      if (cLeft < 0) cLeft = x;
+      cRight = x;
+    }
+  }
+  if (cLeft < 0) return null;
+  const span = cRight - cLeft + 1;
+  if (span < 60) return null;
+
+  // 3. Find best (columns k, aspect r, rows n) explaining span & height
+  let best: { k: number; err: number } | null = null;
+  for (const k of [3, 2, 1]) {
+    const colW = (span - (k - 1) * gap) / k;
+    if (colW < w * 0.18) continue; // implausibly small tile
+    for (const r of [4 / 3, 5 / 4, 1]) {
+      for (let n = 1; n <= 4; n++) {
+        const pred = n * colW * r + (n - 1) * gap;
+        const err = Math.abs(pred - gridH) / gridH + (r === 4 / 3 ? 0 : 0.03) + n * 0.005;
+        if (!best || err < best.err - 0.005) best = { k, err };
+      }
+    }
+  }
+  if (!best || best.err > 0.09) return null;
+
+  const colW = Math.floor((span - (best.k - 1) * gap) / best.k);
+  return { left: cLeft, width: colW * 3 + 2 * gap, colW };
+}
+
+/**
  * Detects horizontal content boundaries of the Instagram grid.
  * Handles tablet / foldable / iPad letterboxing pillars automatically.
  */
@@ -668,12 +758,14 @@ export async function extractColorDNA(
 
       // 2. Locate Horizontal Content Bounds (trims tablet letterboxing)
       const gridBox = boxes.find((b) => b.label === "post_grid");
-      const hBounds = findGridHorizontalBounds(buf, gridBox?.xmin, gridBox?.xmax);
-      const gridLeft = hBounds.left;
-      const gridWidth = hBounds.width;
+      // Pixel-measured bounds are more reliable than the AI box (which only covers
+      // existing photos and under-reports width when a row has < 3 posts).
+      const hBounds = findGridHorizontalBounds(buf);
+      let gridLeft = hBounds.left;
+      let gridWidth = hBounds.width;
 
       const gap = Math.max(1, Math.round(gridWidth * 0.002));
-      const colWidth = Math.floor((gridWidth - 2 * gap) / 3);
+      let colWidth = Math.floor((gridWidth - 2 * gap) / 3);
 
       // 3. Locate Post Grid Start Y & Max Allowed Y
       const approxY = gridBox ? Math.round((gridBox.ymin / 1000) * h) : Math.round(h * 0.38);
@@ -681,6 +773,14 @@ export async function extractColorDNA(
       const maxAllowedY = gridBox?.ymax
         ? Math.min(h * 0.94, Math.round((gridBox.ymax / 1000) * h))
         : Math.round(h * 0.935);
+
+      // 3b. Re-derive true column width from the measured photo block
+      const refined = refineGridColumns(buf, gridLeft, gridWidth, gridStartY, gap, maxAllowedY);
+      if (refined) {
+        gridLeft = refined.left;
+        gridWidth = refined.width;
+        colWidth = refined.colW;
+      }
 
       // 4. Adaptive Row Height (Modern 3:4 portrait or classic 1:1)
       const rowHeight = findGridRowHeight(buf, gridStartY, gridLeft, colWidth, gap, maxAllowedY);
@@ -690,8 +790,9 @@ export async function extractColorDNA(
       for (let r = 0; r < maxRows; r++) {
         const rowY = gridStartY + r * (rowHeight + gap);
 
-        // Stop if reaching bottom navigation bar or screen end
-        if (rowY + rowHeight * 0.65 > maxAllowedY || rowY + rowHeight * 0.65 > h) {
+        // Stop if the tile is clipped by the bottom nav bar / screen end
+        // (a clipped tile would be stretched and look wrongly cropped)
+        if (rowY + rowHeight > maxAllowedY + rowHeight * 0.08 || rowY + rowHeight > h) {
           break;
         }
 
