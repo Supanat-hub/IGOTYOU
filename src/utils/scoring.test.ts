@@ -4,11 +4,17 @@ import {
   calculateHybridScore,
   calculateDegradedScore,
   getAestheticVerdict,
+  buildUserGridImages,
 } from "./analysisEngine";
 import {
   isAppBackground,
   rgbToHex,
   getAestheticColorName,
+  isTileActualPhoto,
+  computeTileFingerprint,
+  areTilesDuplicate,
+  findExactGridStartY,
+  PixelBuffer,
 } from "./colorExtractor";
 
 test("calculateHybridScore computes weighted aesthetic score accurately", () => {
@@ -86,3 +92,118 @@ test("getAestheticColorName provides appropriate color archetype names", () => {
   assert.equal(getAestheticColorName(140, 140, 140), "Concrete Gray");
 });
 
+test("isTileActualPhoto distinguishes real photo content from empty slots", () => {
+  // 1. Synthetic Real Photo (rich colors and contrast)
+  const photoW = 100, photoH = 100;
+  const photoData = new Uint8Array(photoW * photoH * 4);
+  for (let y = 0; y < photoH; y++) {
+    for (let x = 0; x < photoW; x++) {
+      const idx = (y * photoW + x) * 4;
+      photoData[idx] = (x * 2) % 256;      // R
+      photoData[idx + 1] = (y * 3) % 256;  // G
+      photoData[idx + 2] = 120;            // B
+      photoData[idx + 3] = 255;
+    }
+  }
+  const photoBuf: PixelBuffer = { width: photoW, height: photoH, data: photoData };
+  assert.equal(isTileActualPhoto(photoBuf, 0, 0, photoW, photoH), true);
+
+  // 2. Synthetic Empty Slot (Instagram Dark mode #12161A background)
+  const emptyData = new Uint8Array(photoW * photoH * 4);
+  for (let i = 0; i < emptyData.length; i += 4) {
+    emptyData[i] = 18;
+    emptyData[i + 1] = 22;
+    emptyData[i + 2] = 26;
+    emptyData[i + 3] = 255;
+  }
+  const emptyBuf: PixelBuffer = { width: photoW, height: photoH, data: emptyData };
+  assert.equal(isTileActualPhoto(emptyBuf, 0, 0, photoW, photoH), false);
+});
+
+test("findExactGridStartY pinpoints where photo content begins", () => {
+  const w = 300, h = 200;
+  const data = new Uint8Array(w * h * 4);
+  // Fill 0 to 49 with dark background
+  for (let y = 0; y < 50; y++) {
+    for (let x = 0; x < w; x++) {
+      const idx = (y * w + x) * 4;
+      data[idx] = 18;
+      data[idx + 1] = 20;
+      data[idx + 2] = 24;
+      data[idx + 3] = 255;
+    }
+  }
+  // Fill y=50 downwards with colorful photo content
+  for (let y = 50; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const idx = (y * w + x) * 4;
+      data[idx] = (x * 5) % 250;
+      data[idx + 1] = (y * 3) % 250;
+      data[idx + 2] = 150;
+      data[idx + 3] = 255;
+    }
+  }
+  const buf: PixelBuffer = { width: w, height: h, data: data };
+  const startY = findExactGridStartY(buf, 40);
+  assert.equal(startY, 50);
+});
+
+test("computeTileFingerprint and areTilesDuplicate detect duplicate tiles", () => {
+  const w = 60, h = 60;
+  const data1 = new Uint8Array(w * h * 4);
+  const data2 = new Uint8Array(w * h * 4);
+  const data3 = new Uint8Array(w * h * 4);
+
+  // Tile 1 & Tile 2 have identical sunset gradient
+  for (let i = 0; i < w * h; i++) {
+    const val = (i % 60) * 4;
+    data1[i * 4] = val;
+    data1[i * 4 + 1] = 80;
+    data1[i * 4 + 2] = 40;
+    data1[i * 4 + 3] = 255;
+
+    data2[i * 4] = val;
+    data2[i * 4 + 1] = 80;
+    data2[i * 4 + 2] = 40;
+    data2[i * 4 + 3] = 255;
+
+    // Tile 3 is dark navy blue
+    data3[i * 4] = 20;
+    data3[i * 4 + 1] = 40;
+    data3[i * 4 + 2] = 180;
+    data3[i * 4 + 3] = 255;
+  }
+
+  const buf1: PixelBuffer = { width: w, height: h, data: data1 };
+  const buf2: PixelBuffer = { width: w, height: h, data: data2 };
+  const buf3: PixelBuffer = { width: w, height: h, data: data3 };
+
+  const fp1 = computeTileFingerprint(buf1, 0, 0, w, h);
+  const fp2 = computeTileFingerprint(buf2, 0, 0, w, h);
+  const fp3 = computeTileFingerprint(buf3, 0, 0, w, h);
+
+  assert.equal(areTilesDuplicate(fp1, fp2), true);
+  assert.equal(areTilesDuplicate(fp1, fp3), false);
+});
+
+test("buildUserGridImages cycles user real photos smoothly without fake presets", () => {
+  // User with 2 real post photos
+  const twoPhotos = ["data:image/jpeg;base64,photo1", "data:image/jpeg;base64,photo2"];
+  const grid = buildUserGridImages(twoPhotos);
+
+  assert.equal(grid.length, 6);
+  assert.equal(grid[0], "data:image/jpeg;base64,photo1");
+  assert.equal(grid[1], "data:image/jpeg;base64,photo2");
+  assert.equal(grid[2], "data:image/jpeg;base64,photo1");
+  assert.equal(grid[3], "data:image/jpeg;base64,photo2");
+  assert.equal(grid[4], "data:image/jpeg;base64,photo1");
+  assert.equal(grid[5], "data:image/jpeg;base64,photo2");
+
+  // User with 9 photos gets first 6
+  const manyPhotos = [
+    "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9"
+  ];
+  const slicedGrid = buildUserGridImages(manyPhotos);
+  assert.equal(slicedGrid.length, 6);
+  assert.deepEqual(slicedGrid, ["p1", "p2", "p3", "p4", "p5", "p6"]);
+});

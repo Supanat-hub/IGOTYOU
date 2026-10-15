@@ -127,8 +127,11 @@ TASKS:
 2. Read bio text, category, school/university, MBTI, interests, and photo mood carefully to understand their core vibe.
 3. Extract stats: post count, followers count, following count, and calculate follower-to-following ratio (e.g. 1.1x).
 4. For each image (indexed 0 to ${images.length - 1}), identify the active photo bounding boxes [ymin, xmin, ymax, xmax] (0 to 1000):
-   - "post_grid": bounding box of the actual photos in the post grid. If a row has only 1 or 2 posts, xmax MUST only cover the actual photos, NOT empty space!
-   - "avatar": bounding box of the circular profile avatar.
+   - "post_grid": Bounding box of the 3-column post photo grid.
+     * ymin MUST be strictly below the 3 tab icons (grid/reels/tag icons), exactly where the first photo pixels begin!
+     * ymax MUST be strictly above the bottom navigation bar (home/search/reels/profile icons).
+     * If the row has empty slots on the right, xmax should only cover the actual photos, NOT empty space!
+   - "avatar": Bounding box [ymin, xmin, ymax, xmax] of the circular profile avatar photo.
    Include "image_index" (0 to ${images.length - 1}) in each detected box.
 
 5. STRICT COMPOSITION & COHESION SCORING (NO FLATTERY BIAS):

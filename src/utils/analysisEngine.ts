@@ -34,6 +34,7 @@ export interface AnalysisResult {
     description: string;
     images: string[];
   };
+  avatarImage?: string;
   bioRemix: {
     text: string;
     subtext: string;
@@ -287,26 +288,33 @@ async function downscaleImageForGemini(
 /**
  * Creates a 6-item gallery array using cropped images or user's uploaded images
  */
-function buildUserGridImages(
+export function buildUserGridImages(
   croppedImages: string[],
-  files: File[],
-  fallbackImages: string[]
+  files?: File[],
+  fallbackImages: string[] = []
 ): string[] {
   if (croppedImages && croppedImages.length > 0) {
-    let grid: string[] = [...croppedImages];
-    while (grid.length < 6) {
-      grid = grid.concat(croppedImages);
+    if (croppedImages.length >= 6) {
+      return croppedImages.slice(0, 6);
     }
-    return grid.slice(0, 6);
+    const grid: string[] = [];
+    while (grid.length < 6) {
+      for (const img of croppedImages) {
+        if (grid.length < 6) grid.push(img);
+      }
+    }
+    return grid;
   }
 
   if (files && files.length > 0) {
     const urls = files.map((f) => URL.createObjectURL(f));
-    let grid: string[] = [...urls];
+    const grid: string[] = [];
     while (grid.length < 6) {
-      grid = grid.concat(urls);
+      for (const u of urls) {
+        if (grid.length < 6) grid.push(u);
+      }
     }
-    return grid.slice(0, 6);
+    return grid;
   }
 
   return fallbackImages;
@@ -450,6 +458,7 @@ export async function analyzeProfile(files: File[], presetKey?: string): Promise
         };
 
         parsed.colorDNA = extractionResult.palette;
+        parsed.avatarImage = extractionResult.avatarImage;
         parsed.topContent = parsed.topContent || { category: "TOP CONTENT", description: "รูปโปรไฟล์ของคุณ" };
         parsed.topContent.images = buildUserGridImages(
           extractionResult.croppedImages,
@@ -539,6 +548,7 @@ export async function analyzeProfile(files: File[], presetKey?: string): Promise
       },
     },
     colorDNA: extractionResult.palette,
+    avatarImage: extractionResult.avatarImage,
     stats: {
       followerRatio: "1.0×",
       postDensity: `${extractionResult.croppedImages.length || 1}`,

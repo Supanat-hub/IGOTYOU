@@ -15,10 +15,17 @@ export interface BoundingBox {
 export interface ColorExtractionResult {
   palette: ExtractedColor[];
   croppedImages: string[];
+  avatarImage?: string;
   metrics: {
     harmonyScore: number;
     contrastScore: number;
   };
+}
+
+export interface PixelBuffer {
+  width: number;
+  height: number;
+  data: ArrayLike<number>;
 }
 
 // Convert RGB to HEX
@@ -84,17 +91,206 @@ export function isAppBackground(r: number, g: number, b: number): boolean {
   const diff = max - min;
   const brightness = (r * 299 + g * 587 + b * 114) / 1000;
 
-  // Instagram White mode background / header
-  if (brightness > 242 && diff < 15) return true;
+  // Instagram Light mode background / headers / cards
+  if (brightness > 240 && diff < 18) return true;
+  if (brightness > 210 && brightness <= 240 && diff < 12) return true;
 
-  // Instagram Dark mode background
-  if (brightness < 32 && diff < 12) return true;
-
-  // Instagram separator lines / neutral gray icons
-  if (diff < 10 && brightness > 210 && brightness < 240) return true;
-  if (diff < 10 && brightness > 30 && brightness < 60) return true;
+  // Instagram Dark mode background / headers
+  if (brightness < 36 && diff < 16) return true;
+  if (brightness >= 36 && brightness < 58 && diff < 12) return true;
 
   return false;
+}
+
+/**
+ * Automatic Grid Start Detection:
+ * Pinpoints the exact vertical Y row where Instagram tab icons end and photo pixels begin.
+ */
+export function findExactGridStartY(buf: PixelBuffer, approxY?: number): number {
+  const width = buf.width;
+  const height = buf.height;
+  const colW = Math.floor(width / 3);
+
+  const startScanY = Math.max(
+    0,
+    typeof approxY === "number" && approxY > 20
+      ? Math.round(approxY) - 45
+      : Math.round(height * 0.15)
+  );
+
+  const maxScanY = Math.min(
+    height - 40,
+    typeof approxY === "number" && approxY > 20
+      ? Math.round(approxY) + 120
+      : Math.round(height * 0.75)
+  );
+
+  for (let y = startScanY; y < maxScanY; y++) {
+    // Scan across column 0
+    let maxRun0 = 0;
+    let curRun0 = 0;
+    for (let x = 12; x < colW - 12; x++) {
+      const idx = (y * width + x) * 4;
+      if (!isAppBackground(buf.data[idx], buf.data[idx + 1], buf.data[idx + 2])) {
+        curRun0++;
+        if (curRun0 > maxRun0) maxRun0 = curRun0;
+      } else {
+        curRun0 = 0;
+      }
+    }
+
+    // Scan across column 1
+    let maxRun1 = 0;
+    let curRun1 = 0;
+    for (let x = colW + 12; x < colW * 2 - 12; x++) {
+      const idx = (y * width + x) * 4;
+      if (!isAppBackground(buf.data[idx], buf.data[idx + 1], buf.data[idx + 2])) {
+        curRun1++;
+        if (curRun1 > maxRun1) maxRun1 = curRun1;
+      } else {
+        curRun1 = 0;
+      }
+    }
+
+    if (Math.max(maxRun0, maxRun1) >= 28) {
+      // Check subsequent rows to confirm sustained photographic content
+      let sustained = true;
+      for (let dy = 2; dy <= 6; dy += 2) {
+        if (y + dy >= height) break;
+        let c0 = 0;
+        let c1 = 0;
+        for (let x = 15; x < colW - 15; x += 4) {
+          const idx = ((y + dy) * width + x) * 4;
+          if (!isAppBackground(buf.data[idx], buf.data[idx + 1], buf.data[idx + 2])) c0++;
+        }
+        for (let x = colW + 15; x < colW * 2 - 15; x += 4) {
+          const idx = ((y + dy) * width + x) * 4;
+          if (!isAppBackground(buf.data[idx], buf.data[idx + 1], buf.data[idx + 2])) c1++;
+        }
+        if (c0 < 5 && c1 < 5) {
+          sustained = false;
+          break;
+        }
+      }
+      if (sustained) {
+        return y;
+      }
+    }
+  }
+
+  return approxY && approxY > 0 ? approxY : Math.round(height * 0.38);
+}
+
+/**
+ * Quality Verification:
+ * Checks if a candidate square tile contains a real photo, or is an empty/blank grid slot.
+ */
+export function isTileActualPhoto(
+  buf: PixelBuffer,
+  cropX: number,
+  cropY: number,
+  cropW: number,
+  cropH: number
+): boolean {
+  if (cropW < 24 || cropH < 24) return false;
+
+  const insetX = Math.round(cropW * 0.12);
+  const insetY = Math.round(cropH * 0.12);
+  const usableW = cropW - 2 * insetX;
+  const usableH = cropH - 2 * insetY;
+
+  const stepX = Math.max(2, Math.floor(usableW / 8));
+  const stepY = Math.max(2, Math.floor(usableH / 8));
+
+  let bgCount = 0;
+  let totalCount = 0;
+  const luminances: number[] = [];
+
+  for (let dy = insetY; dy < cropH - insetY; dy += stepY) {
+    for (let dx = insetX; dx < cropW - insetX; dx += stepX) {
+      const px = cropX + dx;
+      const py = cropY + dy;
+      if (px >= buf.width || py >= buf.height) continue;
+
+      const idx = (py * buf.width + px) * 4;
+      const r = buf.data[idx];
+      const g = buf.data[idx + 1];
+      const b = buf.data[idx + 2];
+
+      if (isAppBackground(r, g, b)) {
+        bgCount++;
+      }
+
+      const lum = (r * 299 + g * 587 + b * 114) / 1000;
+      luminances.push(lum);
+      totalCount++;
+    }
+  }
+
+  if (totalCount < 10) return false;
+
+  // If >= 65% is Instagram background color, it's an empty grid slot
+  if (bgCount / totalCount >= 0.65) return false;
+
+  // Calculate standard deviation of luminance (solid color boxes have std < 5)
+  const meanLum = luminances.reduce((a, b) => a + b, 0) / luminances.length;
+  const variance =
+    luminances.reduce((a, b) => a + Math.pow(b - meanLum, 2), 0) / luminances.length;
+  const stdDev = Math.sqrt(variance);
+
+  return stdDev >= 8;
+}
+
+/**
+ * Computes a downsampled 6x6 average color fingerprint for deduplicating overlapping screenshots.
+ */
+export function computeTileFingerprint(
+  buf: PixelBuffer,
+  cropX: number,
+  cropY: number,
+  cropW: number,
+  cropH: number
+): number[] {
+  const grid = 6;
+  const stepX = Math.floor(cropW / grid);
+  const stepY = Math.floor(cropH / grid);
+  const fp: number[] = [];
+
+  for (let gy = 0; gy < grid; gy++) {
+    for (let gx = 0; gx < grid; gx++) {
+      let rTotal = 0;
+      let gTotal = 0;
+      let bTotal = 0;
+      let count = 0;
+      const startX = cropX + gx * stepX;
+      const startY = cropY + gy * stepY;
+
+      for (let y = startY; y < startY + stepY; y += 3) {
+        for (let x = startX; x < startX + stepX; x += 3) {
+          if (x >= buf.width || y >= buf.height) continue;
+          const idx = (y * buf.width + x) * 4;
+          rTotal += buf.data[idx];
+          gTotal += buf.data[idx + 1];
+          bTotal += buf.data[idx + 2];
+          count++;
+        }
+      }
+      fp.push(count > 0 ? Math.round((rTotal + gTotal + bTotal) / (3 * count)) : 0);
+    }
+  }
+  return fp;
+}
+
+/**
+ * Compares two tile fingerprints. Returns true if they represent the same photo.
+ */
+export function areTilesDuplicate(fp1: number[], fp2: number[], threshold: number = 10): boolean {
+  if (fp1.length !== fp2.length || fp1.length === 0) return false;
+  let totalDiff = 0;
+  for (let i = 0; i < fp1.length; i++) {
+    totalDiff += Math.abs(fp1[i] - fp2[i]);
+  }
+  return totalDiff / fp1.length < threshold;
 }
 
 /**
@@ -118,88 +314,7 @@ function loadImage(file: File): Promise<HTMLImageElement> {
 }
 
 /**
- * Second-pass border tightening: Trims empty Instagram background space
- * from edges of detected crops (e.g. empty grid slots, borders).
- */
-function tightenCropBounds(
-  ctx: CanvasRenderingContext2D,
-  width: number,
-  height: number
-): { x: number; y: number; w: number; h: number } {
-  const imgData = ctx.getImageData(0, 0, width, height).data;
-  const step = 4;
-
-  let left = 0;
-  for (let x = 0; x < width; x += step) {
-    let bg = 0;
-    let total = 0;
-    for (let y = 0; y < height; y += step) {
-      const idx = (y * width + x) * 4;
-      if (isAppBackground(imgData[idx], imgData[idx + 1], imgData[idx + 2])) bg++;
-      total++;
-    }
-    if (bg / total < 0.85) {
-      left = Math.max(0, x - step);
-      break;
-    }
-  }
-
-  let right = width;
-  for (let x = width - 1; x >= left; x -= step) {
-    let bg = 0;
-    let total = 0;
-    for (let y = 0; y < height; y += step) {
-      const idx = (y * width + x) * 4;
-      if (isAppBackground(imgData[idx], imgData[idx + 1], imgData[idx + 2])) bg++;
-      total++;
-    }
-    if (bg / total < 0.85) {
-      right = Math.min(width, x + step);
-      break;
-    }
-  }
-
-  let top = 0;
-  for (let y = 0; y < height; y += step) {
-    let bg = 0;
-    let total = 0;
-    for (let x = left; x < right; x += step) {
-      const idx = (y * width + x) * 4;
-      if (isAppBackground(imgData[idx], imgData[idx + 1], imgData[idx + 2])) bg++;
-      total++;
-    }
-    if (bg / total < 0.85) {
-      top = Math.max(0, y - step);
-      break;
-    }
-  }
-
-  let bottom = height;
-  for (let y = height - 1; y >= top; y -= step) {
-    let bg = 0;
-    let total = 0;
-    for (let x = left; x < right; x += step) {
-      const idx = (y * width + x) * 4;
-      if (isAppBackground(imgData[idx], imgData[idx + 1], imgData[idx + 2])) bg++;
-      total++;
-    }
-    if (bg / total < 0.85) {
-      bottom = Math.min(height, y + step);
-      break;
-    }
-  }
-
-  return {
-    x: left,
-    y: top,
-    w: Math.max(20, right - left),
-    h: Math.max(20, bottom - top),
-  };
-}
-
-/**
  * Calculates Color Harmony and Contrast metrics from pixel luminance and palette hues
- * Allows true scores ranging from 25 to 96 without artificial flattery floor.
  */
 function calculatePhotoMetrics(
   pixelLuminances: number[],
@@ -211,7 +326,6 @@ function calculatePhotoMetrics(
     const variance =
       pixelLuminances.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / pixelLuminances.length;
     const stdDev = Math.sqrt(variance);
-    // stdDev typically ranges from 15 (flat/muddy) to 75 (dynamic high contrast)
     contrastScore = Math.min(95, Math.max(30, Math.round(25 + stdDev * 0.9)));
   }
 
@@ -249,25 +363,16 @@ function calculatePhotoMetrics(
     const avgHueDiff = pairs > 0 ? totalHueDiff / pairs : 60;
     const satMean = hsls.reduce((a, b) => a + b.s, 0) / hsls.length;
 
-    // 1. Monochromatic or tightly analogous hues (e.g. coffee, beige, warm earth)
     if (avgHueDiff < 45) {
       harmonyScore = Math.min(96, Math.max(82, Math.round(85 + (1 - avgHueDiff / 45) * 11)));
-    }
-    // 2. Cohesive coordinated hues with pleasant accents (e.g. forest + wood)
-    else if (avgHueDiff >= 45 && avgHueDiff < 85) {
+    } else if (avgHueDiff >= 45 && avgHueDiff < 85) {
       harmonyScore = Math.min(84, Math.max(68, Math.round(80 - (avgHueDiff - 45) * 0.3)));
-    }
-    // 3. Uncoordinated everyday casual scatter (mixed colors, no clear theme)
-    else if (avgHueDiff >= 85 && avgHueDiff < 125) {
+    } else if (avgHueDiff >= 85 && avgHueDiff < 125) {
       harmonyScore = Math.min(67, Math.max(48, Math.round(65 - (avgHueDiff - 85) * 0.42)));
-    }
-    // 4. Clashing / discordant colors (colors fighting across the color wheel)
-    else {
+    } else {
       if (satMean > 0.35) {
-        // High saturation clash penalty
         harmonyScore = Math.max(25, Math.round(45 - (avgHueDiff - 125) * 0.4));
       } else {
-        // Muted clash
         harmonyScore = Math.max(38, Math.round(55 - (avgHueDiff - 125) * 0.28));
       }
     }
@@ -277,12 +382,12 @@ function calculatePhotoMetrics(
 }
 
 /**
- * Smartly extracts color DNA from uploaded screenshots:
- * 1. Uses AI bounding boxes (or heuristic crop) to isolate the post grid and avatar photos.
- * 2. Applies 2nd-pass Canvas border tightening to remove empty UI/dark-mode columns.
- * 3. Filters out pure white/black/gray Instagram UI background pixels.
- * 4. Extracts individual photo tiles for the gallery.
- * 5. Calculates Color Harmony & Contrast metrics.
+ * Fully Automatic High-Precision Instagram Grid Cropper & Color DNA Extractor:
+ * 1. Automatically finds exact vertical grid start (skips profile bio, highlights, and tab bar icons).
+ * 2. Accurately slices multi-row, 3-column 1:1 square photo tiles across 1-3 screenshots.
+ * 3. Skips empty grid slots in the final row.
+ * 4. Deduplicates overlapping photos across scrolled screenshots.
+ * 5. Samples Color DNA purely from extracted real photos (zero UI background pollution).
  */
 export async function extractColorDNA(
   files: File[],
@@ -304,8 +409,10 @@ export async function extractColorDNA(
   }
 
   const croppedImages: string[] = [];
+  const existingFingerprints: number[][] = [];
   const colorBuckets: Record<string, { r: number; g: number; b: number; count: number }> = {};
   const sampledLuminances: number[] = [];
+  let avatarImage: string | undefined;
 
   for (let fileIndex = 0; fileIndex < files.length; fileIndex++) {
     try {
@@ -313,132 +420,161 @@ export async function extractColorDNA(
       const w = img.naturalWidth || img.width;
       const h = img.naturalHeight || img.height;
 
-      // Filter boxes for this specific file, or default to all if image_index is unspecified
-      let boxes: BoundingBox[] = (detectedBoxes || []).filter(
+      if (w <= 20 || h <= 20) continue;
+
+      // Render full image to an offscreen canvas to extract pixel buffer
+      const fullCanvas = document.createElement("canvas");
+      fullCanvas.width = w;
+      fullCanvas.height = h;
+      const fullCtx = fullCanvas.getContext("2d", { willReadFrequently: true });
+      if (!fullCtx) continue;
+
+      fullCtx.drawImage(img, 0, 0, w, h);
+      const fullImgData = fullCtx.getImageData(0, 0, w, h);
+      const buf: PixelBuffer = { width: w, height: h, data: fullImgData.data };
+
+      // Filter boxes for this specific file
+      const boxes: BoundingBox[] = (detectedBoxes || []).filter(
         (b) => b.image_index === undefined || b.image_index === fileIndex
       );
 
-      // Fallback heuristic if no valid boxes detected for this file
-      if (boxes.length === 0) {
-        boxes = [
-          { ymin: 360, xmin: 0, ymax: 960, xmax: 1000, label: "post_grid" },
-          { ymin: 80, xmin: 30, ymax: 260, xmax: 300, label: "avatar" },
-        ];
-      }
+      // 1. Avatar Extraction if detected
+      const avatarBox = boxes.find((b) => b.label === "avatar");
+      if (avatarBox && !avatarImage) {
+        const aX = Math.max(0, Math.round((avatarBox.xmin / 1000) * w));
+        const aY = Math.max(0, Math.round((avatarBox.ymin / 1000) * h));
+        const aW = Math.min(w - aX, Math.round(((avatarBox.xmax - avatarBox.xmin) / 1000) * w));
+        const aH = Math.min(h - aY, Math.round(((avatarBox.ymax - avatarBox.ymin) / 1000) * h));
+        const aSize = Math.min(aW, aH);
 
-      for (const box of boxes) {
-        const rawCropX = Math.max(0, Math.round((box.xmin / 1000) * w));
-        const rawCropY = Math.max(0, Math.round((box.ymin / 1000) * h));
-        const rawCropW = Math.min(w - rawCropX, Math.round(((box.xmax - box.xmin) / 1000) * w));
-        const rawCropH = Math.min(h - rawCropY, Math.round(((box.ymax - box.ymin) / 1000) * h));
-
-        if (rawCropW <= 20 || rawCropH <= 20) continue;
-
-        // Draw initial region onto an intermediate canvas
-        const rawCanvas = document.createElement("canvas");
-        rawCanvas.width = rawCropW;
-        rawCanvas.height = rawCropH;
-        const rawCtx = rawCanvas.getContext("2d");
-        if (!rawCtx) continue;
-
-        rawCtx.drawImage(img, rawCropX, rawCropY, rawCropW, rawCropH, 0, 0, rawCropW, rawCropH);
-
-        // 2nd-pass border tightening: trim empty background columns & rows
-        const tight = tightenCropBounds(rawCtx, rawCropW, rawCropH);
-        if (tight.w <= 20 || tight.h <= 20) continue;
-
-        const cropCanvas = document.createElement("canvas");
-        cropCanvas.width = tight.w;
-        cropCanvas.height = tight.h;
-        const cropCtx = cropCanvas.getContext("2d");
-        if (!cropCtx) continue;
-
-        cropCtx.drawImage(rawCanvas, tight.x, tight.y, tight.w, tight.h, 0, 0, tight.w, tight.h);
-
-        // Slice into individual square tiles if it is a post grid
-        if (box.label === "post_grid") {
-          const ratio = tight.w / tight.h;
-          // Determine number of columns based on aspect ratio
-          let cols = 1;
-          if (ratio >= 2.4) cols = 3;
-          else if (ratio >= 1.4) cols = 2;
-
-          const tileW = Math.floor(tight.w / cols);
-          for (let c = 0; c < cols; c++) {
-            const tileCanvas = document.createElement("canvas");
-            tileCanvas.width = tileW;
-            tileCanvas.height = Math.min(tight.h, tileW);
-            const tileCtx = tileCanvas.getContext("2d");
-            if (tileCtx) {
-              tileCtx.drawImage(
-                cropCanvas,
-                c * tileW,
-                0,
-                tileW,
-                tileCanvas.height,
-                0,
-                0,
-                tileW,
-                tileCanvas.height
-              );
-              try {
-                croppedImages.push(tileCanvas.toDataURL("image/jpeg", 0.85));
-              } catch {
-                // Ignore
-              }
+        if (aSize >= 24) {
+          const aCanvas = document.createElement("canvas");
+          aCanvas.width = 240;
+          aCanvas.height = 240;
+          const aCtx = aCanvas.getContext("2d");
+          if (aCtx) {
+            aCtx.imageSmoothingEnabled = true;
+            aCtx.imageSmoothingQuality = "high";
+            aCtx.drawImage(img, aX, aY, aSize, aSize, 0, 0, 240, 240);
+            try {
+              avatarImage = aCanvas.toDataURL("image/jpeg", 0.9);
+            } catch {
+              // Ignore
             }
           }
-        } else {
-          // Avatar or standalone photo
+        }
+      }
+
+      // 2. Locate Post Grid Start & End
+      const gridBox = boxes.find((b) => b.label === "post_grid");
+      const approxY = gridBox ? Math.round((gridBox.ymin / 1000) * h) : Math.round(h * 0.38);
+
+      const gridStartY = findExactGridStartY(buf, approxY);
+      const maxAllowedY = gridBox?.ymax
+        ? Math.min(h * 0.94, Math.round((gridBox.ymax / 1000) * h))
+        : Math.round(h * 0.935);
+
+      // 3. Instagram 3-Column Geometry
+      const gridLeft = gridBox?.xmin ? Math.max(0, Math.round((gridBox.xmin / 1000) * w)) : 0;
+      const gridWidth = gridBox?.xmax
+        ? Math.min(w - gridLeft, Math.round(((gridBox.xmax - gridBox.xmin) / 1000) * w))
+        : w - gridLeft;
+
+      const gap = Math.max(1, Math.round(gridWidth * 0.002));
+      const colWidth = Math.floor((gridWidth - 2 * gap) / 3);
+
+      // 4. Multi-Row Slicing
+      const maxRows = 6;
+      for (let r = 0; r < maxRows; r++) {
+        const rowY = gridStartY + r * (colWidth + gap);
+
+        // Stop if reaching bottom navigation bar or screen end
+        if (rowY + colWidth * 0.65 > maxAllowedY || rowY + colWidth * 0.65 > h) {
+          break;
+        }
+
+        for (let c = 0; c < 3; c++) {
+          const tileX = gridLeft + c * (colWidth + gap);
+
+          // Verify if this slot is a real photo (skips blank slots on the right)
+          const isPhoto = isTileActualPhoto(buf, tileX, rowY, colWidth, colWidth);
+          if (!isPhoto) continue;
+
+          // Deduplicate overlapping photos from scrolled screenshots
+          const fp = computeTileFingerprint(buf, tileX, rowY, colWidth, colWidth);
+          const isDuplicate = existingFingerprints.some((prev) => areTilesDuplicate(fp, prev));
+          if (isDuplicate) continue;
+          existingFingerprints.push(fp);
+
+          // Draw crisp 320x320 1:1 square tile
+          const tileCanvas = document.createElement("canvas");
+          tileCanvas.width = 320;
+          tileCanvas.height = 320;
+          const tileCtx = tileCanvas.getContext("2d");
+          if (!tileCtx) continue;
+
+          tileCtx.imageSmoothingEnabled = true;
+          tileCtx.imageSmoothingQuality = "high";
+          tileCtx.drawImage(
+            img,
+            tileX,
+            rowY,
+            colWidth,
+            Math.min(colWidth, h - rowY),
+            0,
+            0,
+            320,
+            320
+          );
+
           try {
-            croppedImages.push(cropCanvas.toDataURL("image/jpeg", 0.85));
+            croppedImages.push(tileCanvas.toDataURL("image/jpeg", 0.88));
           } catch {
             // Ignore
           }
-        }
 
-        // Downsample for pixel color extraction & contrast measurement
-        const sampleSize = 64;
-        const sampleCanvas = document.createElement("canvas");
-        sampleCanvas.width = sampleSize;
-        sampleCanvas.height = sampleSize;
-        const sampleCtx = sampleCanvas.getContext("2d");
-        if (!sampleCtx) continue;
+          // Sample pixels directly from this authentic photo tile for Color DNA
+          const sampleCanvas = document.createElement("canvas");
+          sampleCanvas.width = 64;
+          sampleCanvas.height = 64;
+          const sampleCtx = sampleCanvas.getContext("2d");
+          if (sampleCtx) {
+            sampleCtx.drawImage(tileCanvas, 0, 0, 64, 64);
+            const sampleData = sampleCtx.getImageData(0, 0, 64, 64).data;
 
-        sampleCtx.drawImage(cropCanvas, 0, 0, sampleSize, sampleSize);
-        const imgData = sampleCtx.getImageData(0, 0, sampleSize, sampleSize).data;
+            for (let i = 0; i < sampleData.length; i += 16) {
+              const a = sampleData[i + 3];
+              if (a < 128) continue;
+              const r = sampleData[i];
+              const g = sampleData[i + 1];
+              const b = sampleData[i + 2];
 
-        for (let i = 0; i < imgData.length; i += 16) {
-          const a = imgData[i + 3];
-          if (a < 128) continue;
+              if (isAppBackground(r, g, b)) continue;
 
-          const r = imgData[i];
-          const g = imgData[i + 1];
-          const b = imgData[i + 2];
+              const lum = (r * 299 + g * 587 + b * 114) / 1000;
+              sampledLuminances.push(lum);
 
-          // Filter out Instagram UI background pixels
-          if (isAppBackground(r, g, b)) {
-            continue;
+              const qR = Math.floor(r / 32) * 32;
+              const qG = Math.floor(g / 32) * 32;
+              const qB = Math.floor(b / 32) * 32;
+              const key = `${qR},${qG},${qB}`;
+
+              if (!colorBuckets[key]) {
+                colorBuckets[key] = { r: qR, g: qG, b: qB, count: 0 };
+              }
+              colorBuckets[key].count++;
+            }
           }
-
-          const lum = (r * 299 + g * 587 + b * 114) / 1000;
-          sampledLuminances.push(lum);
-
-          // Quantize into 32-step buckets
-          const qR = Math.floor(r / 32) * 32;
-          const qG = Math.floor(g / 32) * 32;
-          const qB = Math.floor(b / 32) * 32;
-
-          const key = `${qR},${qG},${qB}`;
-          if (!colorBuckets[key]) {
-            colorBuckets[key] = { r: qR, g: qG, b: qB, count: 0 };
-          }
-          colorBuckets[key].count++;
         }
       }
     } catch (err) {
-      console.warn("Error processing image file for color DNA:", err);
+      console.warn("Error processing image file for automatic cropping:", err);
     }
+  }
+
+  // Fallback: If 0 photos were extracted (e.g. non-grid profile top), check avatar
+  if (croppedImages.length === 0 && avatarImage) {
+    croppedImages.push(avatarImage);
   }
 
   // Sort color buckets by frequency
@@ -457,7 +593,6 @@ export async function extractColorDNA(
         return dr + dg + db < 70;
       });
 
-      // Avoid duplicate names in the palette (e.g. no duplicate "Charcoal Ink")
       const isDuplicateName = selected.some((s) => s.name === name);
 
       if (!isTooClose && !isDuplicateName) {
@@ -486,6 +621,7 @@ export async function extractColorDNA(
   return {
     palette: selected,
     croppedImages,
+    avatarImage,
     metrics,
   };
 }
