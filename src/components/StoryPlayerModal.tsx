@@ -447,7 +447,7 @@ export default function StoryPlayerModal({
                 <div className="border-2 border-ink rounded-2xl overflow-hidden shadow-[4px_4px_0_var(--ink)] sm:shadow-[5px_5px_0_var(--ink)] bg-ink">
                   <div className="grid grid-cols-3 gap-1 p-1">
                     {data.topContent.images.slice(0, 6).map((img, idx) => (
-                      <div key={idx} className="aspect-square overflow-hidden bg-black/40">
+                      <div key={idx} className="aspect-[3/4] overflow-hidden bg-black/40">
                         <img
                           src={img}
                           alt="post"

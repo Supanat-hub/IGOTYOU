@@ -14,6 +14,8 @@ import {
   computeTileFingerprint,
   areTilesDuplicate,
   findExactGridStartY,
+  findGridHorizontalBounds,
+  findGridRowHeight,
   PixelBuffer,
 } from "./colorExtractor";
 
@@ -207,3 +209,64 @@ test("buildUserGridImages cycles user real photos smoothly without fake presets"
   assert.equal(slicedGrid.length, 6);
   assert.deepEqual(slicedGrid, ["p1", "p2", "p3", "p4", "p5", "p6"]);
 });
+
+test("findGridHorizontalBounds detects letterboxing side pillars on tablets", () => {
+  const w = 500, h = 300;
+  const data = new Uint8Array(w * h * 4);
+
+  // Fill left pillar (0..99) and right pillar (400..499) with dark background
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const idx = (y * w + x) * 4;
+      if (x < 100 || x >= 400) {
+        data[idx] = 18;
+        data[idx + 1] = 20;
+        data[idx + 2] = 24;
+      } else {
+        data[idx] = (x + y) % 256;
+        data[idx + 1] = 150;
+        data[idx + 2] = 100;
+      }
+      data[idx + 3] = 255;
+    }
+  }
+
+  const buf: PixelBuffer = { width: w, height: h, data };
+  const bounds = findGridHorizontalBounds(buf);
+  assert.equal(bounds.left >= 98 && bounds.left <= 101, true);
+  assert.equal(bounds.width >= 298 && bounds.width <= 302, true);
+});
+
+test("findGridRowHeight detects modern Instagram 3:4 portrait grid ratio", () => {
+  const w = 300, h = 500;
+  const colW = 100;
+  const expectedRowH = 133; // 3:4 ratio = 100 * 1.333
+  const data = new Uint8Array(w * h * 4);
+
+  // Row 0 from y=50 to y=183
+  // Row 1 from y=184 to y=317
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const idx = (y * w + x) * 4;
+      if (y >= 50 && y < 183) {
+        data[idx] = 200; // Bright photo 1
+        data[idx + 1] = 50;
+        data[idx + 2] = 50;
+      } else if (y >= 184 && y < 317) {
+        data[idx] = 30; // Dark photo 2
+        data[idx + 1] = 180;
+        data[idx + 2] = 220;
+      } else {
+        data[idx] = 18;
+        data[idx + 1] = 20;
+        data[idx + 2] = 24;
+      }
+      data[idx + 3] = 255;
+    }
+  }
+
+  const buf: PixelBuffer = { width: w, height: h, data };
+  const detectedH = findGridRowHeight(buf, 50, 0, colW, 0, 480);
+  assert.equal(detectedH >= 132 && detectedH <= 134, true);
+});
+

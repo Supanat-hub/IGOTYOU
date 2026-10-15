@@ -103,13 +103,79 @@ export function isAppBackground(r: number, g: number, b: number): boolean {
 }
 
 /**
+ * Detects horizontal content boundaries of the Instagram grid.
+ * Handles tablet / foldable / iPad letterboxing pillars automatically.
+ */
+export function findGridHorizontalBounds(
+  buf: PixelBuffer,
+  approxXmin?: number,
+  approxXmax?: number
+): { left: number; width: number } {
+  const w = buf.width;
+  const h = buf.height;
+
+  // If Gemini provided valid horizontal bounds covering the grid
+  if (
+    typeof approxXmin === "number" &&
+    typeof approxXmax === "number" &&
+    approxXmax - approxXmin > 120
+  ) {
+    const rawLeft = Math.max(0, Math.round((approxXmin / 1000) * w));
+    const rawRight = Math.min(w, Math.round((approxXmax / 1000) * w));
+    return { left: rawLeft, width: rawRight - rawLeft };
+  }
+
+  // Scan full-height background columns to trim letterboxing side pillars (iPad / Tablet)
+  let left = 0;
+  for (let x = 0; x < Math.floor(w * 0.45); x += 2) {
+    let bgCount = 0;
+    let total = 0;
+    for (let y = 0; y < h; y += 12) {
+      const idx = (y * w + x) * 4;
+      if (isAppBackground(buf.data[idx], buf.data[idx + 1], buf.data[idx + 2])) {
+        bgCount++;
+      }
+      total++;
+    }
+    if (total > 0 && bgCount / total < 0.92) {
+      left = Math.max(0, x - 1);
+      break;
+    }
+  }
+
+  let right = w;
+  for (let x = w - 1; x >= Math.floor(w * 0.55); x -= 2) {
+    let bgCount = 0;
+    let total = 0;
+    for (let y = 0; y < h; y += 12) {
+      const idx = (y * w + x) * 4;
+      if (isAppBackground(buf.data[idx], buf.data[idx + 1], buf.data[idx + 2])) {
+        bgCount++;
+      }
+      total++;
+    }
+    if (total > 0 && bgCount / total < 0.92) {
+      right = Math.min(w, x + 1);
+      break;
+    }
+  }
+
+  return { left, width: Math.max(80, right - left) };
+}
+
+/**
  * Automatic Grid Start Detection:
  * Pinpoints the exact vertical Y row where Instagram tab icons end and photo pixels begin.
  */
-export function findExactGridStartY(buf: PixelBuffer, approxY?: number): number {
+export function findExactGridStartY(
+  buf: PixelBuffer,
+  approxY?: number,
+  gridLeft: number = 0,
+  colWidth?: number
+): number {
   const width = buf.width;
   const height = buf.height;
-  const colW = Math.floor(width / 3);
+  const colW = colWidth || Math.floor(width / 3);
 
   const startScanY = Math.max(
     0,
@@ -129,7 +195,8 @@ export function findExactGridStartY(buf: PixelBuffer, approxY?: number): number 
     // Scan across column 0
     let maxRun0 = 0;
     let curRun0 = 0;
-    for (let x = 12; x < colW - 12; x++) {
+    for (let x = gridLeft + 12; x < gridLeft + colW - 12; x++) {
+      if (x >= width) break;
       const idx = (y * width + x) * 4;
       if (!isAppBackground(buf.data[idx], buf.data[idx + 1], buf.data[idx + 2])) {
         curRun0++;
@@ -142,7 +209,8 @@ export function findExactGridStartY(buf: PixelBuffer, approxY?: number): number 
     // Scan across column 1
     let maxRun1 = 0;
     let curRun1 = 0;
-    for (let x = colW + 12; x < colW * 2 - 12; x++) {
+    for (let x = gridLeft + colW + 12; x < gridLeft + colW * 2 - 12; x++) {
+      if (x >= width) break;
       const idx = (y * width + x) * 4;
       if (!isAppBackground(buf.data[idx], buf.data[idx + 1], buf.data[idx + 2])) {
         curRun1++;
@@ -159,11 +227,13 @@ export function findExactGridStartY(buf: PixelBuffer, approxY?: number): number 
         if (y + dy >= height) break;
         let c0 = 0;
         let c1 = 0;
-        for (let x = 15; x < colW - 15; x += 4) {
+        for (let x = gridLeft + 15; x < gridLeft + colW - 15; x += 4) {
+          if (x >= width) break;
           const idx = ((y + dy) * width + x) * 4;
           if (!isAppBackground(buf.data[idx], buf.data[idx + 1], buf.data[idx + 2])) c0++;
         }
-        for (let x = colW + 15; x < colW * 2 - 15; x += 4) {
+        for (let x = gridLeft + colW + 15; x < gridLeft + colW * 2 - 15; x += 4) {
+          if (x >= width) break;
           const idx = ((y + dy) * width + x) * 4;
           if (!isAppBackground(buf.data[idx], buf.data[idx + 1], buf.data[idx + 2])) c1++;
         }
@@ -182,8 +252,87 @@ export function findExactGridStartY(buf: PixelBuffer, approxY?: number): number 
 }
 
 /**
+ * Adaptive Row Height & Aspect Ratio Detection:
+ * Automatically detects whether the Instagram grid is Modern Vertical (3:4 or 4:5 portrait)
+ * or Legacy Square (1:1), and locks in the exact row height in pixels.
+ */
+export function findGridRowHeight(
+  buf: PixelBuffer,
+  gridStartY: number,
+  gridLeft: number,
+  colWidth: number,
+  gap: number,
+  maxAllowedY: number
+): number {
+  const w = buf.width;
+  const h = buf.height;
+
+  const minDy = Math.round(colWidth * 0.88);
+  const maxDy = Math.min(
+    maxAllowedY - gridStartY - 10,
+    h - gridStartY - 10,
+    Math.round(colWidth * 1.45)
+  );
+
+  let bestDy = 0;
+  let maxDiff = -1;
+
+  for (let dy = minDy; dy <= maxDy; dy++) {
+    const y = gridStartY + dy;
+    if (y + 1 >= h) break;
+
+    let totalDiff = 0;
+    let validCols = 0;
+
+    for (let c = 0; c < 3; c++) {
+      const x0 = gridLeft + c * (colWidth + gap) + 12;
+      const x1 = x0 + colWidth - 24;
+      if (x1 >= w) continue;
+
+      let colDiff = 0;
+      let count = 0;
+      for (let x = x0; x < x1; x += 4) {
+        const idx1 = (y * w + x) * 4;
+        const idx2 = ((y + 1) * w + x) * 4;
+        const d =
+          Math.abs(buf.data[idx1] - buf.data[idx2]) +
+          Math.abs(buf.data[idx1 + 1] - buf.data[idx2 + 1]) +
+          Math.abs(buf.data[idx1 + 2] - buf.data[idx2 + 2]);
+        colDiff += d;
+        count++;
+      }
+      if (count > 0) {
+        totalDiff += colDiff / count;
+        validCols++;
+      }
+    }
+
+    const avgDiff = validCols > 0 ? totalDiff / validCols : 0;
+    if (avgDiff > maxDiff) {
+      maxDiff = avgDiff;
+      bestDy = dy;
+    }
+  }
+
+  // If a distinct horizontal row boundary is detected across the columns
+  if (maxDiff > 24 && bestDy >= minDy) {
+    return bestDy;
+  }
+
+  // If only 1 row is visible in screenshot or boundary was blurry:
+  // Check available height: if space allows modern vertical grid (3:4 ratio = 1.333), use 3:4!
+  const availableSpace = maxAllowedY - gridStartY;
+  if (availableSpace >= colWidth * 1.25) {
+    return Math.min(Math.round(colWidth * 1.333), availableSpace - 5);
+  }
+
+  // Classic 1:1 square fallback
+  return Math.min(colWidth, availableSpace);
+}
+
+/**
  * Quality Verification:
- * Checks if a candidate square tile contains a real photo, or is an empty/blank grid slot.
+ * Checks if a candidate tile contains a real photo, or is an empty/blank grid slot.
  */
 export function isTileActualPhoto(
   buf: PixelBuffer,
@@ -382,12 +531,14 @@ function calculatePhotoMetrics(
 }
 
 /**
- * Fully Automatic High-Precision Instagram Grid Cropper & Color DNA Extractor:
- * 1. Automatically finds exact vertical grid start (skips profile bio, highlights, and tab bar icons).
- * 2. Accurately slices multi-row, 3-column 1:1 square photo tiles across 1-3 screenshots.
- * 3. Skips empty grid slots in the final row.
- * 4. Deduplicates overlapping photos across scrolled screenshots.
- * 5. Samples Color DNA purely from extracted real photos (zero UI background pollution).
+ * Fully Automatic Adaptive Instagram Grid Cropper & Color DNA Extractor:
+ * 1. Supports modern Instagram vertical grids (3:4 / 4:5 portrait) as well as classic 1:1 squares.
+ * 2. Automatically trims tablet / iPad / foldable letterboxing side margins.
+ * 3. Automatically finds exact vertical grid start Y.
+ * 4. Detects true row height and aspect ratio so no photos are cut off.
+ * 5. Skips empty grid slots in the final row.
+ * 6. Deduplicates overlapping photos across scrolled screenshots.
+ * 7. Samples Color DNA purely from extracted real photos (zero UI background pollution).
  */
 export async function extractColorDNA(
   files: File[],
@@ -465,31 +616,32 @@ export async function extractColorDNA(
         }
       }
 
-      // 2. Locate Post Grid Start & End
+      // 2. Locate Horizontal Content Bounds (trims tablet letterboxing)
       const gridBox = boxes.find((b) => b.label === "post_grid");
-      const approxY = gridBox ? Math.round((gridBox.ymin / 1000) * h) : Math.round(h * 0.38);
-
-      const gridStartY = findExactGridStartY(buf, approxY);
-      const maxAllowedY = gridBox?.ymax
-        ? Math.min(h * 0.94, Math.round((gridBox.ymax / 1000) * h))
-        : Math.round(h * 0.935);
-
-      // 3. Instagram 3-Column Geometry
-      const gridLeft = gridBox?.xmin ? Math.max(0, Math.round((gridBox.xmin / 1000) * w)) : 0;
-      const gridWidth = gridBox?.xmax
-        ? Math.min(w - gridLeft, Math.round(((gridBox.xmax - gridBox.xmin) / 1000) * w))
-        : w - gridLeft;
+      const hBounds = findGridHorizontalBounds(buf, gridBox?.xmin, gridBox?.xmax);
+      const gridLeft = hBounds.left;
+      const gridWidth = hBounds.width;
 
       const gap = Math.max(1, Math.round(gridWidth * 0.002));
       const colWidth = Math.floor((gridWidth - 2 * gap) / 3);
 
-      // 4. Multi-Row Slicing
+      // 3. Locate Post Grid Start Y & Max Allowed Y
+      const approxY = gridBox ? Math.round((gridBox.ymin / 1000) * h) : Math.round(h * 0.38);
+      const gridStartY = findExactGridStartY(buf, approxY, gridLeft, colWidth);
+      const maxAllowedY = gridBox?.ymax
+        ? Math.min(h * 0.94, Math.round((gridBox.ymax / 1000) * h))
+        : Math.round(h * 0.935);
+
+      // 4. Adaptive Row Height (Modern 3:4 portrait or classic 1:1)
+      const rowHeight = findGridRowHeight(buf, gridStartY, gridLeft, colWidth, gap, maxAllowedY);
+
+      // 5. Multi-Row Slicing
       const maxRows = 6;
       for (let r = 0; r < maxRows; r++) {
-        const rowY = gridStartY + r * (colWidth + gap);
+        const rowY = gridStartY + r * (rowHeight + gap);
 
         // Stop if reaching bottom navigation bar or screen end
-        if (rowY + colWidth * 0.65 > maxAllowedY || rowY + colWidth * 0.65 > h) {
+        if (rowY + rowHeight * 0.65 > maxAllowedY || rowY + rowHeight * 0.65 > h) {
           break;
         }
 
@@ -497,19 +649,21 @@ export async function extractColorDNA(
           const tileX = gridLeft + c * (colWidth + gap);
 
           // Verify if this slot is a real photo (skips blank slots on the right)
-          const isPhoto = isTileActualPhoto(buf, tileX, rowY, colWidth, colWidth);
+          const isPhoto = isTileActualPhoto(buf, tileX, rowY, colWidth, rowHeight);
           if (!isPhoto) continue;
 
           // Deduplicate overlapping photos from scrolled screenshots
-          const fp = computeTileFingerprint(buf, tileX, rowY, colWidth, colWidth);
+          const fp = computeTileFingerprint(buf, tileX, rowY, colWidth, rowHeight);
           const isDuplicate = existingFingerprints.some((prev) => areTilesDuplicate(fp, prev));
           if (isDuplicate) continue;
           existingFingerprints.push(fp);
 
-          // Draw crisp 320x320 1:1 square tile
+          // Draw crisp tile preserving the true aspect ratio (e.g. 300x400 for 3:4)
+          const targetW = 320;
+          const targetH = Math.round(320 * (rowHeight / colWidth));
           const tileCanvas = document.createElement("canvas");
-          tileCanvas.width = 320;
-          tileCanvas.height = 320;
+          tileCanvas.width = targetW;
+          tileCanvas.height = targetH;
           const tileCtx = tileCanvas.getContext("2d");
           if (!tileCtx) continue;
 
@@ -520,11 +674,11 @@ export async function extractColorDNA(
             tileX,
             rowY,
             colWidth,
-            Math.min(colWidth, h - rowY),
+            Math.min(rowHeight, h - rowY),
             0,
             0,
-            320,
-            320
+            targetW,
+            targetH
           );
 
           try {

@@ -13,7 +13,7 @@ export default function StoryCardModal({ isOpen, onClose, data }: StoryCardModal
   const cardRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [theme, setTheme] = useState<"paper" | "noir">("paper");
-  const [photoRatio, setPhotoRatio] = useState<"1:1" | "4:3">("1:1");
+  const [photoRatio, setPhotoRatio] = useState<"3:4" | "1:1">("3:4");
   const [copiedImage, setCopiedImage] = useState(false);
 
   const formatSingleLine = (text: string) => {
@@ -201,6 +201,24 @@ export default function StoryCardModal({ isOpen, onClose, data }: StoryCardModal
             </span>
             <button
               type="button"
+              onClick={() => setPhotoRatio("3:4")}
+              style={{
+                padding: "3px 8px",
+                borderRadius: "99px",
+                fontSize: "11px",
+                fontWeight: 800,
+                cursor: "pointer",
+                border: "none",
+                background: photoRatio === "3:4" ? "var(--acid)" : "transparent",
+                color: photoRatio === "3:4" ? "var(--ink)" : "white",
+                transition: "all 0.15s ease",
+              }}
+              title="สัดส่วนแนวตั้ง 3:4 ตามฟีด IG ยุคใหม่ ไม่ตัดหัวตัดขา"
+            >
+              3:4
+            </button>
+            <button
+              type="button"
               onClick={() => setPhotoRatio("1:1")}
               style={{
                 padding: "3px 8px",
@@ -213,27 +231,9 @@ export default function StoryCardModal({ isOpen, onClose, data }: StoryCardModal
                 color: photoRatio === "1:1" ? "var(--ink)" : "white",
                 transition: "all 0.15s ease",
               }}
-              title="สัดส่วนจัตุรัส 1:1 ตามกริด IG โชว์องค์ประกอบเต็มภาพไม่โดนตัด"
+              title="สัดส่วนจัตุรัส 1:1 แบบคลาสสิก"
             >
               1:1
-            </button>
-            <button
-              type="button"
-              onClick={() => setPhotoRatio("4:3")}
-              style={{
-                padding: "3px 8px",
-                borderRadius: "99px",
-                fontSize: "11px",
-                fontWeight: 800,
-                cursor: "pointer",
-                border: "none",
-                background: photoRatio === "4:3" ? "var(--acid)" : "transparent",
-                color: photoRatio === "4:3" ? "var(--ink)" : "white",
-                transition: "all 0.15s ease",
-              }}
-              title="สัดส่วน 4:3"
-            >
-              4:3
             </button>
           </div>
         </div>
@@ -420,7 +420,7 @@ export default function StoryCardModal({ isOpen, onClose, data }: StoryCardModal
                 <div
                   key={i}
                   style={{
-                    aspectRatio: photoRatio === "1:1" ? "1 / 1" : "4 / 3",
+                    aspectRatio: photoRatio === "3:4" ? "3 / 4" : "1 / 1",
                     width: "100%",
                     borderRadius: "10px",
                     overflow: "hidden",
