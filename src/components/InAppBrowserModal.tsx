@@ -151,19 +151,19 @@ export default function InAppBrowserModal() {
           id="inapp-modal-title"
           className="text-xl sm:text-2xl font-extrabold text-ink leading-tight m-0"
         >
-          แนะนำให้เปิดใน {targetBrowserName} เพื่อบันทึกรูป Story ได้ครบสมบูรณ์
+          แนะนำให้เปิดใน {targetBrowserName} เพื่อการทำงานที่สมบูรณ์
         </h2>
 
         <p className="text-xs sm:text-sm text-muted mt-2 mb-4 leading-relaxed">
           คุณกำลังเปิดเว็บผ่านแอป <strong className="text-ink">{browserInfo.appName}</strong>{" "}
-          ซึ่งจำกัดสิทธิ์การดาวน์โหลดและคัดลอกรูปภาพการ์ด 9:16 ลงเครื่อง
+          ซึ่งไม่รองรับการบันทึกรูปภาพ
         </p>
 
         {/* Step-by-step instructions box */}
         <div className="bg-white border-2 border-ink rounded-2xl p-4 mb-4">
           <div className="text-xs font-extrabold text-ink mb-2.5 flex items-center gap-1.5">
             <Compass className="w-4 h-4 text-purple shrink-0" />
-            <span>วิธีสลับไปเปิดใน {targetBrowserName} (ใช้เวลา 2 วินาที):</span>
+            <span>วิธีสลับไปเปิดใน {targetBrowserName} :</span>
           </div>
           <ol className="text-xs text-ink/85 space-y-2 pl-4 list-decimal m-0 leading-relaxed">
             <li>
@@ -199,12 +199,12 @@ export default function InAppBrowserModal() {
             {copiedUrl ? (
               <>
                 <Check className="w-4 h-4 stroke-[2.5] shrink-0" />
-                <span>คัดลอกลิงก์แล้ว! นำไปวางใน {targetBrowserName} ได้เลย</span>
+                <span>คัดลอกลิงก์แล้ว!</span>
               </>
             ) : (
               <>
                 <Copy className="w-4 h-4 shrink-0" />
-                <span>คัดลอกลิงก์เว็บไซต์เพื่อเปิดใน {targetBrowserName}</span>
+                <span>คัดลอกลิงก์เพื่อเปิดใน {targetBrowserName}</span>
               </>
             )}
           </button>
@@ -213,7 +213,7 @@ export default function InAppBrowserModal() {
             onClick={() => setIsOpen(false)}
             className="w-full bg-transparent hover:bg-black/5 text-muted hover:text-ink font-bold text-xs py-2 px-3 rounded-xl transition-colors cursor-pointer mt-0.5"
           >
-            เข้าใจแล้ว ทดลองใช้งานต่อในแอป {browserInfo.appName}
+            ยืนยันจะใช้งานต่อ
           </button>
         </div>
       </div>
