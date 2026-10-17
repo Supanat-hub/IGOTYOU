@@ -694,25 +694,7 @@ export default function StoryCardModal({ isOpen, onClose, data }: StoryCardModal
                           transformOrigin: "center",
                         }}
                       />
-                      <span
-                        style={{
-                          position: "absolute",
-                          top: "5px",
-                          left: "5px",
-                          background: "rgba(23, 23, 17, 0.78)",
-                          border: "1px solid rgba(255, 255, 255, 0.28)",
-                          borderRadius: "99px",
-                          padding: "1px 6px",
-                          fontSize: "8.5px",
-                          fontWeight: 800,
-                          color: "#D9FF43",
-                          fontFamily: "Manrope, sans-serif",
-                          lineHeight: 1.2,
-                          pointerEvents: "none",
-                        }}
-                      >
-                        #{String(i + 1).padStart(2, "0")}
-                      </span>
+                      
                     </div>
                   ))}
                 </div>
