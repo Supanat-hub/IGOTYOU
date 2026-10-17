@@ -795,7 +795,7 @@ export default function ResultPage({
               <div className="grid-caption">
                 <div>
                   <span>
-                    {result.topContent.category} · AI จัดอันดับ & แตะรูปเพื่อเลือกเข้าการ์ด ({selectedCardImages.length}/3)
+                    {result.topContent.category} · แตะรูปเพื่อเลือกเข้าการ์ด ({selectedCardImages.length}/3)
                   </span>
                   <strong>{result.topContent.description}</strong>
                 </div>
@@ -807,15 +807,6 @@ export default function ResultPage({
                     hidden
                     onChange={handleUploadCustomGridPhoto}
                   />
-                  <button
-                    type="button"
-                    onClick={() => gridPhotoInputRef.current?.click()}
-                    title="อัปโหลดรูปเพิ่มเติมเพื่อใส่ในการ์ด"
-                    className="bg-white/12 hover:bg-acid hover:text-ink text-acid border border-acid/40 rounded-full px-2.5 py-1 text-[10px] font-extrabold inline-flex items-center gap-1 cursor-pointer transition-colors"
-                  >
-                    <ImagePlus className="w-3 h-3" />
-                    <span>+เพิ่มรูป</span>
-                  </button>
                   <button
                     type="button"
                     onClick={onOpenStoryModal}
