@@ -164,7 +164,7 @@ function WrappedSkeletonGrid({ onCancel }: { onCancel?: () => void }) {
           </div>
           <div className="stat">
             <div className="skeleton-shimmer w-20 h-10" />
-            <span>ผู้ติดตาม ต่อ 1 โพสต์</span>
+            <span>จำนวนโพสต์ที่ตรวจวัด</span>
           </div>
           <div className="mini-note">
             <div className="skeleton-shimmer w-32 h-3" />
@@ -293,8 +293,8 @@ export default function ResultPage({
               className="action-btn action-btn-ethics flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 text-xs text-muted hover:text-ink font-semibold border-1.5 border-ink/40 bg-white hover:bg-paper rounded-full px-3 py-2 sm:py-1.5 transition-colors"
               onClick={onOpenHowItWorks}
             >
-              <HelpCircle className="w-3.5 h-3.5 text-purple shrink-0" />
-              <span>วิธีคำนวณคะแนน</span>
+              <HelpCircle className="w-3.5 h-3.5 text-white shrink-0" />
+              <span>วิธีให้คะแนน</span>
             </button>
           </div>
         </div>
@@ -320,7 +320,7 @@ export default function ResultPage({
           </p>
 
           <div className="bg-white border-2 border-ink rounded-2xl p-4 md:p-5 text-left mb-6 shadow-[3px_3px_0_var(--ink)]">
-            <div className="font-extrabold text-sm text-ink mb-2">📸 วิธีถ่ายภาพหน้าจอเพื่อผลวิเคราะห์ที่แม่นยำ:</div>
+            <div className="font-extrabold text-sm text-ink mb-2">📸 วิธีถ่ายภาพหน้าจอเพื่อผลที่แม่นยำ:</div>
             <ul className="text-xs md:text-sm text-muted space-y-2 pl-4 list-disc">
               <li>เปิดแอป Instagram แล้วเข้าไปที่หน้า <strong>โปรไฟล์ส่วนตัวของคุณ</strong></li>
               <li>แคปภาพหน้าจอให้เห็น <strong>ชื่อผู้ใช้ (@handle), ยอดผู้ติดตาม</strong> และ <strong>กริดรูปภาพโพสต์</strong></li>
@@ -334,7 +334,7 @@ export default function ResultPage({
             className="action-btn bg-acid text-ink hover:bg-[#d5f822] border-2 border-ink px-6 py-3.5 rounded-full font-black text-sm md:text-base inline-flex items-center gap-2 cursor-pointer shadow-[4px_4px_0_var(--ink)] active:translate-x-0.5 active:translate-y-0.5 transition-all"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>กลับไปอัปโหลดภาพหน้าโปรไฟล์ใหม่</span>
+            <span>กลับไปอัปโหลดภาพใหม่</span>
           </button>
         </div>
       ) : (
