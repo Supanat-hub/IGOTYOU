@@ -226,7 +226,7 @@ function App() {
           <article className="stats-card">
             <div className="card-topline"><span>BY THE NUMBERS</span><span>04</span></div>
             <div className="stat"><strong>12.4×</strong><span>ผู้ติดตาม ต่อ กำลังติดตาม</span></div>
-            <div className="stat"><strong>27</strong><span>ผู้ติดตาม ต่อ 1 โพสต์</span></div>
+            <div className="stat"><strong>27</strong><span>จำนวนโพสต์ที่วัดผล</span></div>
             <div className="mini-note">ตัวเลขอาจคลาดเคลื่อนจาก OCR <Icon name="sparkle" size={13} /></div>
           </article>
 

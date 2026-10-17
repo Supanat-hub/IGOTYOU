@@ -636,11 +636,11 @@ export default function ResultPage({
                       stats: { ...result.stats, postDensity: e.target.value },
                     })
                   }
-                  aria-label="สถิติผู้ติดตามต่อหนึ่งโพสต์"
+                  aria-label="จำนวนโพสต์ที่วัดผล"
                   className="w-20 bg-transparent border border-dashed border-ink/30 rounded px-1.5 py-0.5 font-['Manrope'] font-extrabold text-4xl tracking-tighter outline-none focus:border-ink"
                   title="คลิกเพื่อแก้ไขตัวเลขโพสต์"
                 />
-                <span>ผู้ติดตาม ต่อ 1 โพสต์</span>
+                <span>จำนวนโพสต์ที่วัดผล</span>
               </div>
               <div className="mini-note flex items-center justify-between mt-4 text-[10px] text-ink/70">
                 <span>{result.stats.ocrNote}</span>
