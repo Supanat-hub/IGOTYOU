@@ -1,5 +1,5 @@
 import React from "react";
-import { Sparkles } from "lucide-react";
+import { Sparkles, ShieldCheck } from "lucide-react";
 
 interface FooterProps {
   onNavigate: (route: "home" | "result" | "how-it-works") => void;
@@ -8,27 +8,31 @@ interface FooterProps {
 export default function Footer({ onNavigate }: FooterProps) {
   return (
     <footer className="footer shell">
-      <button
-        onClick={() => onNavigate("home")}
-        className="brand bg-transparent border-0 p-0 cursor-pointer"
-      >
-        <span className="brand-mark">
-          <Sparkles className="w-4 h-4 fill-acid text-acid" />
-        </span>
-        <span>IGOTYOU</span>
-      </button>
-
-      <div className="flex gap-5 items-center">
+      <div className="footer-brand-group">
         <button
-          onClick={() => onNavigate("how-it-works")}
-          className="bg-transparent border-0 cursor-pointer text-muted text-xs font-semibold hover:text-ink transition-colors"
+          onClick={() => onNavigate("home")}
+          className="brand bg-transparent border-0 p-0 cursor-pointer"
+          aria-label="กลับหน้าหลัก IGOTYOU"
         >
-          เบื้องหลัง & ความเป็นส่วนตัว
+          <span className="brand-mark">
+            <Sparkles className="w-4 h-4 fill-acid text-acid" />
+          </span>
+          <span>IGOTYOU</span>
         </button>
-        <p className="m-0 font-bold font-['Manrope'] text-ink">See yourself, a little differently.</p>
+        <p className="footer-slogan">See yourself, a little differently.</p>
       </div>
 
-      <span className="text-muted">Made for fun, not for judgment.</span>
+      <div className="footer-action-group">
+        <button
+          onClick={() => onNavigate("how-it-works")}
+          className="footer-nav-pill"
+        >
+          <ShieldCheck className="w-4 h-4 text-purple shrink-0" />
+          <span>เบื้องหลัง & ความเป็นส่วนตัว</span>
+        </button>
+      </div>
+
+      <span className="footer-disclaimer">Made for fun, not for judgment.</span>
     </footer>
   );
 }
