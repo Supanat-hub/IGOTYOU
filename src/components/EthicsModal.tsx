@@ -22,9 +22,9 @@ export default function EthicsModal({ isOpen, onClose, auditData }: EthicsModalP
   if (!isOpen) return null;
 
   const weights = auditData?.weights || {
-    colorHarmony: 45,
+    colorHarmony: 40,
     composition: 35,
-    contrast: 20,
+    contrast: 25,
   };
 
   return (
@@ -163,7 +163,7 @@ export default function EthicsModal({ isOpen, onClose, auditData }: EthicsModalP
                   <div style={{ width: `${weights.colorHarmony}%`, height: "100%", background: "var(--purple)" }} />
                 </div>
                 <p style={{ margin: "6px 0 0", fontSize: "12px", color: "var(--muted)" }}>
-                  ความกลมกลืนของกลุ่มสีหลัก สุ่มตัวอย่างจากค่าพิกเซลบนภาพถ่ายจริงด้วยระบบประมวลผล Canvas
+                  ความกลมกลืนของกลุ่มสีหลัก สุ่มตัวอย่างจากพิกเซลภาพถ่ายจริงที่ตัดแยกรายใบด้วยโมเดลตรวจจับวัตถุ (Client YOLOv11-Nano) โดยไม่เอาสีพื้นหลังแอปมาปน (หรือสกัดจากรูป Avatar โดยตรงหากเป็นโปรไฟล์ที่ยังไม่มีโพสต์)
                 </p>
               </div>
 
@@ -242,7 +242,7 @@ export default function EthicsModal({ isOpen, onClose, auditData }: EthicsModalP
                   รูปของคุณไม่ถูกเก็บไว้ (Zero-Retention)
                 </h4>
                 <p style={{ margin: 0, fontSize: "13px", color: "var(--muted)", lineHeight: 1.6 }}>
-                  รูปภาพที่อัปโหลดจะถูกประมวลผลบนเบราว์เซอร์ของคุณโดยตรง (In-Memory) และจะถูกเคลียร์ทันทีที่ปิดหน้าเว็บ ไม่มีการจัดเก็บภาพหรือข้อมูลส่วนตัวลงในเซิร์ฟเวอร์
+                  รูปภาพที่อัปโหลดจะถูกประมวลผลบนเบราว์เซอร์ของคุณโดยตรง (In-Memory) ด้วยโมเดลตรวจจับวัตถุและ Canvas ในเครื่อง และจะถูกเคลียร์ทันทีที่ปิดหน้าเว็บ ไม่มีการจัดเก็บภาพหรือข้อมูลส่วนตัวลงในเซิร์ฟเวอร์
                 </p>
               </div>
             </div>

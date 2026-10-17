@@ -165,7 +165,7 @@ export default function HomePage({
           </button>
 
           <p className="consent text-[11px] text-muted text-center mt-3 leading-relaxed">
-            เมื่อใช้งานต่อ คุณยืนยันว่าเป็นภาพของคุณหรือได้รับอนุญาตแล้ว · ภาพจะถูกส่งไปประมวลผลชั่วคราวผ่าน Google Gemini Vision API โดยไม่มีการบันทึกภาพลงฐานข้อมูลของระบบ
+            เมื่อใช้งานต่อ คุณยืนยันว่าเป็นภาพของคุณหรือได้รับอนุญาตแล้ว · ประมวลผลชั่วคราวอย่างปลอดภัยบนเบราว์เซอร์และ Google Gemini Vision โดยไม่มีการบันทึกภาพลงฐานข้อมูลของระบบ
           </p>
         </div>
       </section>
@@ -209,7 +209,7 @@ export default function HomePage({
             </div>
             <h3 style={{ margin: "0 0 8px", fontSize: "20px" }}>แคปหน้าจอโปรไฟล์</h3>
             <p style={{ margin: 0, color: "var(--muted)", fontSize: "14px", lineHeight: 1.6 }}>
-              ถ่ายภาพหน้าจอหน้าไบโอและกริดโพสต์ IG ส่วนตัวของคุณ 1 ถึง 3 ภาพเพื่อความแม่นยำ
+              ถ่ายภาพหน้าจอโปรไฟล์ IG ของคุณ 1 ถึง 3 ภาพ (รองรับทั้งมือถือ/แท็บเล็ต, คนมีรูปน้อย หรือบัญชีไม่มีโพสต์/Private)
             </p>
           </div>
 
@@ -219,7 +219,7 @@ export default function HomePage({
             </div>
             <h3 style={{ margin: "0 0 8px", fontSize: "20px" }}>AI สกัดโทนสีและ Vibe</h3>
             <p style={{ margin: 0, color: "var(--muted)", fontSize: "14px", lineHeight: 1.6 }}>
-              ระบบประมวลผลดึง Color DNA จากพิกเซลจริง และวิเคราะห์ฉายาประจำโปรไฟล์ของคุณในไม่กี่วินาที
+              โมเดลตรวจจับวัตถุตัดเฉพาะรูปโพสต์จริงรายใบ และสกัด Color DNA จากพิกเซลจริง พร้อมให้ AI คิดฉายา Persona ในไม่กี่วินาที
             </p>
           </div>
 
