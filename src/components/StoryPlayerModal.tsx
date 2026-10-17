@@ -91,7 +91,7 @@ export default function StoryPlayerModal({
     return () => clearInterval(timer);
   }, [isOpen, isPaused, currentSlide]);
 
-  if (!isOpen) return null;
+  if (!isOpen || data.isValidProfile === false) return null;
 
   const handleNext = () => {
     const now = Date.now();

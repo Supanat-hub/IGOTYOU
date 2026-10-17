@@ -6,6 +6,7 @@ import ResultPage from "./pages/ResultPage";
 import HowItWorksPage from "./pages/HowItWorksPage";
 import StoryCardModal from "./components/StoryCardModal";
 import StoryPlayerModal from "./components/StoryPlayerModal";
+import InAppBrowserModal from "./components/InAppBrowserModal";
 import { PRESETS, AnalysisResult, analyzeProfile } from "./utils/analysisEngine";
 
 type Route = "home" | "result" | "how-it-works";
@@ -76,7 +77,7 @@ export default function App() {
     try {
       const data = await analyzeProfile(files);
       setResult({ ...data, isPresetDemo: false });
-      setHasResult(true);
+      setHasResult(data.isValidProfile !== false);
     } catch (err: any) {
       console.error(err);
       setErrorMessage(
@@ -94,6 +95,8 @@ export default function App() {
 
   return (
     <main>
+      <InAppBrowserModal />
+
       <Navbar
         currentRoute={currentRoute}
         onNavigate={navigateTo}

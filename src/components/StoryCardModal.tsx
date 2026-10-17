@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { toCanvas } from "html-to-image";
 import { Download, Copy, Check, Sun, Moon, Sparkles } from "lucide-react";
 import { AnalysisResult } from "../utils/analysisEngine";
+import { detectInAppBrowser } from "./InAppBrowserModal";
 
 interface StoryCardModalProps {
   isOpen: boolean;
@@ -102,7 +103,7 @@ export default function StoryCardModal({ isOpen, onClose, data }: StoryCardModal
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen || data.isValidProfile === false) return null;
 
   const isNoir = theme === "noir";
   const previewImages = data.topContent?.images?.slice(0, 3) || [];
@@ -254,9 +255,29 @@ export default function StoryCardModal({ isOpen, onClose, data }: StoryCardModal
     try {
       setIsExporting(true);
       const blob = await renderCardBlob(3);
+      const fileName = `igotyou-wrapped-${Date.now()}.png`;
+
+      // If inside an In-App Browser (IG, LINE, FB) that supports Web Share API with files,
+      // open native iOS/Android Share Sheet so "Save Image" works seamlessly
+      const inAppInfo = detectInAppBrowser();
+      if (inAppInfo.isInApp && typeof navigator.share === "function" && typeof File !== "undefined") {
+        const file = new File([blob], fileName, { type: "image/png" });
+        if (!navigator.canShare || navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: "IGOTYOU Wrapped Card",
+            });
+            return;
+          } catch (shareErr: any) {
+            if (shareErr?.name === "AbortError") return;
+          }
+        }
+      }
+
       const blobUrl = URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.download = `igotyou-wrapped-${Date.now()}.png`;
+      link.download = fileName;
       link.href = blobUrl;
       document.body.appendChild(link);
       link.click();
@@ -264,7 +285,7 @@ export default function StoryCardModal({ isOpen, onClose, data }: StoryCardModal
       setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
     } catch (err) {
       console.error("Failed to export image:", err);
-      alert("ไม่สามารถบันทึกภาพได้ โปรดลองอีกครั้งหรือถ่ายภาพหน้าจอ");
+      alert("ไม่สามารถบันทึกภาพได้ แนะนำให้เปิดผ่าน Safari หรือ Chrome แล้วลองอีกครั้ง");
     } finally {
       setIsExporting(false);
     }

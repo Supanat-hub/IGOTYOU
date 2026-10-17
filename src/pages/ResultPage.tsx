@@ -265,18 +265,20 @@ export default function ResultPage({
         </button>
 
         <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center w-full sm:w-auto">
-          <button
-            className="action-btn action-btn-story w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-purple text-white hover:bg-[#6643c7] font-extrabold border-2 border-ink shadow-[3px_3px_0_var(--ink)] active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer py-2.5 px-3.5 text-xs sm:text-sm"
-            onClick={onOpenStoryModal}
-            disabled={isAnalyzing}
-            style={isAnalyzing ? { opacity: 0.5, cursor: "not-allowed" } : undefined}
-          >
-            <Download className="w-4 h-4 shrink-0" />
-            <span>{isAnalyzing ? "กำลังประมวลผล..." : "บันทึกการ์ด IG Story (9:16)"}</span>
-          </button>
+          {(isAnalyzing || result.isValidProfile !== false) && (
+            <button
+              className="action-btn action-btn-story w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-purple text-white hover:bg-[#6643c7] font-extrabold border-2 border-ink shadow-[3px_3px_0_var(--ink)] active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer py-2.5 px-3.5 text-xs sm:text-sm"
+              onClick={onOpenStoryModal}
+              disabled={isAnalyzing}
+              style={isAnalyzing ? { opacity: 0.5, cursor: "not-allowed" } : undefined}
+            >
+              <Download className="w-4 h-4 shrink-0" />
+              <span>{isAnalyzing ? "กำลังประมวลผล..." : "บันทึกการ์ด IG Story (9:16)"}</span>
+            </button>
+          )}
 
           <div className="flex gap-2 items-center w-full sm:w-auto">
-            {onOpenStoryPlayer && (
+            {onOpenStoryPlayer && (isAnalyzing || result.isValidProfile !== false) && (
               <button
                 className="action-btn flex-1 sm:flex-initial bg-white hover:bg-paper text-ink inline-flex items-center justify-center gap-2 border-2 border-ink shadow-[2px_2px_0_var(--ink)] active:translate-x-0.5 active:translate-y-0.5 transition-all font-bold cursor-pointer py-2.5 px-3 text-xs sm:text-sm"
                 onClick={onOpenStoryPlayer}
