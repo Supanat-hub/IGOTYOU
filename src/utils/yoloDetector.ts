@@ -81,7 +81,10 @@ export function parseYoloOutputTensor(
       }
     }
 
-    if (bestScore < confThreshold || bestClass < 0) continue;
+    const className = YOLO_CLASS_NAMES[bestClass] || "post_tile";
+    // Allow 0.34 threshold for avatar (handles Instagram "Note..." bubble overlapping top of avatar)
+    const effectiveThreshold = className === "avatar" ? Math.min(confThreshold, 0.34) : confThreshold;
+    if (bestScore < effectiveThreshold || bestClass < 0) continue;
 
     const cx = outputData[0 * numAnchors + i];
     const cy = outputData[1 * numAnchors + i];
@@ -102,7 +105,6 @@ export function parseYoloOutputTensor(
 
     if (xmax - xmin < 15 || ymax - ymin < 15) continue;
 
-    const className = YOLO_CLASS_NAMES[bestClass] || "post_tile";
     candidates.push({
       image_index: imageIndex,
       type: className,
@@ -128,9 +130,13 @@ export function parseYoloOutputTensor(
     }
   }
 
-  // Sort post_tile in natural reading order (row by row, left to right)
+  // Sort deterministically: group by label, then sort post_tile in reading order
+  // and sort avatar by ymin ascending so the topmost main Profile Picture comes before Story Highlights
   kept.sort((a, b) => {
-    if (a.label === "post_tile" && b.label === "post_tile") {
+    if (a.label !== b.label) {
+      return a.label.localeCompare(b.label);
+    }
+    if (a.label === "post_tile") {
       const rowDiff = a.ymin - b.ymin;
       // If within the same horizontal row (tolerance 60/1000)
       if (Math.abs(rowDiff) < 60) {
@@ -138,7 +144,10 @@ export function parseYoloOutputTensor(
       }
       return rowDiff;
     }
-    return 0;
+    if (a.label === "avatar") {
+      return a.ymin - b.ymin;
+    }
+    return b.confidence - a.confidence;
   });
 
   return kept;
@@ -146,7 +155,7 @@ export function parseYoloOutputTensor(
 
 /**
  * Evaluates YOLO detections against the IGOTYOU Decision Matrix:
- * 1. Rejects non-IG screenshots (bank slips, chats, random photos).
+ * 1. Rejects non-IG screenshots (bank slips, chats, collages, random photos).
  * 2. Identifies 0-post / Private profiles so the app uses Avatar for Color DNA.
  * 3. Counts exact visible post tiles (1 to 9+).
  */
@@ -162,13 +171,21 @@ export function evaluateYoloDetections(boxes: YoloBox[]): YoloValidationSummary 
   // - Has header anchors (avatar + stats/tabs/empty/tiles)
   // - Or has stats + tabs
   // - Or has tab bar + tiles/empty
-  // - Or is a scrolled grid screenshot with >= 3 aligned post tiles
+  // - Or is a scrolled grid screenshot with >= 4 tiles, or 3 tiles with tight IG grid spacing (gap <= 12)
   const isValidHeader =
     (hasAvatar && (hasStats || hasTabBar || hasEmptyState || postTiles.length >= 1)) ||
     (hasStats && (hasTabBar || hasEmptyState || postTiles.length >= 1)) ||
     (hasTabBar && (postTiles.length >= 1 || hasEmptyState));
 
-  const isScrolledGrid = postTiles.length >= 3;
+  let hasTightGridSpacing = false;
+  if (postTiles.length === 3) {
+    const sortedX = [...postTiles].sort((a, b) => a.xmin - b.xmin);
+    const gap1 = Math.abs(sortedX[1].xmin - sortedX[0].xmax);
+    const gap2 = Math.abs(sortedX[2].xmin - sortedX[1].xmax);
+    hasTightGridSpacing = gap1 <= 12 && gap2 <= 12;
+  }
+
+  const isScrolledGrid = postTiles.length >= 4 || (postTiles.length === 3 && hasTightGridSpacing);
   const isValidProfile = isValidHeader || isScrolledGrid;
 
   if (!isValidProfile) {

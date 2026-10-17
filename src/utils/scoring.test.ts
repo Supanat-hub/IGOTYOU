@@ -393,10 +393,18 @@ test("evaluateYoloDetections rejects non-IG images and detects 0-post/private pr
   assert.equal(twoPostProfile.isValidProfile, true);
   assert.equal(twoPostProfile.isZeroPostOrPrivate, false);
   assert.equal(twoPostProfile.postCount, 2);
+
+  // 4. Non-IG 3-photo collage / Story card with wide gaps (> 12) and no IG header/tabs -> rejected
+  const collageCard = evaluateYoloDetections([
+    { label: "post_tile", type: "post_tile", confidence: 0.70, ymin: 261, xmin: 47, ymax: 422, xmax: 334 },
+    { label: "post_tile", type: "post_tile", confidence: 0.70, ymin: 262, xmin: 351, ymax: 420, xmax: 637 },
+    { label: "post_tile", type: "post_tile", confidence: 0.66, ymin: 262, xmin: 659, ymax: 420, xmax: 942 },
+  ]);
+  assert.equal(collageCard.isValidProfile, false);
 });
 
 test("parseYoloOutputTensor decodes [1, 9, N] tensor, applies NMS, and sorts post_tile in reading order", () => {
-  const numAnchors = 4;
+  const numAnchors = 5;
   const numClasses = 5;
   const numChannels = 4 + numClasses; // 9
   const outputData = new Float32Array(numChannels * numAnchors);
@@ -416,17 +424,24 @@ test("parseYoloOutputTensor decodes [1, 9, N] tensor, applies NMS, and sorts pos
   setAnchor(1, 120, 400, 180, 220, 0, 0.88);
   // Anchor 2: duplicate overlapping left-side post tile with lower confidence (should be suppressed by NMS)
   setAnchor(2, 122, 402, 180, 220, 0, 0.65);
-  // Anchor 3: avatar
-  setAnchor(3, 100, 120, 90, 90, 1, 0.94);
+  // Anchor 3: Story Highlight circle lower down (cy=320) with higher confidence (0.95)
+  setAnchor(3, 150, 320, 70, 70, 1, 0.95);
+  // Anchor 4: Main Profile Avatar at top-left (cy=110) with Note bubble lowering confidence to 0.39
+  setAnchor(4, 100, 110, 95, 95, 1, 0.39);
 
   const detections = parseYoloOutputTensor(outputData, numAnchors, numClasses, 1, 0, 0, 640, 640);
   const postTiles = detections.filter((d) => d.label === "post_tile");
+  const avatars = detections.filter((d) => d.label === "avatar");
 
   // Duplicate anchor 2 should be suppressed by NMS, leaving 2 post tiles
   assert.equal(postTiles.length, 2);
   // Post tiles should be sorted left-to-right even though anchor 0 was to the right of anchor 1
   assert.equal(postTiles[0].xmin < postTiles[1].xmin, true);
   assert.equal(postTiles[0].type, "post_tile");
+
+  // Main profile avatar at top (ymin smaller) should be sorted BEFORE story highlight circle
+  assert.equal(avatars.length, 2);
+  assert.equal(avatars[0].ymin < avatars[1].ymin, true);
 });
 
 test("buildUserGridImages uses avatarImage instead of raw full screenshot when isZeroPostOrPrivate is true", () => {
