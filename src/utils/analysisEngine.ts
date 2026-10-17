@@ -1,4 +1,5 @@
 import { ExtractedColor, BoundingBox, extractColorDNA } from "./colorExtractor";
+import { runLocalYoloDetection } from "./yoloDetector";
 
 export interface AnalysisResult {
   username: string;
@@ -293,10 +294,16 @@ async function downscaleImageForGemini(
 export function buildUserGridImages(
   croppedImages: string[],
   files?: File[],
-  fallbackImages: string[] = []
+  fallbackImages: string[] = [],
+  isZeroPostOrPrivate = false,
+  avatarImage?: string
 ): string[] {
   if (croppedImages && croppedImages.length > 0) {
     return croppedImages.slice(0, 6);
+  }
+
+  if (isZeroPostOrPrivate) {
+    return avatarImage ? [avatarImage] : [];
   }
 
   if (files && files.length > 0) {
@@ -352,17 +359,71 @@ export function getAestheticVerdict(score: number): string {
   return "สีและแสงค่อนข้างตีกัน ยังขาดการคุมโทน";
 }
 
+function buildInvalidProfileResult(
+  palette: ExtractedColor[],
+  invalidReason?: string,
+  username = "@unknown"
+): AnalysisResult {
+  return {
+    username: username && username !== "@username" ? username : "@unknown",
+    isValidProfile: false,
+    invalidReason:
+      invalidReason ||
+      "ภาพที่อัปโหลดไม่ตรงกับหน้าจอโปรไฟล์ Instagram (ไม่พบแถบชื่อผู้ใช้หรือกริดรูปภาพ) กรุณาแคปภาพหน้าโปรไฟล์ Instagram แล้วลองใหม่อีกครั้ง",
+    persona: {
+      title: "ตรวจไม่พบโปรไฟล์ IG",
+      description: "ภาพนี้ไม่ใช่หน้าจอโปรไฟล์ Instagram",
+      tags: ["invalid-image", "not-ig-profile"],
+    },
+    aestheticScore: {
+      score: 0,
+      verdict: "ไม่ใช่หน้าโปรไฟล์ Instagram",
+      description:
+        "ระบบตรวจพบว่าภาพนี้ไม่ใช่หน้าจอโปรไฟล์ Instagram กรุณาถ่ายภาพหน้าจอโปรไฟล์จริงเพื่อรับการวิเคราะห์ที่เที่ยงตรง",
+      honestCritique: "กรุณาถ่ายภาพหน้าจอหน้าโปรไฟล์ Instagram ให้ติดชื่อผู้ใช้และกริดรูปภาพ",
+    },
+    colorDNA: palette,
+    stats: {
+      followerRatio: "0×",
+      postDensity: "0",
+      ocrNote: "ไม่พบข้อมูลโปรไฟล์",
+    },
+    topContent: {
+      category: "INVALID IMAGE",
+      description: "ไม่พบกริดรูปภาพ Instagram",
+      images: [],
+    },
+    bioRemix: {
+      text: "Please upload an Instagram profile screenshot.",
+      subtext: "โปรดอัปโหลดภาพหน้าโปรไฟล์ Instagram เพื่อรับการประเมิน",
+    },
+    ethicsAudit: {
+      weights: { colorHarmony: 40, composition: 35, contrast: 25 },
+      detectedBiases: ["Rejection Gate: ปฏิเสธภาพที่ไม่ใช่โปรไฟล์ IG เพื่อความเที่ยงตรงของคะแนน"],
+      transparencyNote: "ระบบไม่สุ่มคะแนนหลอกเมื่อตรวจพบว่าไม่ใช่ภาพโปรไฟล์ Instagram",
+    },
+  };
+}
+
 /**
  * Analyzes uploaded images:
+ * 0. Runs local YOLOv11-Nano ONNX gatekeeper & per-tile detector if /models/ig_detector.onnx is present.
  * 1. Downscales screenshots on client canvas for fast network payload.
  * 2. Calls server-side proxy /api/analyze (zero API key leak to bundle).
  * 3. Validates whether the image is genuinely an Instagram profile.
- * 4. Uses Canvas smart crop + 2nd pass border tightening to isolate photos & filter Instagram UI background.
+ * 4. Uses YOLO post_tile boxes or Canvas smart crop + 2nd pass border tightening to isolate photos & filter UI.
  * 5. Combines physics-based Color Harmony & Contrast with AI Composition into an honest 25-98 score.
  */
 export async function analyzeProfile(files: File[], presetKey?: string): Promise<AnalysisResult> {
   if (presetKey && PRESETS[presetKey]) {
     return PRESETS[presetKey];
+  }
+
+  // 0. Run local YOLOv11-Nano ONNX detector if available
+  const yoloSummary = files && files.length > 0 ? await runLocalYoloDetection(files) : null;
+  if (yoloSummary && !yoloSummary.isValidProfile) {
+    const extraction = await extractColorDNA(files);
+    return buildInvalidProfileResult(extraction.palette, yoloSummary.invalidReason);
   }
 
   let lastAnalysisError = "";
@@ -380,49 +441,25 @@ export async function analyzeProfile(files: File[], presetKey?: string): Promise
         // Validation Rejection Gate
         if (parsed.isValidProfile === false) {
           const extraction = await extractColorDNA(files);
-          return {
-            username: parsed.username && parsed.username !== "@username" ? parsed.username : "@unknown",
-            isValidProfile: false,
-            invalidReason:
-              parsed.invalidReason ||
-              "ภาพที่อัปโหลดไม่ตรงกับหน้าจอโปรไฟล์ Instagram (ไม่พบแถบชื่อผู้ใช้หรือกริดรูปภาพ) กรุณาแคปภาพหน้าโปรไฟล์ Instagram แล้วลองใหม่อีกครั้ง",
-            persona: {
-              title: "ตรวจไม่พบโปรไฟล์ IG",
-              description: "ภาพนี้ไม่ใช่หน้าจอโปรไฟล์ Instagram",
-              tags: ["invalid-image", "not-ig-profile"],
-            },
-            aestheticScore: {
-              score: 0,
-              verdict: "ไม่ใช่หน้าโปรไฟล์ Instagram",
-              description: "ระบบตรวจพบว่าภาพนี้ไม่ใช่หน้าจอโปรไฟล์ Instagram กรุณาถ่ายภาพหน้าจอโปรไฟล์จริงเพื่อรับการวิเคราะห์ที่เที่ยงตรง",
-              honestCritique: "กรุณาถ่ายภาพหน้าจอหน้าโปรไฟล์ Instagram ให้ติดชื่อผู้ใช้และกริดรูปภาพ",
-            },
-            colorDNA: extraction.palette,
-            stats: {
-              followerRatio: "0×",
-              postDensity: "0",
-              ocrNote: "ไม่พบข้อมูลโปรไฟล์",
-            },
-            topContent: {
-              category: "INVALID IMAGE",
-              description: "ไม่พบกริดรูปภาพ Instagram",
-              images: [],
-            },
-            bioRemix: {
-              text: "Please upload an Instagram profile screenshot.",
-              subtext: "โปรดอัปโหลดภาพหน้าโปรไฟล์ Instagram เพื่อรับการประเมิน",
-            },
-            ethicsAudit: {
-              weights: { colorHarmony: 40, composition: 35, contrast: 25 },
-              detectedBiases: ["Rejection Gate: ปฏิเสธภาพที่ไม่ใช่โปรไฟล์ IG เพื่อความเที่ยงตรงของคะแนน"],
-              transparencyNote: "ระบบไม่สุ่มคะแนนหลอกเมื่อตรวจพบว่าไม่ใช่ภาพโปรไฟล์ Instagram",
-            },
-          };
+          return buildInvalidProfileResult(
+            extraction.palette,
+            parsed.invalidReason,
+            parsed.username
+          );
         }
 
-        const boxes: BoundingBox[] = parsed.detectedBoxes || [];
+        // Merge high-precision local YOLO boxes (post_tile, empty_or_private, avatar) with Gemini boxes
+        const geminiBoxes: BoundingBox[] = parsed.detectedBoxes || [];
+        const boxes: BoundingBox[] =
+          yoloSummary && yoloSummary.boxes.length > 0
+            ? [...yoloSummary.boxes, ...geminiBoxes]
+            : geminiBoxes;
 
-        // 3. Perform Canvas Smart Crop & UI background filtering
+        const isZeroPost =
+          Boolean(yoloSummary?.isZeroPostOrPrivate) ||
+          boxes.some((b) => b.type === "empty_or_private");
+
+        // 3. Perform YOLO Tile Crop / Canvas Smart Crop & UI background filtering
         const extractionResult = await extractColorDNA(files, boxes);
 
         // 4. Calculate True Hybrid Aesthetic Score (unclamped 25 - 98)
@@ -445,11 +482,16 @@ export async function analyzeProfile(files: File[], presetKey?: string): Promise
 
         parsed.colorDNA = extractionResult.palette;
         parsed.avatarImage = extractionResult.avatarImage;
-        parsed.topContent = parsed.topContent || { category: "TOP CONTENT", description: "รูปโปรไฟล์ของคุณ" };
+        parsed.topContent = parsed.topContent || {
+          category: "TOP CONTENT",
+          description: isZeroPost ? "โทนสีจากรูปโปรไฟล์ (ยังไม่มีโพสต์)" : "รูปโปรไฟล์ของคุณ",
+        };
         parsed.topContent.images = buildUserGridImages(
           extractionResult.croppedImages,
           files,
-          PRESETS.cafe.topContent.images
+          PRESETS.cafe.topContent.images,
+          isZeroPost,
+          extractionResult.avatarImage
         );
 
         parsed.ethicsAudit = {
@@ -473,12 +515,16 @@ export async function analyzeProfile(files: File[], presetKey?: string): Promise
     }
   }
 
-  // 5. Honest degraded mode (Canvas extracted truth, zero fake preset substitute)
-  const extractionResult = await extractColorDNA(files);
+  // 5. Honest degraded mode (Canvas extracted truth + local YOLO boxes if available)
+  const fallbackBoxes = yoloSummary?.boxes;
+  const isZeroPostFallback = Boolean(yoloSummary?.isZeroPostOrPrivate);
+  const extractionResult = await extractColorDNA(files, fallbackBoxes);
   const userGrid = buildUserGridImages(
     extractionResult.croppedImages,
     files,
-    PRESETS.cafe.topContent.images
+    PRESETS.cafe.topContent.images,
+    isZeroPostFallback,
+    extractionResult.avatarImage
   );
   const harmony = extractionResult.metrics.harmonyScore;
   const contrast = extractionResult.metrics.contrastScore;

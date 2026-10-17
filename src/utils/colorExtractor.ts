@@ -10,6 +10,7 @@ export interface BoundingBox {
   ymax: number;
   xmax: number;
   label?: string;
+  type?: string;
 }
 
 export interface ColorExtractionResult {
@@ -804,6 +805,46 @@ export async function extractColorDNA(
   const colorBuckets: Record<string, ColorBucketItem> = {};
   const sampledLuminances: number[] = [];
   let avatarImage: string | undefined;
+  let avatarCanvasForFallback: HTMLCanvasElement | null = null;
+
+  const sampleCanvasIntoBuckets = (sourceCanvas: HTMLCanvasElement) => {
+    const sampleCanvas = document.createElement("canvas");
+    sampleCanvas.width = 64;
+    sampleCanvas.height = 64;
+    const sampleCtx = sampleCanvas.getContext("2d");
+    if (!sampleCtx) return;
+
+    sampleCtx.drawImage(sourceCanvas, 0, 0, 64, 64);
+    const sampleData = sampleCtx.getImageData(0, 0, 64, 64).data;
+
+    for (let i = 0; i < sampleData.length; i += 16) {
+      const a = sampleData[i + 3];
+      if (a < 128) continue;
+      const r = sampleData[i];
+      const g = sampleData[i + 1];
+      const b = sampleData[i + 2];
+
+      if (isAppBackground(r, g, b)) continue;
+
+      const lum = (r * 299 + g * 587 + b * 114) / 1000;
+      sampledLuminances.push(lum);
+
+      const qR = Math.floor(r / 24) * 24;
+      const qG = Math.floor(g / 24) * 24;
+      const qB = Math.floor(b / 24) * 24;
+      const key = `${qR},${qG},${qB}`;
+      const diff = Math.max(qR, qG, qB) - Math.min(qR, qG, qB);
+      const isChromatic = diff >= 18;
+      // Boost colorful pixels so uniform/concrete gray doesn't drown out mood colors
+      const weight = 1 + (isChromatic ? Math.min(2.5, diff / 40) : 0);
+
+      if (!colorBuckets[key]) {
+        colorBuckets[key] = { r: qR, g: qG, b: qB, count: 0, weight: 0, isChromatic };
+      }
+      colorBuckets[key].count++;
+      colorBuckets[key].weight += weight;
+    }
+  };
 
   for (let fileIndex = 0; fileIndex < files.length; fileIndex++) {
     try {
@@ -847,6 +888,7 @@ export async function extractColorDNA(
             aCtx.imageSmoothingEnabled = true;
             aCtx.imageSmoothingQuality = "high";
             aCtx.drawImage(img, aX, aY, aSize, aSize, 0, 0, 240, 240);
+            avatarCanvasForFallback = aCanvas;
             try {
               avatarImage = aCanvas.toDataURL("image/jpeg", 0.9);
             } catch {
@@ -854,6 +896,53 @@ export async function extractColorDNA(
             }
           }
         }
+      }
+
+      // Check if YOLO detected individual post_tile boxes or an empty/private feed
+      const yoloTileBoxes = boxes.filter((b) => b.label === "post_tile");
+      const hasEmptyOrPrivate = boxes.some((b) => b.label === "empty_or_private");
+
+      if (hasEmptyOrPrivate && yoloTileBoxes.length === 0) {
+        // Profile has 0 posts or is private: skip grid slicing so we never crop empty background
+        continue;
+      }
+
+      if (yoloTileBoxes.length > 0) {
+        // Direct per-tile extraction from custom YOLO detections
+        for (const tBox of yoloTileBoxes) {
+          const tileX = Math.max(0, Math.round((tBox.xmin / 1000) * w));
+          const tileY = Math.max(0, Math.round((tBox.ymin / 1000) * h));
+          const tileW = Math.min(w - tileX, Math.round(((tBox.xmax - tBox.xmin) / 1000) * w));
+          const tileH = Math.min(h - tileY, Math.round(((tBox.ymax - tBox.ymin) / 1000) * h));
+
+          if (tileW < 24 || tileH < 24) continue;
+          if (!isTileActualPhoto(buf, tileX, tileY, tileW, tileH)) continue;
+
+          const fp = computeTileFingerprint(buf, tileX, tileY, tileW, tileH);
+          if (existingFingerprints.some((prev) => areTilesDuplicate(fp, prev))) continue;
+          existingFingerprints.push(fp);
+
+          const targetW = 320;
+          const targetH = Math.round(320 * (tileH / tileW));
+          const tileCanvas = document.createElement("canvas");
+          tileCanvas.width = targetW;
+          tileCanvas.height = targetH;
+          const tileCtx = tileCanvas.getContext("2d");
+          if (!tileCtx) continue;
+
+          tileCtx.imageSmoothingEnabled = true;
+          tileCtx.imageSmoothingQuality = "high";
+          tileCtx.drawImage(img, tileX, tileY, tileW, tileH, 0, 0, targetW, targetH);
+
+          try {
+            croppedImages.push(tileCanvas.toDataURL("image/jpeg", 0.88));
+          } catch {
+            // Ignore
+          }
+
+          sampleCanvasIntoBuckets(tileCanvas);
+        }
+        continue;
       }
 
       // 2. Locate Horizontal Content Bounds (trims tablet letterboxing)
@@ -939,42 +1028,7 @@ export async function extractColorDNA(
           }
 
           // Sample pixels directly from this authentic photo tile for Color DNA
-          const sampleCanvas = document.createElement("canvas");
-          sampleCanvas.width = 64;
-          sampleCanvas.height = 64;
-          const sampleCtx = sampleCanvas.getContext("2d");
-          if (sampleCtx) {
-            sampleCtx.drawImage(tileCanvas, 0, 0, 64, 64);
-            const sampleData = sampleCtx.getImageData(0, 0, 64, 64).data;
-
-            for (let i = 0; i < sampleData.length; i += 16) {
-              const a = sampleData[i + 3];
-              if (a < 128) continue;
-              const r = sampleData[i];
-              const g = sampleData[i + 1];
-              const b = sampleData[i + 2];
-
-              if (isAppBackground(r, g, b)) continue;
-
-              const lum = (r * 299 + g * 587 + b * 114) / 1000;
-              sampledLuminances.push(lum);
-
-              const qR = Math.floor(r / 24) * 24;
-              const qG = Math.floor(g / 24) * 24;
-              const qB = Math.floor(b / 24) * 24;
-              const key = `${qR},${qG},${qB}`;
-              const diff = Math.max(qR, qG, qB) - Math.min(qR, qG, qB);
-              const isChromatic = diff >= 18;
-              // Boost colorful pixels so uniform/concrete gray doesn't drown out mood colors
-              const weight = 1 + (isChromatic ? Math.min(2.5, diff / 40) : 0);
-
-              if (!colorBuckets[key]) {
-                colorBuckets[key] = { r: qR, g: qG, b: qB, count: 0, weight: 0, isChromatic };
-              }
-              colorBuckets[key].count++;
-              colorBuckets[key].weight += weight;
-            }
-          }
+          sampleCanvasIntoBuckets(tileCanvas);
         }
       }
     } catch (err) {
@@ -982,9 +1036,13 @@ export async function extractColorDNA(
     }
   }
 
-  // Fallback: If 0 photos were extracted (e.g. non-grid profile top), check avatar
+  // Fallback: If 0 photos were extracted (e.g. 0-post profile or private account),
+  // use avatarImage and sample its true colors for Color DNA!
   if (croppedImages.length === 0 && avatarImage) {
     croppedImages.push(avatarImage);
+    if (avatarCanvasForFallback && Object.keys(colorBuckets).length === 0) {
+      sampleCanvasIntoBuckets(avatarCanvasForFallback);
+    }
   }
 
   const selected = selectColorPaletteFromBuckets(colorBuckets, defaultPalette);

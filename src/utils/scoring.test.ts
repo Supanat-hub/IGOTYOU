@@ -21,6 +21,10 @@ import {
   ColorBucketItem,
   PixelBuffer,
 } from "./colorExtractor";
+import {
+  parseYoloOutputTensor,
+  evaluateYoloDetections,
+} from "./yoloDetector";
 
 test("calculateHybridScore computes weighted aesthetic score accurately", () => {
   // Test master curation
@@ -360,6 +364,78 @@ test("selectColorPaletteFromBuckets handles pure monochrome feeds gracefully", (
   const palette = selectColorPaletteFromBuckets(mockMonochrome);
   assert.equal(palette.length, 4);
   assert.ok(palette.every((c) => typeof c.hex === "string" && typeof c.name === "string"));
+});
+
+test("evaluateYoloDetections rejects non-IG images and detects 0-post/private profiles", () => {
+  // 1. Non-IG image (e.g. bank slip / chat / standalone photo -> 0 detections)
+  const rejected = evaluateYoloDetections([]);
+  assert.equal(rejected.isValidProfile, false);
+  assert.ok(rejected.invalidReason && rejected.invalidReason.length > 0);
+
+  // 2. 0-post / Private IG profile (avatar + ig_stats_bar + empty_or_private, 0 post_tile)
+  const zeroPost = evaluateYoloDetections([
+    { label: "avatar", type: "avatar", confidence: 0.92, ymin: 120, xmin: 40, ymax: 260, xmax: 220 },
+    { label: "ig_stats_bar", type: "ig_stats_bar", confidence: 0.89, ymin: 130, xmin: 280, ymax: 230, xmax: 920 },
+    { label: "empty_or_private", type: "empty_or_private", confidence: 0.85, ymin: 550, xmin: 100, ymax: 850, xmax: 900 },
+  ]);
+  assert.equal(zeroPost.isValidProfile, true);
+  assert.equal(zeroPost.isZeroPostOrPrivate, true);
+  assert.equal(zeroPost.postCount, 0);
+  assert.equal(zeroPost.boxes.some((b) => b.type === "empty_or_private"), true);
+
+  // 3. Partial grid IG profile (e.g. 2 posts)
+  const twoPostProfile = evaluateYoloDetections([
+    { label: "avatar", type: "avatar", confidence: 0.95, ymin: 110, xmin: 40, ymax: 250, xmax: 210 },
+    { label: "ig_tab_bar", type: "ig_tab_bar", confidence: 0.88, ymin: 420, xmin: 0, ymax: 480, xmax: 1000 },
+    { label: "post_tile", type: "post_tile", confidence: 0.91, ymin: 485, xmin: 0, ymax: 720, xmax: 330 },
+    { label: "post_tile", type: "post_tile", confidence: 0.90, ymin: 485, xmin: 335, ymax: 720, xmax: 665 },
+  ]);
+  assert.equal(twoPostProfile.isValidProfile, true);
+  assert.equal(twoPostProfile.isZeroPostOrPrivate, false);
+  assert.equal(twoPostProfile.postCount, 2);
+});
+
+test("parseYoloOutputTensor decodes [1, 9, N] tensor, applies NMS, and sorts post_tile in reading order", () => {
+  const numAnchors = 4;
+  const numClasses = 5;
+  const numChannels = 4 + numClasses; // 9
+  const outputData = new Float32Array(numChannels * numAnchors);
+
+  // Helper to set anchor column
+  const setAnchor = (anchorIdx: number, cx: number, cy: number, w: number, h: number, classId: number, score: number) => {
+    outputData[0 * numAnchors + anchorIdx] = cx;
+    outputData[1 * numAnchors + anchorIdx] = cy;
+    outputData[2 * numAnchors + anchorIdx] = w;
+    outputData[3 * numAnchors + anchorIdx] = h;
+    outputData[(4 + classId) * numAnchors + anchorIdx] = score;
+  };
+
+  // Anchor 0: right-side post tile (col 2)
+  setAnchor(0, 320, 400, 180, 220, 0, 0.91);
+  // Anchor 1: left-side post tile (col 1)
+  setAnchor(1, 120, 400, 180, 220, 0, 0.88);
+  // Anchor 2: duplicate overlapping left-side post tile with lower confidence (should be suppressed by NMS)
+  setAnchor(2, 122, 402, 180, 220, 0, 0.65);
+  // Anchor 3: avatar
+  setAnchor(3, 100, 120, 90, 90, 1, 0.94);
+
+  const detections = parseYoloOutputTensor(outputData, numAnchors, numClasses, 1, 0, 0, 640, 640);
+  const postTiles = detections.filter((d) => d.label === "post_tile");
+
+  // Duplicate anchor 2 should be suppressed by NMS, leaving 2 post tiles
+  assert.equal(postTiles.length, 2);
+  // Post tiles should be sorted left-to-right even though anchor 0 was to the right of anchor 1
+  assert.equal(postTiles[0].xmin < postTiles[1].xmin, true);
+  assert.equal(postTiles[0].type, "post_tile");
+});
+
+test("buildUserGridImages uses avatarImage instead of raw full screenshot when isZeroPostOrPrivate is true", () => {
+  const avatarDataUrl = "data:image/jpeg;base64,avatarOnly";
+  const gridWithAvatar = buildUserGridImages([], [], ["fallback"], true, avatarDataUrl);
+  assert.deepEqual(gridWithAvatar, [avatarDataUrl]);
+
+  const gridWithoutAvatar = buildUserGridImages([], [], ["fallback"], true, undefined);
+  assert.deepEqual(gridWithoutAvatar, []);
 });
 
 
