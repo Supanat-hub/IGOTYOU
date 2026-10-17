@@ -53,19 +53,19 @@ export default function EthicsModal({ isOpen, onClose, auditData }: EthicsModalP
           width: "min(680px, 100%)",
           maxHeight: "90vh",
           overflowY: "auto",
-          padding: "28px",
-          boxShadow: "10px 10px 0 var(--ink)",
+          padding: "clamp(18px, 4vw, 28px)",
+          boxShadow: "clamp(5px, 2vw, 10px) clamp(5px, 2vw, 10px) 0 var(--ink)",
           position: "relative",
         }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px", gap: "12px" }}>
           <div>
             <span style={{ font: "700 11px/1.2 Manrope, sans-serif", letterSpacing: "0.14em", color: "var(--purple)", textTransform: "uppercase" }}>
               HOW IT WORKS · ALGORITHM TRANSPARENCY
             </span>
-            <h2 id="ethics-modal-title" style={{ margin: "6px 0 0", fontSize: "24px", letterSpacing: "-0.03em" }}>
+            <h2 id="ethics-modal-title" style={{ margin: "6px 0 0", fontSize: "clamp(18px, 4.5vw, 24px)", letterSpacing: "-0.03em", lineHeight: 1.25 }}>
               💡 เบื้องหลังการทำงาน & ความโปร่งใสของ AI
             </h2>
           </div>
@@ -83,6 +83,7 @@ export default function EthicsModal({ isOpen, onClose, auditData }: EthicsModalP
               fontSize: "18px",
               display: "grid",
               placeItems: "center",
+              flexShrink: 0,
             }}
           >
             ✕
@@ -90,17 +91,17 @@ export default function EthicsModal({ isOpen, onClose, auditData }: EthicsModalP
         </div>
 
         {/* Tab switcher */}
-        <div style={{ display: "flex", gap: "8px", marginBottom: "24px", borderBottom: "1.5px solid var(--line)", paddingBottom: "12px", overflowX: "auto" }}>
+        <div style={{ display: "flex", gap: "6px", marginBottom: "20px", borderBottom: "1.5px solid var(--line)", paddingBottom: "10px", overflowX: "auto" }}>
           <button
             onClick={() => setActiveTab("xai")}
             style={{
-              padding: "8px 16px",
+              padding: "7px clamp(10px, 2.5vw, 16px)",
               borderRadius: "99px",
               border: "1.5px solid var(--ink)",
               background: activeTab === "xai" ? "var(--ink)" : "var(--paper)",
               color: activeTab === "xai" ? "var(--acid)" : "var(--ink)",
               fontWeight: 700,
-              fontSize: "13px",
+              fontSize: "clamp(11px, 2.8vw, 13px)",
               cursor: "pointer",
               whiteSpace: "nowrap",
             }}
@@ -110,13 +111,13 @@ export default function EthicsModal({ isOpen, onClose, auditData }: EthicsModalP
           <button
             onClick={() => setActiveTab("bias")}
             style={{
-              padding: "8px 16px",
+              padding: "7px clamp(10px, 2.5vw, 16px)",
               borderRadius: "99px",
               border: "1.5px solid var(--ink)",
               background: activeTab === "bias" ? "var(--ink)" : "var(--paper)",
               color: activeTab === "bias" ? "var(--acid)" : "var(--ink)",
               fontWeight: 700,
-              fontSize: "13px",
+              fontSize: "clamp(11px, 2.8vw, 13px)",
               cursor: "pointer",
               whiteSpace: "nowrap",
             }}
@@ -126,13 +127,13 @@ export default function EthicsModal({ isOpen, onClose, auditData }: EthicsModalP
           <button
             onClick={() => setActiveTab("privacy")}
             style={{
-              padding: "8px 16px",
+              padding: "7px clamp(10px, 2.5vw, 16px)",
               borderRadius: "99px",
               border: "1.5px solid var(--ink)",
               background: activeTab === "privacy" ? "var(--ink)" : "var(--paper)",
               color: activeTab === "privacy" ? "var(--acid)" : "var(--ink)",
               fontWeight: 700,
-              fontSize: "13px",
+              fontSize: "clamp(11px, 2.8vw, 13px)",
               cursor: "pointer",
               whiteSpace: "nowrap",
             }}

@@ -30,13 +30,14 @@ export default function Navbar({
       <div className="nav-actions">
         {(hasResult || isAnalyzing || currentRoute === "result") && (
           <button
-            className={`nav-pill-btn transition-colors ${
+            className={`nav-pill-btn transition-colors shrink-0 ${
               currentRoute === "result" ? "bg-acid" : "bg-white"
             }`}
             onClick={() => onNavigate("result")}
           >
-            <Sparkles className="w-3.5 h-3.5 text-ink" />
-            <span>{isAnalyzing ? "กำลังวิเคราะห์..." : "ผลลัพธ์ Wrapped"}</span>
+            <Sparkles className="w-3.5 h-3.5 text-ink shrink-0" />
+            <span className="hidden sm:inline">{isAnalyzing ? "กำลังวิเคราะห์..." : "ผลลัพธ์ Wrapped"}</span>
+            <span className="sm:hidden">{isAnalyzing ? "กำลังคิด..." : "ผลลัพธ์"}</span>
           </button>
         )}
 

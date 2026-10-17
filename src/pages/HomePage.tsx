@@ -86,7 +86,7 @@ export default function HomePage({
           </div>
         </div>
 
-        <div className="upload-card">
+        <div className="upload-card min-w-0 max-w-full overflow-hidden">
           <div className="card-heading flex justify-between items-start mb-5">
             <div>
               <span className="step-label text-purple text-xs font-bold tracking-wider">STEP 01</span>
@@ -126,17 +126,17 @@ export default function HomePage({
           </div>
 
           {files.length > 0 && (
-            <div className="file-list">
+            <div className="file-list min-w-0 max-w-full overflow-hidden">
               {files.map((file, index) => (
-                <div className="file-item" key={`${file.name}-${index}`}>
-                  <span className="file-icon">
+                <div className="file-item min-w-0 max-w-full overflow-hidden flex items-center gap-2" key={`${file.name}-${index}`}>
+                  <span className="file-icon shrink-0">
                     <ImageIcon className="w-4 h-4 text-purple" />
                   </span>
-                  <span className="file-name">{file.name}</span>
-                  <span className="file-size">{(file.size / 1024 / 1024).toFixed(1)} MB</span>
+                  <span className="file-name min-w-0 flex-1 truncate text-xs sm:text-sm font-semibold">{file.name}</span>
+                  <span className="file-size shrink-0 text-[11px] text-muted whitespace-nowrap">{(file.size / 1024 / 1024).toFixed(1)} MB</span>
                   <button
                     aria-label={`ลบ ${file.name}`}
-                    className="icon-button hover:text-orange transition-colors"
+                    className="icon-button shrink-0 hover:text-orange transition-colors"
                     onClick={() => onFilesChange(files.filter((_, itemIndex) => itemIndex !== index))}
                   >
                     <X className="w-4 h-4" />
