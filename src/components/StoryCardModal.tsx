@@ -359,7 +359,7 @@ export default function StoryCardModal({ isOpen, onClose, data }: StoryCardModal
               }}
             >
               <Sun className="w-3.5 h-3.5" />
-              <span>Neo-Paper</span>
+              <span>Neo</span>
             </button>
             <button
               type="button"
@@ -381,7 +381,7 @@ export default function StoryCardModal({ isOpen, onClose, data }: StoryCardModal
               }}
             >
               <Moon className="w-3.5 h-3.5" />
-              <span>Dark Noir</span>
+              <span>Dark</span>
             </button>
           </div>
 
@@ -398,7 +398,7 @@ export default function StoryCardModal({ isOpen, onClose, data }: StoryCardModal
             }}
           >
             <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.75)", fontWeight: 700, paddingLeft: "6px" }}>
-              สัดส่วนรูป:
+              สัดส่วน:
             </span>
             <button
               type="button"
@@ -986,7 +986,7 @@ export default function StoryCardModal({ isOpen, onClose, data }: StoryCardModal
               }}
             >
               <Download className="w-4 h-4 text-ink" />
-              <span>{isExporting ? "กำลังสร้างภาพ..." : "บันทึกภาพ IG Story"}</span>
+              <span>{isExporting ? "กำลังสร้างภาพ..." : "บันทึกภาพ"}</span>
             </button>
             <button
               type="button"
