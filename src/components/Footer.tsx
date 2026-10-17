@@ -25,9 +25,7 @@ export default function Footer({ onNavigate }: FooterProps) {
       <div className="footer-action-group">
         <button
           onClick={() => onNavigate("how-it-works")}
-          className="footer-nav-pill"
         >
-          <ShieldCheck className="w-4 h-4 text-purple shrink-0" />
           <span>เบื้องหลัง & ความเป็นส่วนตัว</span>
         </button>
       </div>
