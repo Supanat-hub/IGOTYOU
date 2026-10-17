@@ -138,7 +138,9 @@ TASKS:
    - description: 1-2 thoughtful sentences explaining their visual harmony and color choice.
    - honestCritique: A truthful 1-sentence critique in Thai pointing out both what works and what reduced the score (e.g. "โทนสีสตรีทมีความดิบเท่ แต่ภาพที่มีแสงแฟลชสว่างโดดออกมาจากโทนรวม ทำให้ความกลมกลืนของกริดลดลง").
 
-8. Top 3 content pillars in Thai (e.g. แสงเงาสตรีท · สถาปัตยกรรมมืด · มุมมองขาวดำ).
+8. Top 3 content pillars in Thai (e.g. แสงเงาสตรีท · สถาปัตยกรรมมืด · มุมมองขาวดำ), AND rank the visible grid posts by visual quality:
+   - Inspect all unique visible post photos in reading order (index 0 = top-left post, 1 = top-middle, 2 = top-right, 3 = second row left, etc.).
+   - Return "topPostIndices": an array of 0-based post indices ordered from the MOST aesthetically striking, best-composed, well-lit, and color-cohesive photo (#1 best) down to the rest (e.g. [2, 0, 4, 1, 3, 5]). Prefer crisp, artistic, well-balanced photos over text-heavy screenshots, blurry frames, or cluttered shots.
 9. A witty, poetic 1-line English bio remix with a clever Thai subtext.
 
 Return ONLY valid JSON matching this exact structure:
@@ -150,6 +152,7 @@ Return ONLY valid JSON matching this exact structure:
     { "image_index": 0, "ymin": 150, "xmin": 0, "ymax": 950, "xmax": 660, "label": "post_grid" },
     { "image_index": 1, "ymin": 80, "xmin": 30, "ymax": 260, "xmax": 300, "label": "avatar" }
   ],
+  "topPostIndices": [1, 0, 2],
   "persona": { "title": "...", "description": "ฉายาประจำโปรไฟล์ของคุณคือ", "tags": ["tag1", "tag2"] },
   "aestheticScore": { "verdict": "...", "description": "...", "honestCritique": "..." },
   "compositionScore": 72,

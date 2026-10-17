@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowLeft, ArrowRight, Palette, LayoutGrid, Scale, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, Palette, LayoutGrid, Scale, Sparkles } from "lucide-react";
 
 interface HowItWorksPageProps {
   onBackToHome: () => void;
@@ -32,7 +32,7 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
         </p>
       </div>
 
-      {/* 3 Main Pillars Grid */}
+      {/* Main Pillars Grid */}
       <div className="grid gap-7 max-w-[900px]">
         {/* Pillar 1: Scoring Algorithm */}
         <div className="bg-white border-2 border-ink rounded-[20px] p-5 sm:p-8 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)]">
@@ -106,11 +106,48 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
           </div>
         </div>
 
-        {/* Pillar 2: Aesthetic Diversity & Non-Bias */}
+        {/* Pillar 2: AI Top Content Ranking & Card Customization */}
+        <div className="bg-white border-2 border-ink rounded-[20px] p-5 sm:p-8 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)]">
+          <div className="flex items-center gap-3 mb-3.5">
+            <span className="w-8 h-8 rounded-full bg-green text-white border-1.5 border-ink grid place-items-center font-extrabold text-sm">
+              02
+            </span>
+            <h2 className="m-0 text-xl font-bold text-ink">
+              การคัดเลือกรูป TOP CONTENT & การปรับแต่งการ์ด
+            </h2>
+          </div>
+          <div className="grid gap-4 text-sm leading-relaxed text-muted">
+            <p className="m-0">
+              แทนที่จะหยิบเพียง 3 รูปแรกสุดบนตารางฟีดแบบเรียงตามลำดับ ระบบจะคัดสรรและจัดอันดับรูปภาพที่โดดเด่นที่สุดของคุณผ่าน 2 ขั้นตอน:
+            </p>
+            <div className="grid sm:grid-cols-2 gap-3.5">
+              <div className="border-1.5 border-ink rounded-2xl p-4 bg-paper">
+                <div className="font-extrabold text-ink text-sm flex items-center gap-1.5 mb-1.5">
+                  <Sparkles className="w-4 h-4 text-purple shrink-0" />
+                  <span>1. AI & Pixel Aesthetic Ranking</span>
+                </div>
+                <p className="m-0 text-xs text-muted leading-relaxed">
+                  ผสานการประเมินองค์ประกอบภาพจาก <strong>Gemini Vision</strong> เข้ากับค่าคุณภาพพิกเซลรายใบ (<strong>Per-Tile Aesthetic Score</strong>: มิติแสงเงา ความคมชัดตรงจุดโฟกัส และความเข้ากันกับพาเลตต์ Color DNA) เพื่อจัดอันดับรูปที่ดีที่สุดขึ้นเป็น <strong>#1, #2, #3</strong> โดยอัตโนมัติ
+                </p>
+              </div>
+              <div className="border-1.5 border-ink rounded-2xl p-4 bg-paper">
+                <div className="font-extrabold text-ink text-sm flex items-center gap-1.5 mb-1.5">
+                  <LayoutGrid className="w-4 h-4 text-green shrink-0" />
+                  <span>2. เลือกสลับและเพิ่มรูปในการ์ดได้เอง</span>
+                </div>
+                <p className="m-0 text-xs text-muted leading-relaxed">
+                  คุณมีอิสระเต็มที่ในการปรับแต่งรูปที่จะนำไปโชว์บนการ์ด IG Story (9:16) สามารถแตะสลับลำดับรูป <strong>#1–#3</strong> ได้ทั้งบนการ์ด <strong>TOP CONTENT</strong> และในหน้าต่างตัวอย่างการ์ด หรือกด <strong>+เพิ่มรูป</strong> เพื่ออัปโหลดรูปโปรดจากเครื่องได้ทันที
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Pillar 3: Aesthetic Diversity & Non-Bias */}
         <div className="bg-white border-2 border-ink rounded-[20px] p-5 sm:p-8 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)]">
           <div className="flex items-center gap-3 mb-3.5">
             <span className="w-8 h-8 rounded-full bg-purple text-white border-1.5 border-ink grid place-items-center font-extrabold text-sm">
-              02
+              03
             </span>
             <h2 className="m-0 text-xl font-bold text-ink">ความหลากหลายของภาพ & การลดอคติ</h2>
           </div>
@@ -124,11 +161,11 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
           </div>
         </div>
 
-        {/* Pillar 3: Privacy First */}
+        {/* Pillar 4: Privacy First */}
         <div className="bg-white border-2 border-ink rounded-[20px] p-5 sm:p-8 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)]">
           <div className="flex items-center gap-3 mb-3.5">
             <span className="w-8 h-8 rounded-full bg-orange text-white border-1.5 border-ink grid place-items-center font-extrabold text-sm">
-              03
+              04
             </span>
             <h2 className="m-0 text-xl font-bold text-ink inline-flex items-center gap-2">
               <span>นโยบายความเป็นส่วนตัว (Ephemeral Processing)</span>

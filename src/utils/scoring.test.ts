@@ -5,6 +5,7 @@ import {
   calculateDegradedScore,
   getAestheticVerdict,
   buildUserGridImages,
+  rankTopContentImages,
 } from "./analysisEngine";
 import {
   isAppBackground,
@@ -13,6 +14,7 @@ import {
   isTileActualPhoto,
   computeTileFingerprint,
   areTilesDuplicate,
+  computeTileAestheticScore,
   findExactGridStartY,
   findGridHorizontalBounds,
   refineGridColumns,
@@ -559,3 +561,49 @@ test("filterClippedPostTiles and evaluateYoloDetections recover Note-covered hea
   assert.equal(recoveredAvatar?.xmin, 179);
   assert.equal(recoveredAvatar?.ymin, 80);
 });
+
+test("computeTileAestheticScore and rankTopContentImages prioritize AI-ranked and well-exposed cohesive tiles", () => {
+  const palette = [
+    { hex: "#c87a4b", name: "Terracotta" },
+    { hex: "#355e3b", name: "Forest Pine" },
+  ];
+
+  // Tile 0: Blown-out mostly white screenshot / text quote tile
+  const blownFp: number[] = [];
+  for (let i = 0; i < 64; i++) {
+    blownFp.push(248, 248, 248);
+  }
+
+  // Tile 1: Rich, balanced midtone photo with center contrast & palette harmony
+  const aestheticFp: number[] = [];
+  for (let gy = 0; gy < 8; gy++) {
+    for (let gx = 0; gx < 8; gx++) {
+      const isCenter = gx >= 2 && gx <= 5 && gy >= 2 && gy <= 5;
+      if (isCenter) {
+        aestheticFp.push(200, 122, 75); // Matches #c87a4b
+      } else {
+        aestheticFp.push(55, 92, 60); // Matches #355e3b
+      }
+    }
+  }
+
+  const scoreBlown = computeTileAestheticScore(blownFp, palette);
+  const scoreAesthetic = computeTileAestheticScore(aestheticFp, palette);
+
+  assert.equal(
+    scoreAesthetic > scoreBlown,
+    true,
+    `Expected aesthetic tile (${scoreAesthetic}) > blown-out tile (${scoreBlown})`
+  );
+
+  // Without AI indices, rankTopContentImages ranks by pixel aesthetic score
+  const images = ["img0_blown", "img1_aesthetic", "img2_medium"];
+  const rankedByPixel = rankTopContentImages(images, [scoreBlown, scoreAesthetic, 65]);
+  assert.deepEqual(rankedByPixel, ["img1_aesthetic", "img2_medium", "img0_blown"]);
+
+  // With AI topPostIndices [2, 1, 0], AI curation boost promotes index 2 to #1
+  const rankedByAi = rankTopContentImages(images, [scoreBlown, scoreAesthetic, 72], [2, 1, 0]);
+  assert.equal(rankedByAi[0], "img2_medium");
+  assert.equal(rankedByAi[1], "img1_aesthetic");
+});
+

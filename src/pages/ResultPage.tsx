@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState, ChangeEvent } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -12,6 +12,7 @@ import {
   RefreshCw,
   Play,
   AlertTriangle,
+  ImagePlus,
 } from "lucide-react";
 import { AnalysisResult } from "../utils/analysisEngine";
 
@@ -225,6 +226,94 @@ export default function ResultPage({
 }: ResultPageProps) {
   const [copied, setCopied] = useState(false);
   const [copiedHex, setCopiedHex] = useState<string | null>(null);
+  const gridPhotoInputRef = useRef<HTMLInputElement>(null);
+
+  const selectedCardImages = (
+    result.topContent.cardImages && result.topContent.cardImages.length > 0
+      ? result.topContent.cardImages
+      : result.topContent.images
+  ).slice(0, 3);
+
+  const handleToggleGridPhotoForCard = (imgUrl: string) => {
+    const currentCard = [...selectedCardImages];
+    const existingIdx = currentCard.indexOf(imgUrl);
+    let nextCard: string[];
+
+    if (existingIdx !== -1) {
+      if (currentCard.length <= 1) return;
+      nextCard = currentCard.filter((_, i) => i !== existingIdx);
+    } else {
+      if (currentCard.length < 3) {
+        nextCard = [...currentCard, imgUrl];
+      } else {
+        nextCard = [currentCard[0], currentCard[1], imgUrl];
+      }
+    }
+
+    onUpdateResult({
+      ...result,
+      topContent: {
+        ...result.topContent,
+        cardImages: nextCard,
+      },
+    });
+  };
+
+  const handleUploadCustomGridPhoto = (e: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []).filter((f) =>
+      f.type.startsWith("image/")
+    );
+    e.target.value = "";
+    if (files.length === 0) return;
+
+    const file = files[0];
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let w = img.naturalWidth || img.width;
+      let h = img.naturalHeight || img.height;
+      const maxDim = 960;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) {
+          h = Math.round((h * maxDim) / w);
+          w = maxDim;
+        } else {
+          w = Math.round((w * maxDim) / h);
+          h = maxDim;
+        }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+
+      const prevAll =
+        result.topContent.allImages && result.topContent.allImages.length > 0
+          ? result.topContent.allImages
+          : result.topContent.images;
+      const nextAll = [dataUrl, ...prevAll];
+      const nextImages = [dataUrl, ...result.topContent.images].slice(0, 6);
+      const nextCard =
+        selectedCardImages.length < 3
+          ? [...selectedCardImages, dataUrl]
+          : [selectedCardImages[0], selectedCardImages[1], dataUrl];
+
+      onUpdateResult({
+        ...result,
+        topContent: {
+          ...result.topContent,
+          images: nextImages,
+          allImages: nextAll,
+          cardImages: nextCard,
+        },
+      });
+    };
+    img.src = url;
+  };
 
   const handleCopyBio = () => {
     navigator.clipboard?.writeText(result.bioRemix.text);
@@ -648,7 +737,7 @@ export default function ResultPage({
               </div>
             </article>
 
-            {/* 05 Grid Card (Uses real uploaded images) */}
+            {/* 05 Grid Card (AI-ranked photos + interactive selection for Story Card) */}
             <article className="grid-card">
               <div
                 className="grid-images"
@@ -661,18 +750,81 @@ export default function ResultPage({
                       : "repeat(3, 1fr)",
                 }}
               >
-                {result.topContent.images.map((image, index) => (
-                  <img alt={`ภาพที่วิเคราะห์ ${index + 1}`} key={index} src={image} />
-                ))}
+                {result.topContent.images.map((image, index) => {
+                  const cardSlotIdx = selectedCardImages.indexOf(image);
+                  const isSelectedOnCard = cardSlotIdx !== -1;
+                  return (
+                    <div
+                      key={index}
+                      onClick={() => handleToggleGridPhotoForCard(image)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) =>
+                        (e.key === "Enter" || e.key === " ") &&
+                        handleToggleGridPhotoForCard(image)
+                      }
+                      title={
+                        isSelectedOnCard
+                          ? `รูปที่ #${cardSlotIdx + 1} ในการ์ด Story (คลิกเพื่อสลับ/เอาออก)`
+                          : "คลิกเพื่อเลือกรูปนี้เข้าการ์ด Story"
+                      }
+                      className="relative overflow-hidden cursor-pointer group"
+                    >
+                      <img
+                        alt={`ภาพที่วิเคราะห์ ${index + 1}`}
+                        src={image}
+                        className={`w-full block transition-all duration-200 ${
+                          isSelectedOnCard
+                            ? "opacity-100"
+                            : "opacity-75 group-hover:opacity-100"
+                        }`}
+                      />
+                      {isSelectedOnCard ? (
+                        <span className="absolute top-2 left-2 z-10 bg-acid text-ink border-1.5 border-ink rounded-full px-2 py-0.5 text-[10px] font-black font-['Manrope'] shadow-[1.5px_1.5px_0_var(--ink)]">
+                          #{cardSlotIdx + 1} ในการ์ด
+                        </span>
+                      ) : (
+                        <span className="absolute top-2 left-2 z-10 bg-ink/75 text-white/90 border border-white/30 rounded-full px-2 py-0.5 text-[9px] font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+                          + เลือกเข้าการ์ด
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
               <div className="grid-caption">
                 <div>
-                  <span>{result.topContent.category}</span>
+                  <span>
+                    {result.topContent.category} · AI จัดอันดับ & แตะรูปเพื่อเลือกเข้าการ์ด ({selectedCardImages.length}/3)
+                  </span>
                   <strong>{result.topContent.description}</strong>
                 </div>
-                <span className="round-arrow">
-                  <ArrowRight className="w-4 h-4" />
-                </span>
+                <div className="flex items-center gap-2 shrink-0">
+                  <input
+                    ref={gridPhotoInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    hidden
+                    onChange={handleUploadCustomGridPhoto}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => gridPhotoInputRef.current?.click()}
+                    title="อัปโหลดรูปเพิ่มเติมเพื่อใส่ในการ์ด"
+                    className="bg-white/12 hover:bg-acid hover:text-ink text-acid border border-acid/40 rounded-full px-2.5 py-1 text-[10px] font-extrabold inline-flex items-center gap-1 cursor-pointer transition-colors"
+                  >
+                    <ImagePlus className="w-3 h-3" />
+                    <span>+เพิ่มรูป</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onOpenStoryModal}
+                    title="เปิดดูและปรับแต่งการ์ด IG Story"
+                    className="round-arrow hover:bg-acid hover:text-ink hover:border-ink transition-colors cursor-pointer bg-transparent text-white"
+                  >
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </article>
 

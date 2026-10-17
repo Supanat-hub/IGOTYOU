@@ -18,6 +18,7 @@ export interface BoundingBox {
 export interface ColorExtractionResult {
   palette: ExtractedColor[];
   croppedImages: string[];
+  tileScores?: number[];
   avatarImage?: string;
   metrics: {
     harmonyScore: number;
@@ -611,6 +612,108 @@ export function areTilesDuplicate(
 }
 
 /**
+ * Evaluates a single photo tile's aesthetic quality (0-100) from its 8x8 RGB fingerprint
+ * and its color harmony with the profile's dominant Color DNA palette.
+ * Combines:
+ * 1. Tonal Contrast & Dynamic Range (0-35 pts)
+ * 2. Exposure Balance & Midtone Richness (0-25 pts)
+ * 3. Center-Weighted Subject Clarity / Spatial Detail (0-20 pts)
+ * 4. Palette Cohesion with Profile Color DNA (0-20 pts)
+ */
+export function computeTileAestheticScore(
+  fp: number[],
+  palette: ExtractedColor[] = []
+): number {
+  const cells = Math.floor(fp.length / 3);
+  if (cells === 0) return 50;
+
+  const lums: number[] = [];
+  let blownCount = 0;
+  let crushedCount = 0;
+
+  const paletteRgb = palette.map((c) => ({
+    r: parseInt(c.hex.slice(1, 3), 16) || 0,
+    g: parseInt(c.hex.slice(3, 5), 16) || 0,
+    b: parseInt(c.hex.slice(5, 7), 16) || 0,
+  }));
+
+  let paletteDistSum = 0;
+  let paletteSamples = 0;
+
+  for (let i = 0; i < cells; i++) {
+    const r = fp[i * 3];
+    const g = fp[i * 3 + 1];
+    const b = fp[i * 3 + 2];
+    const lum = (r * 299 + g * 587 + b * 114) / 1000;
+    lums.push(lum);
+
+    if (lum > 242) blownCount++;
+    if (lum < 14) crushedCount++;
+
+    if (paletteRgb.length > 0 && !isAppBackground(r, g, b)) {
+      let minDist = Infinity;
+      for (const p of paletteRgb) {
+        const d = Math.abs(r - p.r) + Math.abs(g - p.g) + Math.abs(b - p.b);
+        if (d < minDist) minDist = d;
+      }
+      paletteDistSum += minDist;
+      paletteSamples++;
+    }
+  }
+
+  // 1. Tonal Contrast & Dynamic Range (0-35)
+  const meanLum = lums.reduce((a, b) => a + b, 0) / cells;
+  const variance = lums.reduce((a, b) => a + Math.pow(b - meanLum, 2), 0) / cells;
+  const stdDev = Math.sqrt(variance);
+  // Optimal dynamic range stdDev is around 42-58
+  const contrastScore = Math.max(
+    5,
+    Math.min(35, Math.round(35 - Math.abs(stdDev - 48) * 0.55))
+  );
+
+  // 2. Exposure Balance & Midtone Richness (0-25)
+  // Ideal mean luminance is 70-180; penalize heavy clipping/text-white screenshots
+  let exposureScore = 25 - Math.max(0, Math.abs(meanLum - 125) - 35) * 0.22;
+  const extremeRatio = (blownCount + crushedCount) / cells;
+  if (extremeRatio > 0.45) {
+    exposureScore -= (extremeRatio - 0.45) * 28;
+  }
+  exposureScore = Math.max(4, Math.min(25, Math.round(exposureScore)));
+
+  // 3. Center-Weighted Subject Clarity / Spatial Detail (0-20)
+  const grid = Math.round(Math.sqrt(cells));
+  let detailSum = 0;
+  let detailWeightSum = 0;
+  if (grid >= 4) {
+    for (let gy = 0; gy < grid - 1; gy++) {
+      for (let gx = 0; gx < grid - 1; gx++) {
+        const idx = gy * grid + gx;
+        const rightIdx = gy * grid + (gx + 1);
+        const downIdx = (gy + 1) * grid + gx;
+        const grad =
+          Math.abs(lums[idx] - lums[rightIdx]) +
+          Math.abs(lums[idx] - lums[downIdx]);
+        const isCenter = gx >= 2 && gx <= 5 && gy >= 2 && gy <= 5;
+        const w = isCenter ? 1.8 : 1.0;
+        detailSum += grad * w;
+        detailWeightSum += w;
+      }
+    }
+  }
+  const avgGrad = detailWeightSum > 0 ? detailSum / detailWeightSum : 18;
+  const detailScore = Math.max(4, Math.min(20, Math.round(avgGrad * 0.45)));
+
+  // 4. Palette Cohesion with Profile Color DNA (0-20)
+  let cohesionScore = 14;
+  if (paletteSamples > 0) {
+    const avgDist = paletteDistSum / paletteSamples; // 0 to ~400
+    cohesionScore = Math.max(4, Math.min(20, Math.round(22 - avgDist / 16)));
+  }
+
+  return Math.max(15, Math.min(99, contrastScore + exposureScore + detailScore + cohesionScore));
+}
+
+/**
  * Loads an image file into an HTMLImageElement
  */
 function loadImage(file: File): Promise<HTMLImageElement> {
@@ -1141,9 +1244,16 @@ export async function extractColorDNA(
 
   const metrics = calculatePhotoMetrics(sampledLuminances, selected);
 
+  const tileScores = croppedImages.map((_, idx) => {
+    const fpEntry = existingFingerprints[idx];
+    if (!fpEntry || !fpEntry.fp || fpEntry.fp.length === 0) return 70;
+    return computeTileAestheticScore(fpEntry.fp, selected);
+  });
+
   return {
     palette: selected,
     croppedImages,
+    tileScores,
     avatarImage,
     metrics,
   };

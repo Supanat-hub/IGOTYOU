@@ -174,6 +174,7 @@ export default function App() {
         isOpen={isStoryModalOpen}
         onClose={() => setIsStoryModalOpen(false)}
         data={result}
+        onUpdateData={setResult}
       />
 
       {/* Interactive Spotify-Wrapped Style Story Player */}

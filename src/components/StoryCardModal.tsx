@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, ChangeEvent } from "react";
 import { toCanvas } from "html-to-image";
-import { Download, Copy, Check, Sun, Moon, Sparkles } from "lucide-react";
+import { Download, Copy, Check, Sun, Moon, Sparkles, ImagePlus, RotateCcw } from "lucide-react";
 import { AnalysisResult } from "../utils/analysisEngine";
 import { detectInAppBrowser } from "./InAppBrowserModal";
 import { useBodyScrollLock } from "../utils/scrollLock";
@@ -9,6 +9,7 @@ interface StoryCardModalProps {
   isOpen: boolean;
   onClose: () => void;
   data: AnalysisResult;
+  onUpdateData?: (updated: AnalysisResult) => void;
 }
 
 function traceRoundedRect(
@@ -47,12 +48,57 @@ function loadImageElement(src: string): Promise<HTMLImageElement> {
   });
 }
 
-export default function StoryCardModal({ isOpen, onClose, data }: StoryCardModalProps) {
+function fileToCompressedDataUrl(file: File, maxDim = 960): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let w = img.naturalWidth || img.width;
+      let h = img.naturalHeight || img.height;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) {
+          h = Math.round((h * maxDim) / w);
+          w = maxDim;
+        } else {
+          w = Math.round((w * maxDim) / h);
+          h = maxDim;
+        }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        reject(new Error("Canvas context unavailable"));
+        return;
+      }
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL("image/jpeg", 0.9));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Failed to load custom photo"));
+    };
+    img.src = url;
+  });
+}
+
+export default function StoryCardModal({
+  isOpen,
+  onClose,
+  data,
+  onUpdateData,
+}: StoryCardModalProps) {
   const cardRef = useRef<HTMLDivElement>(null);
+  const customPhotoInputRef = useRef<HTMLInputElement>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [theme, setTheme] = useState<"paper" | "noir">("paper");
   const [photoRatio, setPhotoRatio] = useState<"3:4" | "1:1">("3:4");
   const [copiedImage, setCopiedImage] = useState(false);
+  const [activeSlot, setActiveSlot] = useState<number | null>(null);
 
   const formatSingleLine = (text: string) => {
     if (!text) return "";
@@ -67,10 +113,38 @@ export default function StoryCardModal({ isOpen, onClose, data }: StoryCardModal
   const [customTitle, setCustomTitle] = useState(() => formatSingleLine(data.persona.title));
   const [customHandle, setCustomHandle] = useState(data.username || "@my.profile");
 
+  // Local fallback state in case parent doesn't pass onUpdateData
+  const [localCardImages, setLocalCardImages] = useState<string[]>(() =>
+    (data.topContent?.cardImages && data.topContent.cardImages.length > 0
+      ? data.topContent.cardImages
+      : data.topContent?.images || []
+    ).slice(0, 3)
+  );
+  const [localAllImages, setLocalAllImages] = useState<string[]>(() =>
+    data.topContent?.allImages && data.topContent.allImages.length > 0
+      ? data.topContent.allImages
+      : data.topContent?.images || []
+  );
+
   useEffect(() => {
     setCustomTitle(formatSingleLine(data.persona.title));
     setCustomHandle(data.username || "@my.profile");
   }, [data.persona.title, data.username]);
+
+  useEffect(() => {
+    const nextCard = (
+      data.topContent?.cardImages && data.topContent.cardImages.length > 0
+        ? data.topContent.cardImages
+        : data.topContent?.images || []
+    ).slice(0, 3);
+    const nextAll =
+      data.topContent?.allImages && data.topContent.allImages.length > 0
+        ? data.topContent.allImages
+        : data.topContent?.images || [];
+    setLocalCardImages(nextCard);
+    setLocalAllImages(nextAll);
+    setActiveSlot(null);
+  }, [data.topContent?.cardImages, data.topContent?.allImages, data.topContent?.images]);
 
   const [scale, setScale] = useState(1);
 
@@ -79,15 +153,15 @@ export default function StoryCardModal({ isOpen, onClose, data }: StoryCardModal
     const calculateScale = () => {
       // Allow at least 20px horizontal margin each side (40px total)
       const availW = window.innerWidth - 40;
-      // Top controls (~44px) + 2-tier action buttons (~116px) + vertical gaps & safe areas (~50px)
-      const availH = window.innerHeight - 210;
+      // Top controls (~40px) + Photo strip (~64px) + 2-tier action buttons (~112px) + gaps (~44px)
+      const availH = window.innerHeight - 260;
 
       const scaleW = availW / 360;
       const scaleH = availH / 640;
 
       const targetScale = Math.min(1, Math.min(scaleW, scaleH));
-      // Clamp between 0.65 and 1.0 (crisp on mobile, doesn't over-stretch on desktop)
-      setScale(Math.max(0.65, Math.min(1, targetScale)));
+      // Clamp between 0.62 and 1.0 (crisp on mobile, doesn't over-stretch on desktop)
+      setScale(Math.max(0.62, Math.min(1, targetScale)));
     };
 
     calculateScale();
@@ -110,7 +184,103 @@ export default function StoryCardModal({ isOpen, onClose, data }: StoryCardModal
   if (!isOpen || data.isValidProfile === false) return null;
 
   const isNoir = theme === "noir";
-  const previewImages = data.topContent?.images?.slice(0, 3) || [];
+  const allCandidates = localAllImages;
+  const previewImages = localCardImages.slice(0, 3);
+
+  const commitPhotoSelection = (nextCard: string[], nextAll: string[] = allCandidates) => {
+    const trimmedCard = nextCard.slice(0, 3);
+    setLocalCardImages(trimmedCard);
+    setLocalAllImages(nextAll);
+    if (onUpdateData) {
+      // Also keep topContent.images in sync so ResultPage reflects custom additions
+      const mergedGrid = [
+        ...trimmedCard,
+        ...nextAll.filter((img) => !trimmedCard.includes(img)),
+      ].slice(0, Math.max(6, data.topContent.images.length));
+      onUpdateData({
+        ...data,
+        topContent: {
+          ...data.topContent,
+          images: mergedGrid,
+          allImages: nextAll,
+          cardImages: trimmedCard,
+        },
+      });
+    }
+  };
+
+  const handleCandidateClick = (imgUrl: string) => {
+    const existingIdx = previewImages.indexOf(imgUrl);
+
+    // If user clicked a specific slot (#1, #2, #3) on the card first to swap into that slot
+    if (activeSlot !== null && activeSlot < previewImages.length) {
+      const next = [...previewImages];
+      if (existingIdx !== -1 && existingIdx !== activeSlot) {
+        // Swap the two slots
+        const temp = next[activeSlot];
+        next[activeSlot] = next[existingIdx];
+        next[existingIdx] = temp;
+      } else {
+        next[activeSlot] = imgUrl;
+      }
+      commitPhotoSelection(next);
+      setActiveSlot(null);
+      return;
+    }
+
+    // Standard toggle/select mode:
+    if (existingIdx !== -1) {
+      // Deselect if more than 1 photo is currently on the card
+      if (previewImages.length > 1) {
+        const next = previewImages.filter((_, i) => i !== existingIdx);
+        commitPhotoSelection(next);
+      }
+    } else {
+      if (previewImages.length < 3) {
+        commitPhotoSelection([...previewImages, imgUrl]);
+      } else {
+        // Replace slot #3 with the newly tapped photo
+        commitPhotoSelection([previewImages[0], previewImages[1], imgUrl]);
+      }
+    }
+  };
+
+  const handleCustomPhotoUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const incoming = Array.from(e.target.files ?? []).filter((f) =>
+      f.type.startsWith("image/")
+    );
+    e.target.value = "";
+    if (incoming.length === 0) return;
+
+    try {
+      const newUrls = await Promise.all(
+        incoming.slice(0, 3).map((file) => fileToCompressedDataUrl(file))
+      );
+      const nextAll = [...allCandidates, ...newUrls];
+      let nextCard = [...previewImages];
+
+      for (const url of newUrls) {
+        if (activeSlot !== null && activeSlot < nextCard.length) {
+          nextCard[activeSlot] = url;
+          setActiveSlot(null);
+        } else if (nextCard.length < 3) {
+          nextCard.push(url);
+        } else {
+          nextCard = [nextCard[0], nextCard[1], url];
+        }
+      }
+
+      commitPhotoSelection(nextCard, nextAll);
+    } catch (err) {
+      console.warn("Failed to read custom photo:", err);
+    }
+  };
+
+  const handleResetToAiBest = () => {
+    if (allCandidates.length === 0) return;
+    setActiveSlot(null);
+    commitPhotoSelection(allCandidates.slice(0, 3), allCandidates);
+  };
 
   /**
    * Renders the Story Card into a crisp 1080x1920 (or 900x1600) Blob:
@@ -666,6 +836,8 @@ export default function StoryCardModal({ isOpen, onClose, data }: StoryCardModal
                     <div
                       key={i}
                       data-story-photo-slot={i}
+                      onClick={() => setActiveSlot(activeSlot === i ? null : i)}
+                      title={`แตะเพื่อเปลี่ยนรูปช่อง #${i + 1}`}
                       style={{
                         height: "100%",
                         aspectRatio: photoRatio === "3:4" ? "3 / 4" : "1 / 1",
@@ -678,6 +850,12 @@ export default function StoryCardModal({ isOpen, onClose, data }: StoryCardModal
                         background: "#171711",
                         position: "relative",
                         flexShrink: 0,
+                        cursor: "pointer",
+                        outline:
+                          !isExporting && activeSlot === i
+                            ? "3px solid #d9ff43"
+                            : "none",
+                        outlineOffset: "1px",
                         transition: "aspect-ratio 0.2s ease",
                       }}
                     >
@@ -694,7 +872,6 @@ export default function StoryCardModal({ isOpen, onClose, data }: StoryCardModal
                           transformOrigin: "center",
                         }}
                       />
-                      
                     </div>
                   ))}
                 </div>
@@ -978,6 +1155,178 @@ export default function StoryCardModal({ isOpen, onClose, data }: StoryCardModal
                 <span>#IGOTYOU</span>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Interactive Photo Selector & Custom Upload Strip */}
+        <div
+          style={{
+            width: "100%",
+            maxWidth: `${Math.min(360, Math.max(280, Math.round(360 * scale)))}px`,
+            background: "rgba(255, 255, 255, 0.1)",
+            border: "1.5px solid rgba(255, 255, 255, 0.22)",
+            borderRadius: "14px",
+            padding: "8px 10px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "6px",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: "6px",
+            }}
+          >
+            <span
+              style={{
+                fontSize: "11px",
+                fontWeight: 800,
+                color: activeSlot !== null ? "#d9ff43" : "rgba(255, 255, 255, 0.92)",
+              }}
+            >
+              {activeSlot !== null
+                ? `กำลังเปลี่ยนรูปช่อง #${activeSlot + 1} (แตะรูปด้านล่างเพื่อแทนที่)`
+                : `เลือกรูปในการ์ด (${previewImages.length}/3) · แตะเพื่อสลับลำดับ`}
+            </span>
+            {allCandidates.length > 1 && (
+              <button
+                type="button"
+                onClick={handleResetToAiBest}
+                style={{
+                  background: "rgba(255, 255, 255, 0.14)",
+                  color: "#d9ff43",
+                  border: "1px solid rgba(217, 255, 67, 0.4)",
+                  borderRadius: "99px",
+                  padding: "2px 8px",
+                  fontSize: "10px",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  whiteSpace: "nowrap",
+                }}
+                title="เรียงลำดับรูปที่ดีที่สุดตามที่ AI คัดเลือก"
+              >
+                <RotateCcw className="w-2.5 h-2.5" />
+                <span>AI แนะนำ</span>
+              </button>
+            )}
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              overflowX: "auto",
+              paddingBottom: "2px",
+              scrollbarWidth: "thin",
+            }}
+          >
+            {allCandidates.map((candidateImg, idx) => {
+              const selectedRank = previewImages.indexOf(candidateImg);
+              const isSelected = selectedRank !== -1;
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => handleCandidateClick(candidateImg)}
+                  title={
+                    isSelected
+                      ? `รูปที่ #${selectedRank + 1} ในการ์ด (แตะเพื่อเอาออก/สลับ)`
+                      : "แตะเพื่อนำรูปนี้เข้าการ์ด"
+                  }
+                  style={{
+                    width: "44px",
+                    height: "54px",
+                    borderRadius: "8px",
+                    overflow: "hidden",
+                    position: "relative",
+                    flexShrink: 0,
+                    padding: 0,
+                    cursor: "pointer",
+                    background: "#171711",
+                    border: isSelected
+                      ? "2px solid #d9ff43"
+                      : "1.5px solid rgba(255,255,255,0.3)",
+                    opacity: isSelected ? 1 : 0.72,
+                    transform: isSelected ? "scale(1)" : "scale(0.96)",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <img
+                    src={candidateImg}
+                    alt={`ตัวเลือกรูปที่ ${idx + 1}`}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      display: "block",
+                    }}
+                  />
+                  {isSelected && (
+                    <span
+                      style={{
+                        position: "absolute",
+                        top: "3px",
+                        left: "3px",
+                        background: "#d9ff43",
+                        color: "#171711",
+                        border: "1.5px solid #171711",
+                        borderRadius: "99px",
+                        fontSize: "9px",
+                        fontWeight: 900,
+                        fontFamily: "Manrope, sans-serif",
+                        padding: "0px 4px",
+                        lineHeight: 1.35,
+                      }}
+                    >
+                      #{selectedRank + 1}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+
+            {/* Upload custom photo button */}
+            <input
+              ref={customPhotoInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              multiple
+              hidden
+              onChange={handleCustomPhotoUpload}
+            />
+            <button
+              type="button"
+              onClick={() => customPhotoInputRef.current?.click()}
+              title="อัปโหลดรูปภาพเพิ่มเติมจากเครื่องเพื่อใส่ในการ์ด"
+              style={{
+                width: "48px",
+                height: "54px",
+                borderRadius: "8px",
+                border: "1.5px dashed rgba(217, 255, 67, 0.7)",
+                background: "rgba(217, 255, 67, 0.12)",
+                color: "#d9ff43",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "2px",
+                flexShrink: 0,
+                cursor: "pointer",
+                fontSize: "9px",
+                fontWeight: 800,
+                padding: "2px",
+              }}
+            >
+              <ImagePlus className="w-3.5 h-3.5" />
+              <span>+เพิ่มรูป</span>
+            </button>
           </div>
         </div>
 

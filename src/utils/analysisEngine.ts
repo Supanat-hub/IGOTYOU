@@ -34,6 +34,8 @@ export interface AnalysisResult {
     category: string;
     description: string;
     images: string[];
+    allImages?: string[];
+    cardImages?: string[];
   };
   avatarImage?: string;
   bioRemix: {
@@ -287,19 +289,74 @@ async function downscaleImageForGemini(
 }
 
 /**
- * Builds user gallery array using actual cropped images or user's uploaded images.
- * If the user has fewer than 6 photos (e.g. 2 posts), preserves the authentic count
- * without synthetic duplicates or holes.
+ * Ranks extracted post photos by combining AI visual curation (aiTopPostIndices)
+ * and per-tile pixel aesthetic quality scores (tileScores).
+ * Returns all candidate images sorted from best (#1) to least, so the top 3
+ * photos on the Story Card and top 6 in the Wrapped Grid are the best shots.
+ */
+export function rankTopContentImages(
+  croppedImages: string[],
+  tileScores?: number[],
+  aiTopPostIndices?: number[]
+): string[] {
+  if (!croppedImages || croppedImages.length <= 1) {
+    return croppedImages ? [...croppedImages] : [];
+  }
+
+  const aiBonusByIndex = new Map<number, number>();
+  if (Array.isArray(aiTopPostIndices)) {
+    const rankBonuses = [120, 95, 75, 58, 44, 32, 22, 14];
+    let validRank = 0;
+    for (const rawIdx of aiTopPostIndices) {
+      const idx = typeof rawIdx === "number" ? Math.floor(rawIdx) : -1;
+      if (
+        idx >= 0 &&
+        idx < croppedImages.length &&
+        !aiBonusByIndex.has(idx)
+      ) {
+        const bonus = rankBonuses[validRank] ?? Math.max(4, 12 - validRank);
+        aiBonusByIndex.set(idx, bonus);
+        validRank++;
+      }
+    }
+  }
+
+  const indexed = croppedImages.map((img, idx) => {
+    const pixelScore =
+      tileScores && typeof tileScores[idx] === "number" ? tileScores[idx] : 70;
+    const aiBonus = aiBonusByIndex.get(idx) ?? 0;
+    return {
+      img,
+      idx,
+      totalScore: pixelScore + aiBonus,
+    };
+  });
+
+  indexed.sort((a, b) => {
+    if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore;
+    return a.idx - b.idx;
+  });
+
+  return indexed.map((entry) => entry.img);
+}
+
+/**
+ * Builds user gallery array using actual cropped images (ranked by AI + aesthetic quality)
+ * or user's uploaded images. If the user has fewer than 6 photos (e.g. 2 posts),
+ * preserves the authentic count without synthetic duplicates or holes.
  */
 export function buildUserGridImages(
   croppedImages: string[],
   files?: File[],
   fallbackImages: string[] = [],
   isZeroPostOrPrivate = false,
-  avatarImage?: string
+  avatarImage?: string,
+  tileScores?: number[],
+  aiTopPostIndices?: number[]
 ): string[] {
   if (croppedImages && croppedImages.length > 0) {
-    return croppedImages.slice(0, 6);
+    const ranked = rankTopContentImages(croppedImages, tileScores, aiTopPostIndices);
+    return ranked.slice(0, 6);
   }
 
   if (isZeroPostOrPrivate) {
@@ -495,13 +552,26 @@ export async function analyzeProfile(files: File[], presetKey?: string): Promise
           category: "TOP CONTENT",
           description: isZeroPost ? "โทนสีจากรูปโปรไฟล์ (ยังไม่มีโพสต์)" : "รูปโปรไฟล์ของคุณ",
         };
-        parsed.topContent.images = buildUserGridImages(
+        const aiTopPostIndices: number[] | undefined = Array.isArray(parsed.topPostIndices)
+          ? parsed.topPostIndices
+          : undefined;
+        const rankedAll = rankTopContentImages(
+          extractionResult.croppedImages,
+          extractionResult.tileScores,
+          aiTopPostIndices
+        );
+        const topGridImages = buildUserGridImages(
           extractionResult.croppedImages,
           files,
           PRESETS.cafe.topContent.images,
           isZeroPost,
-          extractionResult.avatarImage
+          extractionResult.avatarImage,
+          extractionResult.tileScores,
+          aiTopPostIndices
         );
+        parsed.topContent.images = topGridImages;
+        parsed.topContent.allImages = rankedAll.length > 0 ? rankedAll : topGridImages;
+        parsed.topContent.cardImages = topGridImages.slice(0, 3);
 
         parsed.ethicsAudit = {
           weights: {
@@ -528,12 +598,17 @@ export async function analyzeProfile(files: File[], presetKey?: string): Promise
   const fallbackBoxes = yoloSummary?.boxes;
   const isZeroPostFallback = Boolean(yoloSummary?.isZeroPostOrPrivate);
   const extractionResult = await extractColorDNA(files, fallbackBoxes);
+  const rankedFallbackAll = rankTopContentImages(
+    extractionResult.croppedImages,
+    extractionResult.tileScores
+  );
   const userGrid = buildUserGridImages(
     extractionResult.croppedImages,
     files,
     PRESETS.cafe.topContent.images,
     isZeroPostFallback,
-    extractionResult.avatarImage
+    extractionResult.avatarImage,
+    extractionResult.tileScores
   );
   const harmony = extractionResult.metrics.harmonyScore;
   const contrast = extractionResult.metrics.contrastScore;
@@ -597,8 +672,10 @@ export async function analyzeProfile(files: File[], presetKey?: string): Promise
     },
     topContent: {
       category: "TOP CONTENT",
-      description: "ภาพถ่ายจากโปรไฟล์ของคุณ",
+      description: "ภาพถ่ายที่โดดเด่นที่สุดจากโปรไฟล์ของคุณ",
       images: userGrid,
+      allImages: rankedFallbackAll.length > 0 ? rankedFallbackAll : userGrid,
+      cardImages: userGrid.slice(0, 3),
     },
     bioRemix: {
       text: "living quietly, creating loudly.",
