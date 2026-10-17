@@ -164,7 +164,7 @@ function WrappedSkeletonGrid({ onCancel }: { onCancel?: () => void }) {
           </div>
           <div className="stat">
             <div className="skeleton-shimmer w-20 h-10" />
-            <span>จำนวนโพสต์ที่ตรวจวัด</span>
+            <span>จำนวนโพสต์ที่วัดผล</span>
           </div>
           <div className="mini-note">
             <div className="skeleton-shimmer w-32 h-3" />
