@@ -523,4 +523,39 @@ test("computeTileFingerprint inner-core RGB separates distinct photos with equal
   assert.equal(areTilesDuplicate(fpA, fpB, 11.5, true), false);
 });
 
+test("filterClippedPostTiles and evaluateYoloDetections recover Note-covered header avatar above ig_tab_bar on 0-post iPad profiles", () => {
+  // Simulates @pongthakorn_2007 (706x1024 iPad Light Mode, 0 posts, "Create your first post"):
+  // YOLO detects ig_tab_bar (conf 0.6735) and classifies the Note-covered header avatar [179, 80, 281, 163] as post_tile (conf 0.3678)
+  const rawBoxes = [
+    {
+      image_index: 0,
+      label: "ig_tab_bar" as const,
+      type: "ig_tab_bar",
+      confidence: 0.6735,
+      xmin: 192,
+      ymin: 354,
+      xmax: 663,
+      ymax: 386,
+    },
+    {
+      image_index: 0,
+      label: "post_tile" as const,
+      type: "post_tile",
+      confidence: 0.3678,
+      xmin: 179,
+      ymin: 80,
+      xmax: 281,
+      ymax: 163,
+    },
+  ];
 
+  const evalRes = evaluateYoloDetections(rawBoxes);
+  assert.equal(evalRes.isValidProfile, true);
+  assert.equal(evalRes.isZeroPostOrPrivate, true);
+  assert.equal(evalRes.postCount, 0);
+
+  const recoveredAvatar = evalRes.boxes.find((b) => b.label === "avatar");
+  assert.equal(Boolean(recoveredAvatar), true);
+  assert.equal(recoveredAvatar?.xmin, 179);
+  assert.equal(recoveredAvatar?.ymin, 80);
+});

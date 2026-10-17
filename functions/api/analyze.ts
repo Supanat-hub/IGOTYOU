@@ -115,7 +115,8 @@ TASKS:
      * ymin MUST be strictly below the 3 tab icons (grid/reels/tag icons), exactly where the first photo pixels begin!
      * ymax MUST be strictly above the bottom navigation bar (home/search/reels/profile icons).
      * If the row has empty slots on the right, xmax should only cover the actual photos, NOT empty space!
-   - "avatar": Bounding box [ymin, xmin, ymax, xmax] of the circular profile avatar photo.
+     * IMPORTANT: If the profile has 0 posts ("0 posts", "No Posts Yet", "Create your first post" illustration, or Private account), DO NOT output a "post_grid" box!
+   - "avatar": Bounding box [ymin, xmin, ymax, xmax] of the circular profile avatar photo (tightly bound the circular avatar photo itself, excluding any "Note..." speech bubble above it).
    Include "image_index" (0 to ${images.length - 1}) in each detected box.
 
 5. STRICT COMPOSITION & COHESION SCORING (NO FLATTERY BIAS):

@@ -449,7 +449,16 @@ export async function analyzeProfile(files: File[], presetKey?: string): Promise
         }
 
         // Merge high-precision local YOLO boxes (post_tile, empty_or_private, avatar) with Gemini boxes
-        const geminiBoxes: BoundingBox[] = parsed.detectedBoxes || [];
+        const rawGeminiBoxes: BoundingBox[] = parsed.detectedBoxes || [];
+        const geminiBoxes: BoundingBox[] = yoloSummary?.isZeroPostOrPrivate
+          ? rawGeminiBoxes.filter(
+              (b) =>
+                b.label !== "post_grid" &&
+                b.type !== "post_grid" &&
+                b.label !== "post_tile" &&
+                b.type !== "post_tile"
+            )
+          : rawGeminiBoxes;
         const boxes: BoundingBox[] =
           yoloSummary && yoloSummary.boxes.length > 0
             ? [...yoloSummary.boxes, ...geminiBoxes]
@@ -457,7 +466,7 @@ export async function analyzeProfile(files: File[], presetKey?: string): Promise
 
         const isZeroPost =
           Boolean(yoloSummary?.isZeroPostOrPrivate) ||
-          boxes.some((b) => b.type === "empty_or_private");
+          boxes.some((b) => b.type === "empty_or_private" || b.label === "empty_or_private");
 
         // 3. Perform YOLO Tile Crop / Canvas Smart Crop & UI background filtering
         const extractionResult = await extractColorDNA(files, boxes);

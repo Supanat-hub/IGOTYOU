@@ -834,7 +834,10 @@ export async function extractColorDNA(
   let avatarImage: string | undefined;
   let avatarCanvasForFallback: HTMLCanvasElement | null = null;
 
-  const sampleCanvasIntoBuckets = (sourceCanvas: HTMLCanvasElement) => {
+  const sampleCanvasIntoBuckets = (
+    sourceCanvas: HTMLCanvasElement,
+    isCircularAvatar = false
+  ) => {
     const sampleCanvas = document.createElement("canvas");
     sampleCanvas.width = 64;
     sampleCanvas.height = 64;
@@ -844,7 +847,21 @@ export async function extractColorDNA(
     sampleCtx.drawImage(sourceCanvas, 0, 0, 64, 64);
     const sampleData = sampleCtx.getImageData(0, 0, 64, 64).data;
 
-    for (let i = 0; i < sampleData.length; i += 16) {
+    const stride = isCircularAvatar ? 4 : 16;
+    for (let i = 0; i < sampleData.length; i += stride) {
+      if (isCircularAvatar) {
+        const pxIdx = i >> 2;
+        const sx = pxIdx & 63;
+        const sy = pxIdx >> 6;
+        const dx = sx - 32;
+        const dy = sy - 34;
+        // Sample inside the circular profile photo while excluding top Note speech bubble (sy < 14)
+        // and bottom-right "+" add-story badge (sx > 44 && sy > 44)
+        if (dx * dx + dy * dy > 26 * 26) continue;
+        if (sy < 14) continue;
+        if (sx > 44 && sy > 44) continue;
+      }
+
       const a = sampleData[i + 3];
       if (a < 128) continue;
       const r = sampleData[i];
@@ -897,15 +914,43 @@ export async function extractColorDNA(
         (b) => b.image_index === undefined || b.image_index === fileIndex
       );
       const boxes: BoundingBox[] = filterClippedPostTiles(rawBoxes as YoloBox[], w, h);
+      const getBoxLabel = (b: BoundingBox) => b.label || b.type;
 
-      // 1. Avatar Extraction if detected
-      const avatarBox = boxes.find((b) => b.label === "avatar");
+      // 1. Avatar Extraction if detected (or Geometric Header Fallback above ig_tab_bar)
+      let avatarBox = boxes.find((b) => getBoxLabel(b) === "avatar");
+      const tabBarBox = boxes.find((b) => getBoxLabel(b) === "ig_tab_bar");
+
+      if (!avatarBox && !avatarImage && tabBarBox && tabBarBox.ymin >= 220) {
+        // Geometric fallback: locate profile avatar in the upper-left header above ig_tab_bar
+        const estXmin = Math.max(30, Math.min(300, tabBarBox.xmin - 12));
+        const estYmin = Math.max(45, Math.round(tabBarBox.ymin * 0.23));
+        const estWidth = Math.min(220, Math.max(95, Math.round((tabBarBox.xmax - tabBarBox.xmin) * 0.22)));
+        const estHeight = Math.round((estWidth * w) / Math.max(1, h));
+        const candX = Math.round((estXmin / 1000) * w);
+        const candY = Math.round((estYmin / 1000) * h);
+        const candS = Math.min(w - candX, h - candY, Math.round((estWidth / 1000) * w));
+        if (candS >= 24 && isTileActualPhoto(buf, candX, candY, candS, candS)) {
+          avatarBox = {
+            xmin: estXmin,
+            ymin: estYmin,
+            xmax: estXmin + estWidth,
+            ymax: estYmin + estHeight,
+            label: "avatar",
+            type: "avatar",
+          };
+        }
+      }
+
       if (avatarBox && !avatarImage) {
         const aX = Math.max(0, Math.round((avatarBox.xmin / 1000) * w));
         const aY = Math.max(0, Math.round((avatarBox.ymin / 1000) * h));
         const aW = Math.min(w - aX, Math.round(((avatarBox.xmax - avatarBox.xmin) / 1000) * w));
         const aH = Math.min(h - aY, Math.round(((avatarBox.ymax - avatarBox.ymin) / 1000) * h));
         const aSize = Math.min(aW, aH);
+        // When a Note bubble overlaps the top of the avatar, aH > aW.
+        // Anchor vertically to the bottom of the box so the circular avatar is centered cleanly.
+        const cropX = aX + Math.max(0, Math.round((aW - aSize) / 2));
+        const cropY = aY + Math.max(0, aH - aSize);
 
         if (aSize >= 24) {
           const aCanvas = document.createElement("canvas");
@@ -915,7 +960,7 @@ export async function extractColorDNA(
           if (aCtx) {
             aCtx.imageSmoothingEnabled = true;
             aCtx.imageSmoothingQuality = "high";
-            aCtx.drawImage(img, aX, aY, aSize, aSize, 0, 0, 240, 240);
+            aCtx.drawImage(img, cropX, cropY, aSize, aSize, 0, 0, 240, 240);
             avatarCanvasForFallback = aCanvas;
             try {
               avatarImage = aCanvas.toDataURL("image/jpeg", 0.9);
@@ -927,11 +972,16 @@ export async function extractColorDNA(
       }
 
       // Check if YOLO detected individual post_tile boxes or an empty/private feed
-      const yoloTileBoxes = boxes.filter((b) => b.label === "post_tile");
-      const hasEmptyOrPrivate = boxes.some((b) => b.label === "empty_or_private");
+      const yoloTileBoxes = boxes.filter((b) => getBoxLabel(b) === "post_tile");
+      const hasEmptyOrPrivate = boxes.some((b) => getBoxLabel(b) === "empty_or_private");
+      const hasYoloHeaderOrTab = boxes.some((b) => {
+        const lbl = getBoxLabel(b);
+        return lbl === "ig_tab_bar" || lbl === "ig_stats_bar";
+      });
+      const hasCoarsePostGrid = boxes.some((b) => getBoxLabel(b) === "post_grid");
 
-      if (hasEmptyOrPrivate && yoloTileBoxes.length === 0) {
-        // Profile has 0 posts or is private: skip grid slicing so we never crop empty background
+      if ((hasEmptyOrPrivate || (hasYoloHeaderOrTab && !hasCoarsePostGrid)) && yoloTileBoxes.length === 0) {
+        // Profile has 0 posts, is header-only, or is private: skip grid slicing so we never crop empty background
         continue;
       }
 
@@ -1083,7 +1133,7 @@ export async function extractColorDNA(
   if (croppedImages.length === 0 && avatarImage) {
     croppedImages.push(avatarImage);
     if (avatarCanvasForFallback && Object.keys(colorBuckets).length === 0) {
-      sampleCanvasIntoBuckets(avatarCanvasForFallback);
+      sampleCanvasIntoBuckets(avatarCanvasForFallback, true);
     }
   }
 

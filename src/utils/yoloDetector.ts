@@ -82,9 +82,8 @@ export function parseYoloOutputTensor(
     }
 
     const className = YOLO_CLASS_NAMES[bestClass] || "post_tile";
-    // Allow 0.34 threshold for avatar (handles Instagram "Note..." bubble overlapping top of avatar)
-    const effectiveThreshold = className === "avatar" ? Math.min(confThreshold, 0.34) : confThreshold;
-    if (bestScore < effectiveThreshold || bestClass < 0) continue;
+    const minPreThreshold = Math.min(confThreshold, 0.34);
+    if (bestScore < minPreThreshold || bestClass < 0) continue;
 
     const cx = outputData[0 * numAnchors + i];
     const cy = outputData[1 * numAnchors + i];
@@ -104,6 +103,16 @@ export function parseYoloOutputTensor(
     const ymax = Math.max(0, Math.min(1000, Math.round((y2 / origH) * 1000)));
 
     if (xmax - xmin < 15 || ymax - ymin < 15) continue;
+
+    // Allow 0.34 threshold for avatar, OR for a header avatar with an Instagram "Note" speech bubble
+    // (which can cause YOLO to score the tall Note+Avatar box as post_tile around 0.34-0.41 in the top-left header)
+    const isHeaderAvatarZone =
+      ymin < 260 && ymax < 360 && xmin < 350 && xmax - xmin <= 280;
+    const effectiveThreshold =
+      className === "avatar" || (className === "post_tile" && isHeaderAvatarZone)
+        ? minPreThreshold
+        : confThreshold;
+    if (bestScore < effectiveThreshold) continue;
 
     candidates.push({
       image_index: imageIndex,
@@ -157,9 +166,10 @@ export function parseYoloOutputTensor(
 }
 
 /**
- * 3-Stage Clipped Tile Filter:
- * Eliminates incomplete/cut-off post tiles at the top (under sticky tab bar)
- * or bottom (screen edge) when a user scrolls through a profile.
+ * 3-Stage Clipped Tile Filter + Spatial Header Avatar Recovery:
+ * - Reclassifies header avatars with Note bubbles above ig_tab_bar that were misclassified as post_tile.
+ * - Eliminates incomplete/cut-off post tiles at the top (under sticky tab bar)
+ *   or bottom (screen edge) when a user scrolls through a profile.
  */
 export function filterClippedPostTiles(
   boxes: YoloBox[],
@@ -167,11 +177,46 @@ export function filterClippedPostTiles(
   origH?: number
 ): YoloBox[] {
   const getLabel = (b: YoloBox) => b.label || (b.type as YoloClassLabel);
-  const postTiles = boxes.filter((b) => getLabel(b) === "post_tile");
-  if (postTiles.length === 0) return boxes;
+  const rawPostTiles = boxes.filter((b) => getLabel(b) === "post_tile");
+  if (rawPostTiles.length === 0) return boxes;
 
   const otherBoxes = boxes.filter((b) => getLabel(b) !== "post_tile");
   const tabBar = otherBoxes.find((b) => getLabel(b) === "ig_tab_bar");
+  const hasStatsOrEmpty = otherBoxes.some(
+    (b) => getLabel(b) === "ig_stats_bar" || getLabel(b) === "empty_or_private"
+  );
+
+  // Stage 0: Spatial Header Avatar Recovery
+  // On Instagram, the post grid NEVER exists above ig_tab_bar (t.ymax <= tabBar.ymin).
+  // When a user has a Note speech bubble on their profile picture (especially on iPad/Light Mode),
+  // YOLO can classify the combined Note+Avatar box in the top-left header as post_tile.
+  const postTiles: YoloBox[] = [];
+  for (const t of rawPostTiles) {
+    const isAboveTabBar = Boolean(tabBar && t.ymax <= tabBar.ymin);
+    const isInHeaderAvatarZone =
+      t.ymin < 260 && t.ymax < 360 && t.xmin < 350 && t.xmax - t.xmin <= 280;
+
+    if (isAboveTabBar || (rawPostTiles.length === 1 && isInHeaderAvatarZone && hasStatsOrEmpty)) {
+      if (isInHeaderAvatarZone) {
+        const recoveredAvatar: YoloBox = {
+          ...t,
+          type: "avatar",
+          label: "avatar",
+        };
+        const alreadyHasAvatar = otherBoxes.some(
+          (b) => getLabel(b) === "avatar" && computeIoU(b, recoveredAvatar) > 0.3
+        );
+        if (!alreadyHasAvatar) {
+          otherBoxes.push(recoveredAvatar);
+        }
+      }
+      // Never allow a box above ig_tab_bar to be treated as a grid post_tile
+      continue;
+    }
+    postTiles.push(t);
+  }
+
+  if (postTiles.length === 0) return otherBoxes;
 
   // Stage 1: Absolute Aspect Ratio Gate
   // Standard IG grid tiles are 1:1 (H/W = 1.0) or 3:4 portrait (H/W ~ 1.33).
@@ -243,18 +288,25 @@ export function evaluateYoloDetections(boxes: YoloBox[]): YoloValidationSummary 
   const hasAvatar = cleanedBoxes.some((b) => getLabel(b) === "avatar");
   const hasStats = cleanedBoxes.some((b) => getLabel(b) === "ig_stats_bar");
   const hasTabBar = cleanedBoxes.some((b) => getLabel(b) === "ig_tab_bar");
+  const hasStrongTabBar = cleanedBoxes.some(
+    (b) =>
+      getLabel(b) === "ig_tab_bar" &&
+      b.confidence >= 0.55 &&
+      b.xmax - b.xmin >= 350
+  );
   const hasEmptyState = cleanedBoxes.some((b) => getLabel(b) === "empty_or_private");
   const postTiles = cleanedBoxes.filter((b) => getLabel(b) === "post_tile");
 
   // Valid IG Profile conditions:
   // - Has header anchors (avatar + stats/tabs/empty/tiles)
   // - Or has stats + tabs
-  // - Or has tab bar + tiles/empty
+  // - Or has tab bar + tiles/empty, or a high-confidence full-width IG tab bar (e.g. 0-post "Create your first post" on iPad)
   // - Or is a scrolled grid screenshot with >= 4 tiles, or 3 tiles with tight IG grid spacing (gap <= 12)
   const isValidHeader =
     (hasAvatar && (hasStats || hasTabBar || hasEmptyState || postTiles.length >= 1)) ||
     (hasStats && (hasTabBar || hasEmptyState || postTiles.length >= 1)) ||
-    (hasTabBar && (postTiles.length >= 1 || hasEmptyState));
+    (hasTabBar && (postTiles.length >= 1 || hasEmptyState)) ||
+    hasStrongTabBar;
 
   let hasTightGridSpacing = false;
   if (postTiles.length === 3) {
