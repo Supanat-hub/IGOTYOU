@@ -24,6 +24,7 @@ import {
 import {
   parseYoloOutputTensor,
   evaluateYoloDetections,
+  filterClippedPostTiles,
 } from "./yoloDetector";
 
 test("calculateHybridScore computes weighted aesthetic score accurately", () => {
@@ -451,6 +452,75 @@ test("buildUserGridImages uses avatarImage instead of raw full screenshot when i
 
   const gridWithoutAvatar = buildUserGridImages([], [], ["fallback"], true, undefined);
   assert.deepEqual(gridWithoutAvatar, []);
+});
+
+test("filterClippedPostTiles removes top/bottom scroll-clipped slivers while preserving full tiles", () => {
+  // Simulate @secretofpong screenshot (449x1024): 2 full rows (ymin 540..734, 736..930) + 1 clipped bottom row (ymin 932..1000)
+  // plus 1 clipped top sliver right under sticky tab bar (ymin 170..218)
+  const boxes = [
+    { label: "ig_tab_bar" as const, type: "ig_tab_bar", confidence: 0.88, xmin: 0, ymin: 115, xmax: 1000, ymax: 168 },
+    // Clipped top sliver under sticky tab bar (height = 48 norm -> ~49px vs width 148px)
+    { label: "post_tile" as const, type: "post_tile", confidence: 0.58, xmin: 0, ymin: 170, xmax: 330, ymax: 218 },
+    // Full row 1 (height = 194 norm -> ~199px vs width 148px, 3:4 portrait)
+    { label: "post_tile" as const, type: "post_tile", confidence: 0.98, xmin: 0, ymin: 540, xmax: 330, ymax: 734 },
+    { label: "post_tile" as const, type: "post_tile", confidence: 0.98, xmin: 333, ymin: 540, xmax: 666, ymax: 735 },
+    { label: "post_tile" as const, type: "post_tile", confidence: 0.98, xmin: 669, ymin: 541, xmax: 1000, ymax: 735 },
+    // Full row 2
+    { label: "post_tile" as const, type: "post_tile", confidence: 0.98, xmin: 0, ymin: 736, xmax: 333, ymax: 931 },
+    { label: "post_tile" as const, type: "post_tile", confidence: 0.97, xmin: 337, ymin: 737, xmax: 665, ymax: 930 },
+    { label: "post_tile" as const, type: "post_tile", confidence: 0.98, xmin: 672, ymin: 737, xmax: 1000, ymax: 930 },
+    // Clipped bottom row at screen edge (ymax = 1000, height = 68 norm -> ~70px)
+    { label: "post_tile" as const, type: "post_tile", confidence: 0.91, xmin: 0, ymin: 932, xmax: 330, ymax: 1000 },
+    { label: "post_tile" as const, type: "post_tile", confidence: 0.81, xmin: 338, ymin: 932, xmax: 665, ymax: 1000 },
+    { label: "post_tile" as const, type: "post_tile", confidence: 0.81, xmin: 671, ymin: 932, xmax: 1000, ymax: 1000 },
+  ];
+
+  const filtered = filterClippedPostTiles(boxes, 449, 1024);
+  const keptTiles = filtered.filter((b) => b.label === "post_tile");
+
+  // Exactly the 6 full tiles should remain; all 4 clipped slivers must be removed
+  assert.equal(keptTiles.length, 6);
+  assert.equal(keptTiles.every((t) => t.ymax - t.ymin >= 190), true);
+});
+
+test("computeTileFingerprint inner-core RGB separates distinct photos with equal luminance and matches jittered borders", () => {
+  const w = 100, h = 100;
+  const tileA = new Uint8Array(w * h * 4);
+  const tileAJitteredBorder = new Uint8Array(w * h * 4);
+  const tileBSameLumDifferentColor = new Uint8Array(w * h * 4);
+
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const idx = (y * w + x) * 4;
+      // Tile A: Warm terracotta (R=200, G=100, B=60 -> avg 120)
+      tileA[idx] = 200;
+      tileA[idx + 1] = 100;
+      tileA[idx + 2] = 60;
+      tileA[idx + 3] = 255;
+
+      // Tile A with noisy outer 8% border (simulating YOLO box shift or carousel badge)
+      const isOuterBorder = x < 8 || x >= 92 || y < 8 || y >= 92;
+      tileAJitteredBorder[idx] = isOuterBorder ? 255 : 200;
+      tileAJitteredBorder[idx + 1] = isOuterBorder ? 255 : 100;
+      tileAJitteredBorder[idx + 2] = isOuterBorder ? 255 : 60;
+      tileAJitteredBorder[idx + 3] = 255;
+
+      // Tile B: Cool teal with exact same (R+G+B)/3 = 120 average (R=60, G=120, B=180)
+      tileBSameLumDifferentColor[idx] = 60;
+      tileBSameLumDifferentColor[idx + 1] = 120;
+      tileBSameLumDifferentColor[idx + 2] = 180;
+      tileBSameLumDifferentColor[idx + 3] = 255;
+    }
+  }
+
+  const fpA = computeTileFingerprint({ width: w, height: h, data: tileA }, 0, 0, w, h);
+  const fpAJitter = computeTileFingerprint({ width: w, height: h, data: tileAJitteredBorder }, 0, 0, w, h);
+  const fpB = computeTileFingerprint({ width: w, height: h, data: tileBSameLumDifferentColor }, 0, 0, w, h);
+
+  // Inner-core sampling ignores the outer 10% border noise -> matches as duplicate!
+  assert.equal(areTilesDuplicate(fpA, fpAJitter, 11.5, true), true);
+  // Multi-channel RGB distinguishes warm terracotta from cool teal despite identical grayscale average!
+  assert.equal(areTilesDuplicate(fpA, fpB, 11.5, true), false);
 });
 
 

@@ -130,9 +130,12 @@ export function parseYoloOutputTensor(
     }
   }
 
+  // Filter out partial/clipped post_tile slivers at top/bottom scroll boundaries
+  const filtered = filterClippedPostTiles(kept, origW, origH);
+
   // Sort deterministically: group by label, then sort post_tile in reading order
   // and sort avatar by ymin ascending so the topmost main Profile Picture comes before Story Highlights
-  kept.sort((a, b) => {
+  filtered.sort((a, b) => {
     if (a.label !== b.label) {
       return a.label.localeCompare(b.label);
     }
@@ -150,7 +153,71 @@ export function parseYoloOutputTensor(
     return b.confidence - a.confidence;
   });
 
-  return kept;
+  return filtered;
+}
+
+/**
+ * 3-Stage Clipped Tile Filter:
+ * Eliminates incomplete/cut-off post tiles at the top (under sticky tab bar)
+ * or bottom (screen edge) when a user scrolls through a profile.
+ */
+export function filterClippedPostTiles(
+  boxes: YoloBox[],
+  origW?: number,
+  origH?: number
+): YoloBox[] {
+  const getLabel = (b: YoloBox) => b.label || (b.type as YoloClassLabel);
+  const postTiles = boxes.filter((b) => getLabel(b) === "post_tile");
+  if (postTiles.length === 0) return boxes;
+
+  const otherBoxes = boxes.filter((b) => getLabel(b) !== "post_tile");
+  const tabBar = otherBoxes.find((b) => getLabel(b) === "ig_tab_bar");
+
+  // Stage 1: Absolute Aspect Ratio Gate
+  // Standard IG grid tiles are 1:1 (H/W = 1.0) or 3:4 portrait (H/W ~ 1.33).
+  // Cut-off scroll slivers have H/W < 0.72 in pixel space (or < 0.35 in normalized portrait screen space).
+  const stage1Tiles = postTiles.filter((t) => {
+    const normW = Math.max(1, t.xmax - t.xmin);
+    const normH = Math.max(1, t.ymax - t.ymin);
+    if (origW && origH && origW > 0 && origH > 0) {
+      const pxW = (normW / 1000) * origW;
+      const pxH = (normH / 1000) * origH;
+      if (pxH / Math.max(1, pxW) < 0.72) return false;
+    } else {
+      if (normH / normW < 0.35) return false;
+    }
+    return true;
+  });
+
+  if (stage1Tiles.length === 0) return otherBoxes;
+
+  // Compute reference full-row height from the tallest tiles in this screenshot
+  const sortedHeights = stage1Tiles
+    .map((t) => t.ymax - t.ymin)
+    .sort((a, b) => b - a);
+  const topHalfCount = Math.max(1, Math.ceil(sortedHeights.length / 2));
+  const refFullHeight =
+    sortedHeights[Math.floor((topHalfCount - 1) / 2)] || sortedHeights[0];
+
+  // Stage 2 & 3: Relative Row-Height Gate & Scroll Boundary Touching Gate
+  const validTiles = stage1Tiles.filter((t) => {
+    const normH = t.ymax - t.ymin;
+
+    // Stage 2: Any tile shorter than 80% of the full row height in the same screenshot is clipped
+    if (normH < refFullHeight * 0.80) return false;
+
+    // Stage 3: Touching bottom screen edge or sticky tab bar while shorter than 88% of full height
+    const touchesBottomEdge = t.ymax >= 985;
+    const touchesStickyTab =
+      Boolean(tabBar && Math.abs(t.ymin - tabBar.ymax) <= 20) || t.ymin <= 225;
+    if ((touchesBottomEdge || touchesStickyTab) && normH < refFullHeight * 0.88) {
+      return false;
+    }
+
+    return true;
+  });
+
+  return [...validTiles, ...otherBoxes];
 }
 
 /**
@@ -160,12 +227,24 @@ export function parseYoloOutputTensor(
  * 3. Counts exact visible post tiles (1 to 9+).
  */
 export function evaluateYoloDetections(boxes: YoloBox[]): YoloValidationSummary {
+  // Group by image_index so relative row-height filtering works per screenshot
+  const grouped = new Map<number, YoloBox[]>();
+  for (const b of boxes) {
+    const idx = b.image_index ?? 0;
+    if (!grouped.has(idx)) grouped.set(idx, []);
+    grouped.get(idx)!.push(b);
+  }
+  const cleanedBoxes: YoloBox[] = [];
+  for (const [, groupBoxes] of grouped) {
+    cleanedBoxes.push(...filterClippedPostTiles(groupBoxes));
+  }
+
   const getLabel = (b: YoloBox) => b.label || (b.type as YoloClassLabel);
-  const hasAvatar = boxes.some((b) => getLabel(b) === "avatar");
-  const hasStats = boxes.some((b) => getLabel(b) === "ig_stats_bar");
-  const hasTabBar = boxes.some((b) => getLabel(b) === "ig_tab_bar");
-  const hasEmptyState = boxes.some((b) => getLabel(b) === "empty_or_private");
-  const postTiles = boxes.filter((b) => getLabel(b) === "post_tile");
+  const hasAvatar = cleanedBoxes.some((b) => getLabel(b) === "avatar");
+  const hasStats = cleanedBoxes.some((b) => getLabel(b) === "ig_stats_bar");
+  const hasTabBar = cleanedBoxes.some((b) => getLabel(b) === "ig_tab_bar");
+  const hasEmptyState = cleanedBoxes.some((b) => getLabel(b) === "empty_or_private");
+  const postTiles = cleanedBoxes.filter((b) => getLabel(b) === "post_tile");
 
   // Valid IG Profile conditions:
   // - Has header anchors (avatar + stats/tabs/empty/tiles)
@@ -195,7 +274,7 @@ export function evaluateYoloDetections(boxes: YoloBox[]): YoloValidationSummary 
       postCount: 0,
       invalidReason:
         "ภาพที่อัปโหลดไม่ตรงกับหน้าจอโปรไฟล์ Instagram (ไม่พบแถบสถิติ รูปโปรไฟล์ หรือตารางโพสต์) กรุณาแคปภาพหน้าโปรไฟล์ Instagram แล้วลองใหม่อีกครั้ง",
-      boxes,
+      boxes: cleanedBoxes,
     };
   }
 
@@ -205,7 +284,7 @@ export function evaluateYoloDetections(boxes: YoloBox[]): YoloValidationSummary 
     isValidProfile: true,
     isZeroPostOrPrivate,
     postCount: postTiles.length,
-    boxes,
+    boxes: cleanedBoxes,
   };
 }
 

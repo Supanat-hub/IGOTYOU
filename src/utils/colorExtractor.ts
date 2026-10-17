@@ -1,3 +1,5 @@
+import { filterClippedPostTiles, YoloBox } from "./yoloDetector";
+
 export interface ExtractedColor {
   hex: string;
   name: string;
@@ -532,7 +534,8 @@ export function isTileActualPhoto(
 }
 
 /**
- * Computes a downsampled 6x6 average color fingerprint for deduplicating overlapping screenshots.
+ * Computes an 8x8 multi-channel RGB fingerprint on the inner 80% core (trimming 10% border jitter)
+ * for high-precision cross-screenshot duplicate detection.
  */
 export function computeTileFingerprint(
   buf: PixelBuffer,
@@ -541,9 +544,18 @@ export function computeTileFingerprint(
   cropW: number,
   cropH: number
 ): number[] {
-  const grid = 6;
-  const stepX = Math.floor(cropW / grid);
-  const stepY = Math.floor(cropH / grid);
+  const grid = 8;
+  // Inner-Core Sampling: trim 10% around the border so slight YOLO bounding box jitter
+  // or corner carousel badges do not skew cross-scroll comparisons
+  const marginX = Math.floor(cropW * 0.1);
+  const marginY = Math.floor(cropH * 0.1);
+  const coreX = cropX + marginX;
+  const coreY = cropY + marginY;
+  const coreW = Math.max(grid, cropW - 2 * marginX);
+  const coreH = Math.max(grid, cropH - 2 * marginY);
+
+  const stepX = Math.max(1, Math.floor(coreW / grid));
+  const stepY = Math.max(1, Math.floor(coreH / grid));
   const fp: number[] = [];
 
   for (let gy = 0; gy < grid; gy++) {
@@ -552,12 +564,12 @@ export function computeTileFingerprint(
       let gTotal = 0;
       let bTotal = 0;
       let count = 0;
-      const startX = cropX + gx * stepX;
-      const startY = cropY + gy * stepY;
+      const startX = coreX + gx * stepX;
+      const startY = coreY + gy * stepY;
 
-      for (let y = startY; y < startY + stepY; y += 3) {
-        for (let x = startX; x < startX + stepX; x += 3) {
-          if (x >= buf.width || y >= buf.height) continue;
+      for (let y = startY; y < startY + stepY; y += 2) {
+        for (let x = startX; x < startX + stepX; x += 2) {
+          if (x < 0 || y < 0 || x >= buf.width || y >= buf.height) continue;
           const idx = (y * buf.width + x) * 4;
           rTotal += buf.data[idx];
           gTotal += buf.data[idx + 1];
@@ -565,7 +577,15 @@ export function computeTileFingerprint(
           count++;
         }
       }
-      fp.push(count > 0 ? Math.round((rTotal + gTotal + bTotal) / (3 * count)) : 0);
+      if (count > 0) {
+        fp.push(
+          Math.round(rTotal / count),
+          Math.round(gTotal / count),
+          Math.round(bTotal / count)
+        );
+      } else {
+        fp.push(0, 0, 0);
+      }
     }
   }
   return fp;
@@ -573,14 +593,21 @@ export function computeTileFingerprint(
 
 /**
  * Compares two tile fingerprints. Returns true if they represent the same photo.
+ * Uses column-position awareness (sameColumn) to prevent false matches across different columns.
  */
-export function areTilesDuplicate(fp1: number[], fp2: number[], threshold: number = 10): boolean {
+export function areTilesDuplicate(
+  fp1: number[],
+  fp2: number[],
+  threshold: number = 11.5,
+  sameColumn: boolean = true
+): boolean {
   if (fp1.length !== fp2.length || fp1.length === 0) return false;
   let totalDiff = 0;
   for (let i = 0; i < fp1.length; i++) {
     totalDiff += Math.abs(fp1[i] - fp2[i]);
   }
-  return totalDiff / fp1.length < threshold;
+  const effectiveThreshold = sameColumn ? threshold : Math.min(threshold, 7.5);
+  return totalDiff / fp1.length < effectiveThreshold;
 }
 
 /**
@@ -801,7 +828,7 @@ export async function extractColorDNA(
   }
 
   const croppedImages: string[] = [];
-  const existingFingerprints: number[][] = [];
+  const existingFingerprints: { fp: number[]; col: number }[] = [];
   const colorBuckets: Record<string, ColorBucketItem> = {};
   const sampledLuminances: number[] = [];
   let avatarImage: string | undefined;
@@ -865,10 +892,11 @@ export async function extractColorDNA(
       const fullImgData = fullCtx.getImageData(0, 0, w, h);
       const buf: PixelBuffer = { width: w, height: h, data: fullImgData.data };
 
-      // Filter boxes for this specific file
-      const boxes: BoundingBox[] = (detectedBoxes || []).filter(
+      // Filter boxes for this specific file and eliminate clipped edge slivers
+      const rawBoxes: BoundingBox[] = (detectedBoxes || []).filter(
         (b) => b.image_index === undefined || b.image_index === fileIndex
       );
+      const boxes: BoundingBox[] = filterClippedPostTiles(rawBoxes as YoloBox[], w, h);
 
       // 1. Avatar Extraction if detected
       const avatarBox = boxes.find((b) => b.label === "avatar");
@@ -916,11 +944,23 @@ export async function extractColorDNA(
           const tileH = Math.min(h - tileY, Math.round(((tBox.ymax - tBox.ymin) / 1000) * h));
 
           if (tileW < 24 || tileH < 24) continue;
+          // Reject incomplete/clipped tiles whose pixel height is less than 72% of width
+          if (tileH / tileW < 0.72) continue;
           if (!isTileActualPhoto(buf, tileX, tileY, tileW, tileH)) continue;
 
+          const colIdx = Math.min(
+            2,
+            Math.max(0, Math.floor((tBox.xmin + tBox.xmax) / 2 / 334))
+          );
           const fp = computeTileFingerprint(buf, tileX, tileY, tileW, tileH);
-          if (existingFingerprints.some((prev) => areTilesDuplicate(fp, prev))) continue;
-          existingFingerprints.push(fp);
+          if (
+            existingFingerprints.some((prev) =>
+              areTilesDuplicate(fp, prev.fp, 11.5, prev.col === colIdx)
+            )
+          ) {
+            continue;
+          }
+          existingFingerprints.push({ fp, col: colIdx });
 
           const targetW = 320;
           const targetH = Math.round(320 * (tileH / tileW));
@@ -994,9 +1034,11 @@ export async function extractColorDNA(
 
           // Deduplicate overlapping photos from scrolled screenshots
           const fp = computeTileFingerprint(buf, tileX, rowY, colWidth, rowHeight);
-          const isDuplicate = existingFingerprints.some((prev) => areTilesDuplicate(fp, prev));
+          const isDuplicate = existingFingerprints.some((prev) =>
+            areTilesDuplicate(fp, prev.fp, 11.5, prev.col === c)
+          );
           if (isDuplicate) continue;
-          existingFingerprints.push(fp);
+          existingFingerprints.push({ fp, col: c });
 
           // Draw crisp tile preserving the true aspect ratio (e.g. 300x400 for 3:4)
           const targetW = 320;
