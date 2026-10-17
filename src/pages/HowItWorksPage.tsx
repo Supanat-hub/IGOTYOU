@@ -131,7 +131,6 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
               03
             </span>
             <h2 className="m-0 text-xl font-bold text-ink inline-flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-orange" />
               <span>นโยบายความเป็นส่วนตัว (Ephemeral Processing)</span>
             </h2>
           </div>
