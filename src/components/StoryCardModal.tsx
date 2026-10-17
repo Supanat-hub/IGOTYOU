@@ -3,6 +3,7 @@ import { toCanvas } from "html-to-image";
 import { Download, Copy, Check, Sun, Moon, Sparkles } from "lucide-react";
 import { AnalysisResult } from "../utils/analysisEngine";
 import { detectInAppBrowser } from "./InAppBrowserModal";
+import { useBodyScrollLock } from "../utils/scrollLock";
 
 interface StoryCardModalProps {
   isOpen: boolean;
@@ -102,6 +103,9 @@ export default function StoryCardModal({ isOpen, onClose, data }: StoryCardModal
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
+
+  // Lock background page scroll on mobile and desktop
+  useBodyScrollLock(isOpen);
 
   if (!isOpen || data.isValidProfile === false) return null;
 
@@ -649,9 +653,12 @@ export default function StoryCardModal({ isOpen, onClose, data }: StoryCardModal
               {previewImages.length > 0 && (
                 <div
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: `repeat(${previewImages.length}, 1fr)`,
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
                     gap: "8px",
+                    height: photoRatio === "3:4" ? "136px" : "104px",
+                    width: "100%",
                     zIndex: 1,
                   }}
                 >
@@ -660,8 +667,8 @@ export default function StoryCardModal({ isOpen, onClose, data }: StoryCardModal
                       key={i}
                       data-story-photo-slot={i}
                       style={{
+                        height: "100%",
                         aspectRatio: photoRatio === "3:4" ? "3 / 4" : "1 / 1",
-                        width: "100%",
                         borderRadius: "10px",
                         overflow: "hidden",
                         borderTop: isNoir ? "2px solid rgba(255,255,255,0.25)" : "2px solid #171711",
@@ -669,6 +676,8 @@ export default function StoryCardModal({ isOpen, onClose, data }: StoryCardModal
                         borderRight: isNoir ? "4px solid rgba(0,0,0,0.65)" : "4px solid #171711",
                         borderBottom: isNoir ? "4px solid rgba(0,0,0,0.65)" : "4px solid #171711",
                         background: "#171711",
+                        position: "relative",
+                        flexShrink: 0,
                         transition: "aspect-ratio 0.2s ease",
                       }}
                     >
@@ -685,6 +694,25 @@ export default function StoryCardModal({ isOpen, onClose, data }: StoryCardModal
                           transformOrigin: "center",
                         }}
                       />
+                      <span
+                        style={{
+                          position: "absolute",
+                          top: "5px",
+                          left: "5px",
+                          background: "rgba(23, 23, 17, 0.78)",
+                          border: "1px solid rgba(255, 255, 255, 0.28)",
+                          borderRadius: "99px",
+                          padding: "1px 6px",
+                          fontSize: "8.5px",
+                          fontWeight: 800,
+                          color: "#D9FF43",
+                          fontFamily: "Manrope, sans-serif",
+                          lineHeight: 1.2,
+                          pointerEvents: "none",
+                        }}
+                      >
+                        #{String(i + 1).padStart(2, "0")}
+                      </span>
                     </div>
                   ))}
                 </div>

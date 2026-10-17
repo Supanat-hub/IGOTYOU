@@ -14,6 +14,7 @@ import {
   Camera,
 } from "lucide-react";
 import { AnalysisResult } from "../utils/analysisEngine";
+import { useBodyScrollLock } from "../utils/scrollLock";
 
 interface StoryPlayerModalProps {
   isOpen: boolean;
@@ -31,6 +32,8 @@ export default function StoryPlayerModal({
   data,
   onOpenStoryCardModal,
 }: StoryPlayerModalProps) {
+  useBodyScrollLock(isOpen);
+
   const [currentSlide, setCurrentSlide] = useState(0);
   const [progress, setProgress] = useState(0); // 0 to 100 for current slide
   const [isPaused, setIsPaused] = useState(false);
@@ -446,18 +449,18 @@ export default function StoryPlayerModal({
                 {/* Cropped Photo Grid Preview */}
                 <div className="border-2 border-ink rounded-2xl overflow-hidden shadow-[4px_4px_0_var(--ink)] sm:shadow-[5px_5px_0_var(--ink)] bg-ink">
                   <div
-                    className="grid gap-1 p-1"
+                    className="grid gap-1 p-1 justify-center"
                     style={{
                       gridTemplateColumns:
                         data.topContent.images.length === 1
-                          ? "1fr"
+                          ? "minmax(0, 160px)"
                           : data.topContent.images.length === 2
-                          ? "repeat(2, 1fr)"
+                          ? "repeat(2, minmax(0, 140px))"
                           : "repeat(3, 1fr)",
                     }}
                   >
                     {data.topContent.images.slice(0, 6).map((img, idx) => (
-                      <div key={idx} className="aspect-[3/4] overflow-hidden bg-black/40">
+                      <div key={idx} className="aspect-[3/4] overflow-hidden bg-black/40 rounded-lg">
                         <img
                           src={img}
                           alt="post"

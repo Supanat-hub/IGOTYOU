@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { AnalysisResult } from "../utils/analysisEngine";
+import { useBodyScrollLock } from "../utils/scrollLock";
 
 interface EthicsModalProps {
   isOpen: boolean;
@@ -8,6 +9,7 @@ interface EthicsModalProps {
 }
 
 export default function EthicsModal({ isOpen, onClose, auditData }: EthicsModalProps) {
+  useBodyScrollLock(isOpen);
   const [activeTab, setActiveTab] = useState<"xai" | "bias" | "privacy">("xai");
 
   useEffect(() => {

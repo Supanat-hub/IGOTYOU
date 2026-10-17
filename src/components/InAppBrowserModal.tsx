@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { ExternalLink, Copy, Check, Compass, AlertTriangle, X } from "lucide-react";
+import { useBodyScrollLock } from "../utils/scrollLock";
 
 export interface InAppBrowserInfo {
   isInApp: boolean;
@@ -61,6 +62,8 @@ export default function InAppBrowserModal() {
   });
   const [isOpen, setIsOpen] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
+
+  useBodyScrollLock(isOpen);
 
   useEffect(() => {
     const info = detectInAppBrowser();
