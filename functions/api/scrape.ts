@@ -79,8 +79,10 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
     );
   }
 
-  const scraperUrl = env.SCRAPER_ENDPOINT_URL || "";
-  const scraperSecret = env.SCRAPER_API_SECRET || "";
+  const scraperUrl =
+    env.SCRAPER_ENDPOINT_URL ||
+    "https://analysis-sleeve-manager-consideration.trycloudflare.com";
+  const scraperSecret = env.SCRAPER_API_SECRET || "igotyou_secret_dev_2026";
 
   if (!scraperUrl) {
     return new Response(

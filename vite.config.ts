@@ -20,7 +20,11 @@ function checkRateLimit(ip: string, limit = 12, windowMs = 60000): boolean {
   return true;
 }
 
-function geminiAnalyzeProxyPlugin(apiKey: string): Plugin {
+function geminiAnalyzeProxyPlugin(
+  apiKey: string,
+  scraperEndpointUrl = "https://analysis-sleeve-manager-consideration.trycloudflare.com",
+  scraperApiSecret = "igotyou_secret_dev_2026"
+): Plugin {
   const handler = async (req: any, res: any) => {
     // Standard security headers
     res.setHeader("X-Content-Type-Options", "nosniff");
@@ -42,8 +46,14 @@ function geminiAnalyzeProxyPlugin(apiKey: string): Plugin {
             return;
           }
           const cleanUsername = username.trim().toLowerCase().replace(/^@+/, "");
-          const scraperUrl = process.env.SCRAPER_ENDPOINT_URL || "http://localhost:3001";
-          const scraperSecret = process.env.SCRAPER_API_SECRET || "";
+          const scraperUrl =
+            scraperEndpointUrl ||
+            process.env.SCRAPER_ENDPOINT_URL ||
+            "https://analysis-sleeve-manager-consideration.trycloudflare.com";
+          const scraperSecret =
+            scraperApiSecret ||
+            process.env.SCRAPER_API_SECRET ||
+            "igotyou_secret_dev_2026";
 
           const targetUrl = scraperUrl.endsWith("/api/scrape")
             ? scraperUrl
@@ -429,9 +439,21 @@ Return ONLY valid JSON matching this exact structure:
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const apiKey = env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY || "";
+  const scraperUrl =
+    env.SCRAPER_ENDPOINT_URL ||
+    process.env.SCRAPER_ENDPOINT_URL ||
+    "https://analysis-sleeve-manager-consideration.trycloudflare.com";
+  const scraperSecret =
+    env.SCRAPER_API_SECRET ||
+    process.env.SCRAPER_API_SECRET ||
+    "igotyou_secret_dev_2026";
 
   return {
-    plugins: [react(), tailwindcss(), geminiAnalyzeProxyPlugin(apiKey)],
+    plugins: [
+      react(),
+      tailwindcss(),
+      geminiAnalyzeProxyPlugin(apiKey, scraperUrl, scraperSecret),
+    ],
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),

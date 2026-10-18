@@ -36,8 +36,11 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
-  const scraperUrl = process.env.SCRAPER_ENDPOINT_URL || "";
-  const scraperSecret = process.env.SCRAPER_API_SECRET || "";
+  const scraperUrl =
+    process.env.SCRAPER_ENDPOINT_URL ||
+    "https://analysis-sleeve-manager-consideration.trycloudflare.com";
+  const scraperSecret =
+    process.env.SCRAPER_API_SECRET || "igotyou_secret_dev_2026";
 
   if (!scraperUrl) {
     res.statusCode = 503;
