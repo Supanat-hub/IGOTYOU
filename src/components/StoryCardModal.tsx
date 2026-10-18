@@ -1409,7 +1409,7 @@ export default function StoryCardModal({
                   }}
                 >
                   <Download className="w-4 h-4 text-ink" />
-                  <span>{isExporting ? "กำลังสร้างภาพ..." : "บันทึกภาพ"}</span>
+                  <span>{isExporting ? "กำลังสร้าง..." : "บันทึกภาพ"}</span>
                 </button>
                 <button
                   type="button"
@@ -1435,7 +1435,7 @@ export default function StoryCardModal({
                   title="คัดลอกรูปภาพลง Clipboard เพื่อนำไปแปะใน Story ทันที"
                 >
                   {copiedImage ? <Check className="w-4 h-4 text-green-700" /> : <Copy className="w-4 h-4 text-ink" />}
-                  <span>{copiedImage ? "คัดลอกแล้ว!" : "คัดลอกรูป"}</span>
+                  <span>{copiedImage ? "Copied!" : "คัดลอกรูป"}</span>
                 </button>
               </div>
 
@@ -1859,7 +1859,7 @@ export default function StoryCardModal({
                 }}
               >
                 <Download className="w-4 h-4 text-ink" />
-                <span>{isExporting ? "กำลังสร้างภาพ..." : "บันทึกภาพ PNG (1080x1920)"}</span>
+                <span>{isExporting ? "กำลังสร้าง..." : "บันทึกภาพ PNG (1080x1920)"}</span>
               </button>
 
               <div style={{ display: "flex", gap: "8px" }}>
