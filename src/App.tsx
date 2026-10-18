@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import HomePage from "./pages/HomePage";
@@ -41,6 +41,18 @@ export default function App() {
   const [result, setResult] = useState<AnalysisResult>(PRESETS.cafe);
   const [hasResult, setHasResult] = useState(false);
 
+  // Synchronous refs to prevent hashchange closure race conditions during navigation
+  const isAnalyzingRef = useRef(false);
+  const hasResultRef = useRef(false);
+
+  useEffect(() => {
+    isAnalyzingRef.current = isAnalyzing;
+  }, [isAnalyzing]);
+
+  useEffect(() => {
+    hasResultRef.current = hasResult;
+  }, [hasResult]);
+
   // Modal states
   const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
   const [isStoryPlayerOpen, setIsStoryPlayerOpen] = useState(false);
@@ -53,7 +65,7 @@ export default function App() {
         setIsTestMode(true);
       }
       if (hash === "#wrapped") {
-        if (!hasResult && !isAnalyzing) {
+        if (!hasResult && !isAnalyzing && !hasResultRef.current && !isAnalyzingRef.current) {
           window.location.hash = isTestMode ? "test-scraper" : "";
           setCurrentRoute("home");
         } else {
@@ -77,7 +89,7 @@ export default function App() {
     if (hash.includes("test-scraper") || hash.includes("beta")) {
       setIsTestMode(true);
     }
-    if (hash === "#wrapped" && !hasResult && !isAnalyzing) {
+    if (hash === "#wrapped" && !hasResult && !isAnalyzing && !hasResultRef.current && !isAnalyzingRef.current) {
       window.location.hash = isTestMode ? "test-scraper" : "";
       setCurrentRoute("home");
     }
@@ -95,10 +107,12 @@ export default function App() {
     if (!files.length) return;
     setErrorMessage(null);
     setScraperAlert(null);
+    isAnalyzingRef.current = true;
     setIsAnalyzing(true);
     navigateTo("result");
     try {
       const data = await analyzeProfile(files);
+      hasResultRef.current = data.isValidProfile !== false;
       setResult({ ...data, isPresetDemo: false });
       setHasResult(data.isValidProfile !== false);
     } catch (err: any) {
@@ -107,6 +121,7 @@ export default function App() {
         err.message || "ไม่สามารถวิเคราะห์โปรไฟล์ได้ในขณะนี้ กรุณาตรวจสอบรูปภาพหรือลองใหม่อีกครั้ง"
       );
     } finally {
+      isAnalyzingRef.current = false;
       setIsAnalyzing(false);
     }
   };
@@ -114,11 +129,18 @@ export default function App() {
   const handleAnalyzeScraped = async (username: string) => {
     setScraperAlert(null);
     setErrorMessage(null);
+    isAnalyzingRef.current = true;
+    setIsAnalyzing(true);
     setIsScrapingLoading(true);
+    navigateTo("result");
 
     try {
       const res = await fetchScrapedProfile(username);
       if (res.status === "NOT_FOUND") {
+        isAnalyzingRef.current = false;
+        setIsAnalyzing(false);
+        setIsScrapingLoading(false);
+        navigateTo("home");
         setScraperAlert({
           message: res.message || `ไม่พบบัญชี @${username} บน Instagram กรุณาตรวจสอบตัวสะกดอีกครั้ง`,
           allowFallback: false,
@@ -126,6 +148,10 @@ export default function App() {
         return;
       }
       if (res.status === "PRIVATE_ACCOUNT") {
+        isAnalyzingRef.current = false;
+        setIsAnalyzing(false);
+        setIsScrapingLoading(false);
+        navigateTo("home");
         setScraperAlert({
           message: "🔒 บัญชีนี้ตั้งค่าเป็นส่วนตัว (Private Account) ทำให้ระบบไม่สามารถเข้าถึงรูปภาพในกริดได้",
           allowFallback: true,
@@ -134,26 +160,32 @@ export default function App() {
       }
       if (res.status === "PUBLIC" && res.data) {
         setIsScrapingLoading(false);
-        setIsAnalyzing(true);
-        navigateTo("result");
         const analyzed = await analyzeScrapedProfile(res.data);
+        hasResultRef.current = analyzed.isValidProfile !== false;
         setResult({ ...analyzed, isPresetDemo: false });
         setHasResult(analyzed.isValidProfile !== false);
       }
     } catch (err: any) {
       console.error("Scraper Error:", err);
+      isAnalyzingRef.current = false;
+      setIsAnalyzing(false);
+      setIsScrapingLoading(false);
+      navigateTo("home");
       setScraperAlert({
         message: err.message || "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ Scraper ได้ในขณะนี้",
         allowFallback: true,
       });
     } finally {
+      isAnalyzingRef.current = false;
       setIsScrapingLoading(false);
       setIsAnalyzing(false);
     }
   };
 
   const handleCancelAnalysis = () => {
+    isAnalyzingRef.current = false;
     setIsAnalyzing(false);
+    setIsScrapingLoading(false);
     navigateTo("home");
   };
 
@@ -253,6 +285,7 @@ export default function App() {
           onRetry={handleAnalyze}
           onCancel={handleCancelAnalysis}
           isAnalyzing={isAnalyzing}
+          isScraping={isScrapingLoading}
         />
       )}
 

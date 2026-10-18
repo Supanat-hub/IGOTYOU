@@ -26,6 +26,7 @@ interface ResultPageProps {
   onRetry?: () => void;
   onCancel?: () => void;
   isAnalyzing?: boolean;
+  isScraping?: boolean;
 }
 
 const LOADING_STEPS = [
@@ -34,15 +35,22 @@ const LOADING_STEPS = [
   "3/3 ให้ AI ประมวลผลฉายา Persona & คัดสรร Bio Remix...",
 ];
 
-function WrappedSkeletonGrid({ onCancel }: { onCancel?: () => void }) {
+const SCRAPING_LOADING_STEPS = [
+  "1/3 กำลังเชื่อมต่อเซิร์ฟเวอร์ Scraper & ดึงข้อมูลโปรไฟล์จาก Instagram...",
+  "2/3 สกัดค่าสีจริง (Color DNA) & วิเคราะห์ความกลมกลืนของโทนภาพ...",
+  "3/3 ให้ AI สังเคราะห์ Persona & คัดสรร Bio Remix...",
+];
+
+function WrappedSkeletonGrid({ onCancel, isScraping }: { onCancel?: () => void; isScraping?: boolean }) {
   const [stepIndex, setStepIndex] = useState(0);
+  const steps = isScraping ? SCRAPING_LOADING_STEPS : LOADING_STEPS;
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setStepIndex((prev) => (prev + 1) % LOADING_STEPS.length);
+      setStepIndex((prev) => (prev + 1) % steps.length);
     }, 2000);
     return () => clearInterval(timer);
-  }, []);
+  }, [steps.length]);
 
   return (
     <>
@@ -52,10 +60,10 @@ function WrappedSkeletonGrid({ onCancel }: { onCancel?: () => void }) {
           <span className="loading-pulse-dot" />
           <div>
             <div className="font-extrabold font-['Manrope'] text-sm md:text-base tracking-tight text-ink">
-              กำลังวิเคราะห์โปรไฟล์ด้วย AI...
+              {isScraping ? "กำลังดึงข้อมูล & วิเคราะห์โปรไฟล์ Instagram..." : "กำลังวิเคราะห์โปรไฟล์ด้วย AI..."}
             </div>
             <div className="text-xs md:text-sm text-muted mt-0.5">
-              {LOADING_STEPS[stepIndex]}
+              {steps[stepIndex]}
             </div>
           </div>
         </div>
@@ -223,6 +231,7 @@ export default function ResultPage({
   onRetry,
   onCancel,
   isAnalyzing,
+  isScraping,
 }: ResultPageProps) {
   const [copied, setCopied] = useState(false);
   const [copiedHex, setCopiedHex] = useState<string | null>(null);
@@ -393,7 +402,7 @@ export default function ResultPage({
 
       {/* When analyzing, render the full Skeleton UI */}
       {isAnalyzing ? (
-        <WrappedSkeletonGrid onCancel={onCancel} />
+        <WrappedSkeletonGrid onCancel={onCancel} isScraping={isScraping} />
       ) : result.isValidProfile === false ? (
         /* Profile Validation Rejection Gate */
         <div className="bg-[#fff4f2] border-3 border-ink rounded-3xl p-6 md:p-10 mb-8 shadow-[8px_8px_0_var(--ink)] text-center max-w-2xl mx-auto">

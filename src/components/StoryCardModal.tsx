@@ -147,21 +147,36 @@ export default function StoryCardModal({
   }, [data.topContent?.cardImages, data.topContent?.allImages, data.topContent?.images]);
 
   const [scale, setScale] = useState(1);
+  const [isDesktop, setIsDesktop] = useState(
+    typeof window !== "undefined" ? window.innerWidth >= 768 : false
+  );
 
   useEffect(() => {
     if (!isOpen) return;
     const calculateScale = () => {
-      // Allow at least 20px horizontal margin each side (40px total)
-      const availW = window.innerWidth - 40;
-      // Top controls (~40px) + Photo strip (~64px) + 2-tier action buttons (~112px) + gaps (~44px)
-      const availH = window.innerHeight - 260;
+      const desktop = window.innerWidth >= 768;
+      setIsDesktop(desktop);
 
-      const scaleW = availW / 360;
-      const scaleH = availH / 640;
+      if (desktop) {
+        // On desktop, available height is viewport height minus padding & breathing room (~80px)
+        const availH = window.innerHeight - 80;
+        const scaleH = availH / 640;
+        // Clamp scale between 0.72 and 1.0 (so card is crisp, large, and comfortably fits viewport)
+        setScale(Math.max(0.72, Math.min(1.0, scaleH)));
+      } else {
+        // Mobile calculation:
+        // Allow at least 20px horizontal margin each side (40px total)
+        const availW = window.innerWidth - 40;
+        // Top controls (~40px) + Photo strip (~64px) + 2-tier action buttons (~112px) + gaps (~44px)
+        const availH = window.innerHeight - 260;
 
-      const targetScale = Math.min(1, Math.min(scaleW, scaleH));
-      // Clamp between 0.62 and 1.0 (crisp on mobile, doesn't over-stretch on desktop)
-      setScale(Math.max(0.62, Math.min(1, targetScale)));
+        const scaleW = availW / 360;
+        const scaleH = availH / 640;
+
+        const targetScale = Math.min(1, Math.min(scaleW, scaleH));
+        // Clamp between 0.62 and 1.0 (crisp on mobile, doesn't over-stretch on desktop)
+        setScale(Math.max(0.62, Math.min(1, targetScale)));
+      }
     };
 
     calculateScale();
@@ -513,138 +528,152 @@ export default function StoryCardModal({
       <div
         style={{
           display: "flex",
-          flexDirection: "column",
+          flexDirection: isDesktop ? "row" : "column",
           alignItems: "center",
-          gap: "12px",
-          maxWidth: "100%",
+          justifyContent: "center",
+          gap: isDesktop ? "36px" : "12px",
+          maxWidth: isDesktop ? "960px" : "100%",
+          width: isDesktop ? "auto" : undefined,
           margin: "auto",
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Top Controls: Theme Switcher & Ratio Switcher */}
-        <div
-          style={{
-            display: "flex",
-            gap: "8px",
-            width: "100%",
-            maxWidth: `${Math.min(360, Math.max(280, Math.round(360 * scale)))}px`,
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-          }}
-        >
-          <div style={{ display: "flex", gap: "6px" }}>
-            <button
-              type="button"
-              onClick={() => setTheme("paper")}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "5px",
-                padding: "6px 11px",
-                borderRadius: "99px",
-                fontSize: "11px",
-                fontWeight: 800,
-                cursor: "pointer",
-                border: "1.5px solid var(--ink)",
-                background: !isNoir ? "var(--acid)" : "rgba(255,255,255,0.15)",
-                color: !isNoir ? "var(--ink)" : "white",
-                boxShadow: !isNoir ? "2px 2px 0 var(--ink)" : "none",
-                transition: "all 0.15s ease",
-              }}
-            >
-              <Sun className="w-3.5 h-3.5" />
-              <span>Neo</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setTheme("noir")}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "5px",
-                padding: "6px 11px",
-                borderRadius: "99px",
-                fontSize: "11px",
-                fontWeight: 800,
-                cursor: "pointer",
-                border: "1.5px solid var(--ink)",
-                background: isNoir ? "var(--acid)" : "rgba(255,255,255,0.15)",
-                color: isNoir ? "var(--ink)" : "white",
-                boxShadow: isNoir ? "2px 2px 0 var(--ink)" : "none",
-                transition: "all 0.15s ease",
-              }}
-            >
-              <Moon className="w-3.5 h-3.5" />
-              <span>Dark</span>
-            </button>
-          </div>
-
-          {/* Ratio toggle: 1:1 vs 4:3 */}
+        {/* Top Controls: Theme Switcher & Ratio Switcher (Mobile only) */}
+        {!isDesktop && (
           <div
             style={{
               display: "flex",
+              gap: "8px",
+              width: "100%",
+              maxWidth: `${Math.min(360, Math.max(280, Math.round(360 * scale)))}px`,
+              justifyContent: "space-between",
               alignItems: "center",
-              gap: "3px",
-              background: "rgba(255,255,255,0.12)",
-              padding: "3px 4px",
-              borderRadius: "99px",
-              border: "1px solid rgba(255,255,255,0.2)",
+              flexWrap: "wrap",
             }}
           >
-            <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.75)", fontWeight: 700, paddingLeft: "6px" }}>
-              สัดส่วน:
-            </span>
-            <button
-              type="button"
-              onClick={() => setPhotoRatio("3:4")}
-              style={{
-                padding: "3px 8px",
-                borderRadius: "99px",
-                fontSize: "11px",
-                fontWeight: 800,
-                cursor: "pointer",
-                border: "none",
-                background: photoRatio === "3:4" ? "var(--acid)" : "transparent",
-                color: photoRatio === "3:4" ? "var(--ink)" : "white",
-                transition: "all 0.15s ease",
-              }}
-              title="สัดส่วนแนวตั้ง 3:4 ตามฟีด IG ยุคใหม่ ไม่ตัดหัวตัดขา"
-            >
-              3:4
-            </button>
-            <button
-              type="button"
-              onClick={() => setPhotoRatio("1:1")}
-              style={{
-                padding: "3px 8px",
-                borderRadius: "99px",
-                fontSize: "11px",
-                fontWeight: 800,
-                cursor: "pointer",
-                border: "none",
-                background: photoRatio === "1:1" ? "var(--acid)" : "transparent",
-                color: photoRatio === "1:1" ? "var(--ink)" : "white",
-                transition: "all 0.15s ease",
-              }}
-              title="สัดส่วนจัตุรัส 1:1 แบบคลาสสิก"
-            >
-              1:1
-            </button>
-          </div>
-        </div>
+            <div style={{ display: "flex", gap: "6px" }}>
+              <button
+                type="button"
+                onClick={() => setTheme("paper")}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "5px",
+                  padding: "6px 11px",
+                  borderRadius: "99px",
+                  fontSize: "11px",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  border: "1.5px solid var(--ink)",
+                  background: !isNoir ? "var(--acid)" : "rgba(255,255,255,0.15)",
+                  color: !isNoir ? "var(--ink)" : "white",
+                  boxShadow: !isNoir ? "2px 2px 0 var(--ink)" : "none",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <Sun className="w-3.5 h-3.5" />
+                <span>Neo</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setTheme("noir")}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "5px",
+                  padding: "6px 11px",
+                  borderRadius: "99px",
+                  fontSize: "11px",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  border: "1.5px solid var(--ink)",
+                  background: isNoir ? "var(--acid)" : "rgba(255,255,255,0.15)",
+                  color: isNoir ? "var(--ink)" : "white",
+                  boxShadow: isNoir ? "2px 2px 0 var(--ink)" : "none",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <Moon className="w-3.5 h-3.5" />
+                <span>Dark</span>
+              </button>
+            </div>
 
-        {/* 9:16 Card Scaled Container */}
+            {/* Ratio toggle: 1:1 vs 4:3 */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "3px",
+                background: "rgba(255,255,255,0.12)",
+                padding: "3px 4px",
+                borderRadius: "99px",
+                border: "1px solid rgba(255,255,255,0.2)",
+              }}
+            >
+              <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.75)", fontWeight: 700, paddingLeft: "6px" }}>
+                สัดส่วน:
+              </span>
+              <button
+                type="button"
+                onClick={() => setPhotoRatio("3:4")}
+                style={{
+                  padding: "3px 8px",
+                  borderRadius: "99px",
+                  fontSize: "11px",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  border: "none",
+                  background: photoRatio === "3:4" ? "var(--acid)" : "transparent",
+                  color: photoRatio === "3:4" ? "var(--ink)" : "white",
+                  transition: "all 0.15s ease",
+                }}
+                title="สัดส่วนแนวตั้ง 3:4 ตามฟีด IG ยุคใหม่ ไม่ตัดหัวตัดขา"
+              >
+                3:4
+              </button>
+              <button
+                type="button"
+                onClick={() => setPhotoRatio("1:1")}
+                style={{
+                  padding: "3px 8px",
+                  borderRadius: "99px",
+                  fontSize: "11px",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  border: "none",
+                  background: photoRatio === "1:1" ? "var(--acid)" : "transparent",
+                  color: photoRatio === "1:1" ? "var(--ink)" : "white",
+                  transition: "all 0.15s ease",
+                }}
+                title="สัดส่วนจัตุรัส 1:1 แบบคลาสสิก"
+              >
+                1:1
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Card Column: Left on Desktop, Center on Mobile */}
         <div
           style={{
-            width: `${Math.round(360 * scale)}px`,
-            height: `${Math.round(640 * scale)}px`,
             display: "flex",
+            flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
             flexShrink: 0,
           }}
         >
+          {/* 9:16 Card Scaled Container */}
+          <div
+            style={{
+              width: `${Math.round(360 * scale)}px`,
+              height: `${Math.round(640 * scale)}px`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
           <div
             style={{
               transform: `scale(${scale})`,
@@ -1157,268 +1186,733 @@ export default function StoryCardModal({
             </div>
           </div>
         </div>
-
-        {/* Interactive Photo Selector & Custom Upload Strip */}
-        <div
-          style={{
-            width: "100%",
-            maxWidth: `${Math.min(360, Math.max(280, Math.round(360 * scale)))}px`,
-            background: "rgba(255, 255, 255, 0.1)",
-            border: "1.5px solid rgba(255, 255, 255, 0.22)",
-            borderRadius: "14px",
-            padding: "8px 10px",
-            display: "flex",
-            flexDirection: "column",
-            gap: "6px",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              gap: "6px",
-            }}
-          >
+        {isDesktop && (
             <span
               style={{
                 fontSize: "11px",
-                fontWeight: 800,
-                color: activeSlot !== null ? "#d9ff43" : "rgba(255, 255, 255, 0.92)",
+                color: "rgba(255,255,255,0.65)",
+                marginTop: "12px",
+                textAlign: "center",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "5px",
               }}
             >
-              {activeSlot !== null
-                ? `กำลังเปลี่ยนรูปช่อง #${activeSlot + 1} (แตะรูปด้านล่างเพื่อแทนที่)`
-                : `เลือกรูปในการ์ด (${previewImages.length}/3) · แตะเพื่อสลับลำดับ`}
+              <span>💡</span>
+              <span>คลิกข้อความหรือช่องรูปบนการ์ดเพื่อแก้ไขได้โดยตรง</span>
             </span>
-            {allCandidates.length > 1 && (
-              <button
-                type="button"
-                onClick={handleResetToAiBest}
-                style={{
-                  background: "rgba(255, 255, 255, 0.14)",
-                  color: "#d9ff43",
-                  border: "1px solid rgba(217, 255, 67, 0.4)",
-                  borderRadius: "99px",
-                  padding: "2px 8px",
-                  fontSize: "10px",
-                  fontWeight: 800,
-                  cursor: "pointer",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "4px",
-                  whiteSpace: "nowrap",
-                }}
-                title="เรียงลำดับรูปที่ดีที่สุดตามที่ AI คัดเลือก"
-              >
-                <RotateCcw className="w-2.5 h-2.5" />
-                <span>AI แนะนำ</span>
-              </button>
-            )}
-          </div>
+          )}
+        </div>
 
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              overflowX: "auto",
-              paddingBottom: "2px",
-              scrollbarWidth: "thin",
-            }}
-          >
-            {allCandidates.map((candidateImg, idx) => {
-              const selectedRank = previewImages.indexOf(candidateImg);
-              const isSelected = selectedRank !== -1;
-              return (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => handleCandidateClick(candidateImg)}
-                  title={
-                    isSelected
-                      ? `รูปที่ #${selectedRank + 1} ในการ์ด (แตะเพื่อเอาออก/สลับ)`
-                      : "แตะเพื่อนำรูปนี้เข้าการ์ด"
-                  }
+        {/* Mobile-Only Bottom Controls */}
+        {!isDesktop && (
+          <>
+            {/* Interactive Photo Selector & Custom Upload Strip */}
+            <div
+              style={{
+                width: "100%",
+                maxWidth: `${Math.min(360, Math.max(280, Math.round(360 * scale)))}px`,
+                background: "rgba(255, 255, 255, 0.1)",
+                border: "1.5px solid rgba(255, 255, 255, 0.22)",
+                borderRadius: "14px",
+                padding: "8px 10px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "6px",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: "6px",
+                }}
+              >
+                <span
                   style={{
-                    width: "44px",
+                    fontSize: "11px",
+                    fontWeight: 800,
+                    color: activeSlot !== null ? "#d9ff43" : "rgba(255, 255, 255, 0.92)",
+                  }}
+                >
+                  {activeSlot !== null
+                    ? `กำลังเปลี่ยนรูปช่อง #${activeSlot + 1} (แตะรูปด้านล่างเพื่อแทนที่)`
+                    : `เลือกรูปในการ์ด (${previewImages.length}/3) · แตะเพื่อสลับลำดับ`}
+                </span>
+                {allCandidates.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={handleResetToAiBest}
+                    style={{
+                      background: "rgba(255, 255, 255, 0.14)",
+                      color: "#d9ff43",
+                      border: "1px solid rgba(217, 255, 67, 0.4)",
+                      borderRadius: "99px",
+                      padding: "2px 8px",
+                      fontSize: "10px",
+                      fontWeight: 800,
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      whiteSpace: "nowrap",
+                    }}
+                    title="เรียงลำดับรูปที่ดีที่สุดตามที่ AI คัดเลือก"
+                  >
+                    <RotateCcw className="w-2.5 h-2.5" />
+                    <span>AI แนะนำ</span>
+                  </button>
+                )}
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  overflowX: "auto",
+                  paddingBottom: "2px",
+                  scrollbarWidth: "thin",
+                }}
+              >
+                {allCandidates.map((candidateImg, idx) => {
+                  const selectedRank = previewImages.indexOf(candidateImg);
+                  const isSelected = selectedRank !== -1;
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => handleCandidateClick(candidateImg)}
+                      title={
+                        isSelected
+                          ? `รูปที่ #${selectedRank + 1} ในการ์ด (แตะเพื่อเอาออก/สลับ)`
+                          : "แตะเพื่อนำรูปนี้เข้าการ์ด"
+                      }
+                      style={{
+                        width: "44px",
+                        height: "54px",
+                        borderRadius: "8px",
+                        overflow: "hidden",
+                        position: "relative",
+                        flexShrink: 0,
+                        padding: 0,
+                        cursor: "pointer",
+                        background: "#171711",
+                        border: isSelected
+                          ? "2px solid #d9ff43"
+                          : "1.5px solid rgba(255,255,255,0.3)",
+                        opacity: isSelected ? 1 : 0.72,
+                        transform: isSelected ? "scale(1)" : "scale(0.96)",
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      <img
+                        src={candidateImg}
+                        alt={`ตัวเลือกรูปที่ ${idx + 1}`}
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                          display: "block",
+                        }}
+                      />
+                      {isSelected && (
+                        <span
+                          style={{
+                            position: "absolute",
+                            top: "3px",
+                            left: "3px",
+                            background: "#d9ff43",
+                            color: "#171711",
+                            border: "1.5px solid #171711",
+                            borderRadius: "99px",
+                            fontSize: "9px",
+                            fontWeight: 900,
+                            fontFamily: "Manrope, sans-serif",
+                            padding: "0px 4px",
+                            lineHeight: 1.35,
+                          }}
+                        >
+                          #{selectedRank + 1}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+
+                {/* Upload custom photo button */}
+                <button
+                  type="button"
+                  onClick={() => customPhotoInputRef.current?.click()}
+                  title="อัปโหลดรูปภาพเพิ่มเติมจากเครื่องเพื่อใส่ในการ์ด"
+                  style={{
+                    width: "48px",
                     height: "54px",
                     borderRadius: "8px",
-                    overflow: "hidden",
-                    position: "relative",
+                    border: "1.5px dashed rgba(217, 255, 67, 0.7)",
+                    background: "rgba(217, 255, 67, 0.12)",
+                    color: "#d9ff43",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "2px",
                     flexShrink: 0,
-                    padding: 0,
                     cursor: "pointer",
-                    background: "#171711",
-                    border: isSelected
-                      ? "2px solid #d9ff43"
-                      : "1.5px solid rgba(255,255,255,0.3)",
-                    opacity: isSelected ? 1 : 0.72,
-                    transform: isSelected ? "scale(1)" : "scale(0.96)",
+                    fontSize: "9px",
+                    fontWeight: 800,
+                    padding: "2px",
+                  }}
+                >
+                  <ImagePlus className="w-3.5 h-3.5" />
+                  <span>+เพิ่มรูป</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Action Buttons Below the Card (2-tier mobile-optimized layout with safe area) */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "10px",
+                width: "100%",
+                maxWidth: `${Math.min(360, Math.max(280, Math.round(360 * scale)))}px`,
+                paddingBottom: "max(10px, env(safe-area-inset-bottom, 10px))",
+              }}
+            >
+              {/* Row 1: Save & Copy */}
+              <div style={{ display: "flex", gap: "8px", width: "100%" }}>
+                <button
+                  type="button"
+                  onClick={downloadCard}
+                  disabled={isExporting}
+                  style={{
+                    flex: 1.35,
+                    background: "var(--acid)",
+                    color: "var(--ink)",
+                    border: "2px solid var(--ink)",
+                    borderRadius: "14px",
+                    padding: "12px 14px",
+                    fontWeight: 800,
+                    fontSize: "14px",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
+                    boxShadow: "3px 3px 0 var(--ink)",
                     transition: "all 0.15s ease",
                   }}
                 >
-                  <img
-                    src={candidateImg}
-                    alt={`ตัวเลือกรูปที่ ${idx + 1}`}
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                      display: "block",
-                    }}
-                  />
-                  {isSelected && (
-                    <span
-                      style={{
-                        position: "absolute",
-                        top: "3px",
-                        left: "3px",
-                        background: "#d9ff43",
-                        color: "#171711",
-                        border: "1.5px solid #171711",
-                        borderRadius: "99px",
-                        fontSize: "9px",
-                        fontWeight: 900,
-                        fontFamily: "Manrope, sans-serif",
-                        padding: "0px 4px",
-                        lineHeight: 1.35,
-                      }}
-                    >
-                      #{selectedRank + 1}
-                    </span>
-                  )}
+                  <Download className="w-4 h-4 text-ink" />
+                  <span>{isExporting ? "กำลังสร้างภาพ..." : "บันทึกภาพ"}</span>
                 </button>
-              );
-            })}
+                <button
+                  type="button"
+                  onClick={copyCardImage}
+                  disabled={isExporting}
+                  style={{
+                    flex: 1,
+                    background: "var(--white)",
+                    color: "var(--ink)",
+                    border: "2px solid var(--ink)",
+                    borderRadius: "14px",
+                    padding: "12px 14px",
+                    fontWeight: 800,
+                    fontSize: "13px",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
+                    boxShadow: "3px 3px 0 var(--ink)",
+                    transition: "all 0.15s ease",
+                  }}
+                  title="คัดลอกรูปภาพลง Clipboard เพื่อนำไปแปะใน Story ทันที"
+                >
+                  {copiedImage ? <Check className="w-4 h-4 text-green-700" /> : <Copy className="w-4 h-4 text-ink" />}
+                  <span>{copiedImage ? "คัดลอกแล้ว!" : "คัดลอกรูป"}</span>
+                </button>
+              </div>
 
-            {/* Upload custom photo button */}
-            <input
-              ref={customPhotoInputRef}
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              multiple
-              hidden
-              onChange={handleCustomPhotoUpload}
-            />
-            <button
-              type="button"
-              onClick={() => customPhotoInputRef.current?.click()}
-              title="อัปโหลดรูปภาพเพิ่มเติมจากเครื่องเพื่อใส่ในการ์ด"
-              style={{
-                width: "48px",
-                height: "54px",
-                borderRadius: "8px",
-                border: "1.5px dashed rgba(217, 255, 67, 0.7)",
-                background: "rgba(217, 255, 67, 0.12)",
-                color: "#d9ff43",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "2px",
-                flexShrink: 0,
-                cursor: "pointer",
-                fontSize: "9px",
-                fontWeight: 800,
-                padding: "2px",
-              }}
-            >
-              <ImagePlus className="w-3.5 h-3.5" />
-              <span>+เพิ่มรูป</span>
-            </button>
-          </div>
-        </div>
+              {/* Row 2: Full-width Close Button */}
+              <button
+                type="button"
+                onClick={onClose}
+                style={{
+                  width: "100%",
+                  background: "rgba(255,255,255,0.14)",
+                  color: "white",
+                  border: "1.5px solid rgba(255,255,255,0.35)",
+                  borderRadius: "14px",
+                  padding: "11px 14px",
+                  fontWeight: 700,
+                  fontSize: "13px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                ปิดหน้าต่างตัวอย่าง
+              </button>
+            </div>
+          </>
+        )}
 
-        {/* Action Buttons Below the Card (2-tier mobile-optimized layout with safe area) */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "10px",
-            width: "100%",
-            maxWidth: `${Math.min(360, Math.max(280, Math.round(360 * scale)))}px`,
-            paddingBottom: "max(10px, env(safe-area-inset-bottom, 10px))",
-          }}
-        >
-          {/* Row 1: Save & Copy */}
-          <div style={{ display: "flex", gap: "8px", width: "100%" }}>
-            <button
-              type="button"
-              onClick={downloadCard}
-              disabled={isExporting}
-              style={{
-                flex: 1.35,
-                background: "var(--acid)",
-                color: "var(--ink)",
-                border: "2px solid var(--ink)",
-                borderRadius: "14px",
-                padding: "12px 14px",
-                fontWeight: 800,
-                fontSize: "14px",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "6px",
-                boxShadow: "3px 3px 0 var(--ink)",
-                transition: "all 0.15s ease",
-              }}
-            >
-              <Download className="w-4 h-4 text-ink" />
-              <span>{isExporting ? "กำลังสร้างภาพ..." : "บันทึกภาพ"}</span>
-            </button>
-            <button
-              type="button"
-              onClick={copyCardImage}
-              disabled={isExporting}
-              style={{
-                flex: 1,
-                background: "var(--white)",
-                color: "var(--ink)",
-                border: "2px solid var(--ink)",
-                borderRadius: "14px",
-                padding: "12px 14px",
-                fontWeight: 800,
-                fontSize: "13px",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "6px",
-                boxShadow: "3px 3px 0 var(--ink)",
-                transition: "all 0.15s ease",
-              }}
-              title="คัดลอกรูปภาพลง Clipboard เพื่อนำไปแปะใน Story ทันที"
-            >
-              {copiedImage ? <Check className="w-4 h-4 text-green-700" /> : <Copy className="w-4 h-4 text-ink" />}
-              <span>{copiedImage ? "คัดลอกแล้ว!" : "คัดลอกรูป"}</span>
-            </button>
-          </div>
-
-          {/* Row 2: Full-width Close Button */}
-          <button
-            type="button"
-            onClick={onClose}
+        {/* Desktop-Only 2nd Column Sidebar Controls */}
+        {isDesktop && (
+          <div
             style={{
-              width: "100%",
-              background: "rgba(255,255,255,0.14)",
-              color: "white",
-              border: "1.5px solid rgba(255,255,255,0.35)",
-              borderRadius: "14px",
-              padding: "11px 14px",
-              fontWeight: 700,
-              fontSize: "13px",
-              cursor: "pointer",
+              width: "400px",
+              background: "rgba(23, 23, 17, 0.92)",
+              backdropFilter: "blur(20px)",
+              border: "2px solid rgba(255, 255, 255, 0.18)",
+              borderRadius: "24px",
+              padding: "24px",
               display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              transition: "all 0.15s ease",
+              flexDirection: "column",
+              gap: "16px",
+              boxShadow: "0 24px 48px rgba(0, 0, 0, 0.6), 4px 4px 0 rgba(0, 0, 0, 0.3)",
+              maxHeight: `${Math.max(580, Math.round(640 * scale))}px`,
+              overflowY: "auto",
+              boxSizing: "border-box",
             }}
           >
-            ปิดหน้าต่างตัวอย่าง
-          </button>
-        </div>
+            {/* Header with Close */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div>
+                <span
+                  style={{
+                    fontSize: "10px",
+                    fontWeight: 800,
+                    color: "var(--acid)",
+                    letterSpacing: "0.1em",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  STORY EXPORT (9:16)
+                </span>
+                <h3
+                  style={{
+                    margin: "2px 0 0",
+                    fontSize: "20px",
+                    fontWeight: 800,
+                    color: "white",
+                    fontFamily: "Manrope, sans-serif",
+                  }}
+                >
+                  ตัวอย่างการ์ด IG Story
+                </h3>
+                <p style={{ margin: "2px 0 0", fontSize: "12px", color: "rgba(255,255,255,0.7)" }}>
+                  ปรับแต่งธีม รูปภาพ และข้อความก่อนบันทึก
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                style={{
+                  background: "rgba(255,255,255,0.12)",
+                  color: "white",
+                  border: "1px solid rgba(255,255,255,0.2)",
+                  borderRadius: "50%",
+                  width: "32px",
+                  height: "32px",
+                  display: "grid",
+                  placeItems: "center",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  fontWeight: 800,
+                  transition: "all 0.15s ease",
+                }}
+                title="ปิดหน้าต่าง (Esc)"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Theme & Ratio Switchers */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <span style={{ fontSize: "11px", fontWeight: 700, color: "rgba(255,255,255,0.6)" }}>
+                สไตล์และการแสดงผล:
+              </span>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                <div style={{ display: "flex", gap: "6px" }}>
+                  <button
+                    type="button"
+                    onClick={() => setTheme("paper")}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "5px",
+                      padding: "6px 12px",
+                      borderRadius: "99px",
+                      fontSize: "12px",
+                      fontWeight: 800,
+                      cursor: "pointer",
+                      border: "1.5px solid var(--ink)",
+                      background: !isNoir ? "var(--acid)" : "rgba(255,255,255,0.15)",
+                      color: !isNoir ? "var(--ink)" : "white",
+                      boxShadow: !isNoir ? "2px 2px 0 var(--ink)" : "none",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    <Sun className="w-3.5 h-3.5" />
+                    <span>Neo (สว่าง)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTheme("noir")}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "5px",
+                      padding: "6px 12px",
+                      borderRadius: "99px",
+                      fontSize: "12px",
+                      fontWeight: 800,
+                      cursor: "pointer",
+                      border: "1.5px solid var(--ink)",
+                      background: isNoir ? "var(--acid)" : "rgba(255,255,255,0.15)",
+                      color: isNoir ? "var(--ink)" : "white",
+                      boxShadow: isNoir ? "2px 2px 0 var(--ink)" : "none",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    <Moon className="w-3.5 h-3.5" />
+                    <span>Dark (มืด)</span>
+                  </button>
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "3px",
+                    background: "rgba(255,255,255,0.12)",
+                    padding: "3px 4px",
+                    borderRadius: "99px",
+                    border: "1px solid rgba(255,255,255,0.2)",
+                  }}
+                >
+                  <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.75)", fontWeight: 700, paddingLeft: "6px" }}>
+                    สัดส่วน:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setPhotoRatio("3:4")}
+                    style={{
+                      padding: "4px 9px",
+                      borderRadius: "99px",
+                      fontSize: "11px",
+                      fontWeight: 800,
+                      cursor: "pointer",
+                      border: "none",
+                      background: photoRatio === "3:4" ? "var(--acid)" : "transparent",
+                      color: photoRatio === "3:4" ? "var(--ink)" : "white",
+                      transition: "all 0.15s ease",
+                    }}
+                    title="สัดส่วนแนวตั้ง 3:4 ตามฟีด IG ยุคใหม่"
+                  >
+                    3:4
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPhotoRatio("1:1")}
+                    style={{
+                      padding: "4px 9px",
+                      borderRadius: "99px",
+                      fontSize: "11px",
+                      fontWeight: 800,
+                      cursor: "pointer",
+                      border: "none",
+                      background: photoRatio === "1:1" ? "var(--acid)" : "transparent",
+                      color: photoRatio === "1:1" ? "var(--ink)" : "white",
+                      transition: "all 0.15s ease",
+                    }}
+                    title="สัดส่วนจัตุรัส 1:1 แบบคลาสสิก"
+                  >
+                    1:1
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Text Inputs for Handle & Persona */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <span style={{ fontSize: "11px", fontWeight: 700, color: "rgba(255,255,255,0.6)" }}>
+                ข้อความบนการ์ด:
+              </span>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1.3fr", gap: "8px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+                  <label style={{ fontSize: "10px", color: "rgba(255,255,255,0.6)", fontWeight: 600 }}>ชื่อบัญชี IG</label>
+                  <input
+                    type="text"
+                    value={customHandle}
+                    onChange={(e) => setCustomHandle(e.target.value)}
+                    placeholder="@username"
+                    style={{
+                      background: "rgba(255,255,255,0.08)",
+                      border: "1px solid rgba(255,255,255,0.2)",
+                      borderRadius: "8px",
+                      padding: "6px 10px",
+                      fontSize: "12px",
+                      color: "white",
+                      fontWeight: 700,
+                      outline: "none",
+                    }}
+                  />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+                  <label style={{ fontSize: "10px", color: "rgba(255,255,255,0.6)", fontWeight: 600 }}>ฉายา Persona</label>
+                  <input
+                    type="text"
+                    value={customTitle}
+                    onChange={(e) => setCustomTitle(formatSingleLine(e.target.value))}
+                    placeholder="ฉายาโปรไฟล์"
+                    style={{
+                      background: "rgba(255,255,255,0.08)",
+                      border: "1px solid rgba(255,255,255,0.2)",
+                      borderRadius: "8px",
+                      padding: "6px 10px",
+                      fontSize: "12px",
+                      color: "white",
+                      fontWeight: 700,
+                      outline: "none",
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Photo Selection */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span
+                  style={{
+                    fontSize: "11px",
+                    fontWeight: 800,
+                    color: activeSlot !== null ? "var(--acid)" : "rgba(255, 255, 255, 0.92)",
+                  }}
+                >
+                  {activeSlot !== null
+                    ? `กำลังเปลี่ยนรูปช่อง #${activeSlot + 1} (คลิกรูปด้านล่าง)`
+                    : `เลือกรูปในการ์ด (${previewImages.length}/3)`}
+                </span>
+                {allCandidates.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={handleResetToAiBest}
+                    style={{
+                      background: "rgba(255, 255, 255, 0.14)",
+                      color: "var(--acid)",
+                      border: "1px solid rgba(217, 255, 67, 0.4)",
+                      borderRadius: "99px",
+                      padding: "2px 8px",
+                      fontSize: "10px",
+                      fontWeight: 800,
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px",
+                    }}
+                    title="เรียงลำดับรูปที่ดีที่สุดตามที่ AI คัดเลือก"
+                  >
+                    <RotateCcw className="w-2.5 h-2.5" />
+                    <span>AI แนะนำ</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Photo Thumbnails */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  overflowX: "auto",
+                  paddingBottom: "4px",
+                  scrollbarWidth: "thin",
+                }}
+              >
+                {allCandidates.map((candidateImg, idx) => {
+                  const selectedRank = previewImages.indexOf(candidateImg);
+                  const isSelected = selectedRank !== -1;
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => handleCandidateClick(candidateImg)}
+                      title={
+                        isSelected
+                          ? `รูปที่ #${selectedRank + 1} ในการ์ด (คลิกเพื่อเอาออก/สลับ)`
+                          : "คลิกเพื่อนำรูปนี้เข้าการ์ด"
+                      }
+                      style={{
+                        width: "52px",
+                        height: "64px",
+                        borderRadius: "10px",
+                        overflow: "hidden",
+                        position: "relative",
+                        flexShrink: 0,
+                        padding: 0,
+                        cursor: "pointer",
+                        background: "#171711",
+                        border: isSelected
+                          ? "2px solid var(--acid)"
+                          : "1.5px solid rgba(255,255,255,0.3)",
+                        opacity: isSelected ? 1 : 0.72,
+                        transform: isSelected ? "scale(1)" : "scale(0.96)",
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      <img
+                        src={candidateImg}
+                        alt={`ตัวเลือกรูปที่ ${idx + 1}`}
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                          display: "block",
+                        }}
+                      />
+                      {isSelected && (
+                        <span
+                          style={{
+                            position: "absolute",
+                            top: "3px",
+                            left: "3px",
+                            background: "var(--acid)",
+                            color: "#171711",
+                            border: "1.5px solid #171711",
+                            borderRadius: "99px",
+                            fontSize: "9px",
+                            fontWeight: 900,
+                            fontFamily: "Manrope, sans-serif",
+                            padding: "0px 4px",
+                            lineHeight: 1.35,
+                          }}
+                        >
+                          #{selectedRank + 1}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+
+                <button
+                  type="button"
+                  onClick={() => customPhotoInputRef.current?.click()}
+                  title="อัปโหลดรูปภาพเพิ่มเติมจากเครื่องเพื่อใส่ในการ์ด"
+                  style={{
+                    width: "52px",
+                    height: "64px",
+                    borderRadius: "10px",
+                    border: "1.5px dashed rgba(217, 255, 67, 0.7)",
+                    background: "rgba(217, 255, 67, 0.12)",
+                    color: "var(--acid)",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "3px",
+                    flexShrink: 0,
+                    cursor: "pointer",
+                    fontSize: "9px",
+                    fontWeight: 800,
+                    padding: "2px",
+                  }}
+                >
+                  <ImagePlus className="w-4 h-4" />
+                  <span>+เพิ่มรูป</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "auto" }}>
+              <button
+                type="button"
+                onClick={downloadCard}
+                disabled={isExporting}
+                style={{
+                  width: "100%",
+                  background: "var(--acid)",
+                  color: "var(--ink)",
+                  border: "2px solid var(--ink)",
+                  borderRadius: "14px",
+                  padding: "13px 16px",
+                  fontWeight: 800,
+                  fontSize: "14px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                  boxShadow: "3px 3px 0 var(--ink)",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <Download className="w-4 h-4 text-ink" />
+                <span>{isExporting ? "กำลังสร้างภาพ..." : "บันทึกภาพ PNG (1080x1920)"}</span>
+              </button>
+
+              <div style={{ display: "flex", gap: "8px" }}>
+                <button
+                  type="button"
+                  onClick={copyCardImage}
+                  disabled={isExporting}
+                  style={{
+                    flex: 1,
+                    background: "var(--white)",
+                    color: "var(--ink)",
+                    border: "2px solid var(--ink)",
+                    borderRadius: "12px",
+                    padding: "10px 14px",
+                    fontWeight: 800,
+                    fontSize: "12px",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
+                    boxShadow: "2px 2px 0 var(--ink)",
+                    transition: "all 0.15s ease",
+                  }}
+                  title="คัดลอกรูปภาพลง Clipboard เพื่อนำไปแปะใน Story ทันที"
+                >
+                  {copiedImage ? <Check className="w-3.5 h-3.5 text-green-700" /> : <Copy className="w-3.5 h-3.5 text-ink" />}
+                  <span>{copiedImage ? "คัดลอกแล้ว!" : "คัดลอกรูป"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onClose}
+                  style={{
+                    flex: 1,
+                    background: "rgba(255,255,255,0.14)",
+                    color: "white",
+                    border: "1.5px solid rgba(255,255,255,0.35)",
+                    borderRadius: "12px",
+                    padding: "10px 14px",
+                    fontWeight: 700,
+                    fontSize: "12px",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  ปิดหน้าต่าง
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
