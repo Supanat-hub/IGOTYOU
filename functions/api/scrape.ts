@@ -118,7 +118,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
     return new Response(
       JSON.stringify({
         error: "CONFIGURATION_ERROR",
-        message: "ระบบ Scraper ยังไม่ได้ตั้งค่าความปลอดภัย (SCRAPER_API_SECRET) กรุณาสลับไปใช้วิธีอัปโหลดภาพหน้าจอ",
+        message: "ระบบยังไม่ได้ตั้งค่าความปลอดภัย (SCRAPER_API_SECRET) กรุณาสลับไปใช้วิธีอัปโหลดภาพหน้าจอ",
       }),
       { status: 500, headers: securityHeaders }
     );
@@ -167,7 +167,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       (!responseData.data?.posts || responseData.data.posts.length === 0)
     ) {
       responseData.status = "PRIVATE_ACCOUNT";
-      responseData.message = "🔒 บัญชีนี้ตั้งค่าเป็นส่วนตัว (Private Account) ทำให้ระบบไม่สามารถเข้าถึงรูปภาพได้";
+      responseData.message = "บัญชีนี้ตั้งค่าเป็นส่วนตัว (Private Account) ไม่สามารถเข้าถึงรูปภาพได้";
       if (responseData.data) {
         responseData.data.isPrivate = true;
       }
@@ -177,7 +177,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       JSON.stringify(
         responseData || {
           error: "INVALID_RESPONSE",
-          message: "เซิร์ฟเวอร์ Scraper ตอบสนองด้วยข้อมูลที่ไม่ถูกต้อง",
+          message: "เซิร์ฟเวอร์ ตอบสนองด้วยข้อมูลที่ไม่ถูกต้อง",
         }
       ),
       {
@@ -191,8 +191,8 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       JSON.stringify({
         error: isTimeout ? "SCRAPER_TIMEOUT" : "SCRAPER_UNAVAILABLE",
         message: isTimeout
-          ? "เซิร์ฟเวอร์ Scraper ใช้เวลาประมวลผลนานเกินไป กรุณาลองใหม่อีกครั้งหรือสลับไปใช้วิธีอัปโหลดภาพหน้าจอ"
-          : "ไม่สามารถเชื่อมต่อไปยังเซิร์ฟเวอร์ Scraper ได้ในขณะนี้ กรุณาสลับไปใช้วิธีอัปโหลดภาพหน้าจอ",
+          ? "เซิร์ฟเวอร์ใช้เวลาประมวลผลนานเกินไป กรุณาลองใหม่อีกครั้งหรือสลับไปใช้วิธีอัปโหลดภาพหน้าจอ"
+          : "ไม่สามารถเชื่อมต่อไปยังเซิร์ฟเวอร์ได้ในขณะนี้ กรุณาสลับไปใช้วิธีอัปโหลดภาพหน้าจอ",
       }),
       { status: 502, headers: securityHeaders }
     );

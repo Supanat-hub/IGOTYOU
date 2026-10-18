@@ -75,7 +75,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
   if (!checkRateLimit(clientIp)) {
     return new Response(
       JSON.stringify({
-        error: "คุณส่งคำขอถี่เกินไป เพื่อความปลอดภัย กรุณารอสักครู่แล้วลองใหม่อีกครั้ง",
+        error: "คุณส่งคำขอถี่เกินไป กรุณารอสักครู่แล้วลองใหม่อีกครั้ง",
       }),
       { status: 429, headers: securityHeaders }
     );

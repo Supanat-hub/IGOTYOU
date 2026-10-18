@@ -1,192 +1,545 @@
-import React from "react";
-import { ArrowLeft, ArrowRight, Palette, LayoutGrid, Scale, Sparkles, ShieldCheck, Camera } from "lucide-react";
+import React, { useState } from "react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Palette,
+  LayoutGrid,
+  Scale,
+  Sparkles,
+  ShieldCheck,
+  Camera,
+  CheckCircle2,
+  HelpCircle,
+  ChevronDown,
+  Lock,
+  RefreshCw,
+  Cpu,
+  EyeOff,
+  Globe,
+  Server,
+  UserCheck,
+  HeartHandshake,
+  AlertCircle,
+} from "lucide-react";
 
 interface HowItWorksPageProps {
   onBackToHome: () => void;
 }
 
 export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
+
+  const toggleFaq = (idx: number) => {
+    setOpenFaqIndex((prev) => (prev === idx ? null : idx));
+  };
+
+  const faqs = [
+    {
+      q: "IGOTYOU เข้าถึงรหัสผ่านหรือแชทส่วนตัวของฉันได้หรือไม่?",
+      a: "ไม่ได้เด็ดขาด 100% ระบบของเราไม่มีการขอรหัสผ่าน, ไม่มีการขอ 2FA หรือการเชื่อมต่อ OAuth Token ใดๆ ทั้งสิ้น และไม่มีระบบสมาชิก บัญชีของคุณจึงปลอดภัย 100% ปราศจากความเสี่ยงด้านความปลอดภัย",
+    },
+    {
+      q: "หากบัญชีของฉันเป็นส่วนตัว (Private Account) จะใช้งานได้อย่างไร?",
+      a: "สามารถใช้งานได้เต็มรูปแบบ 100% โดยการสลับไปที่แท็บ 'อัปโหลดภาพหน้าจอ' เพียงแคปหน้าจอโปรไฟล์ของคุณแล้วนำมาวาง ระบบจะใช้โมเดล YOLO และ Canvas ภายในเบราว์เซอร์ของคุณเพื่อคัดแยกรูปและวิเคราะห์ โดยไม่ต้องเปิดบัญชีเป็นสาธารณะ",
+    },
+    {
+      q: "รูปภาพในฟีดถูกคัดเลือกเป็นอันดับ #1–#3 บนการ์ด TOP CONTENT อย่างไร?",
+      a: "ระบบใช้การประเมิน 2 ชั้น: ชั้นแรกวัดคุณภาพพิกเซลรายใบ (Per-Tile Aesthetic Score: มิติแสงเงา ความคมชัด และความกลมกลืนกับ Color DNA) และชั้นที่สองผสานมุมมององค์ประกอบภาพจาก Gemini Vision นอกจากนี้คุณยังมีอิสระในการกดสลับรูป หรือกด '+เพิ่มรูป' จากเครื่องเพื่อปรับแต่งการ์ดได้ตามใจชอบ 100%",
+    },
+    {
+      q: "รูปภาพและข้อมูลของฉันจะถูกนำไปฝึกฝน (Train) โมเดล AI ต่อหรือไม่?",
+      a: "ไม่มีการนำไปเทรนเด็ดขาด เราเชื่อมต่อกับ Google Gemini API ภายใต้นโยบายระดับ Enterprise & Developer Service ซึ่งมีสัญญาคุ้มครองข้อมูล Zero Data Retention ข้อมูลที่ส่งไปจะถูกประมวลผลแบบชั่วคราวในหน่วยความจำและทำลายทิ้งทันทีเมื่อส่งผลลัพธ์เสร็จสิ้น",
+    },
+    {
+      q: "ทำไมคะแนน Aesthetic Score ของฉันจึงไม่เท่ากับเพื่อน?",
+      a: "คะแนนคำนวณจากคุณสมบัติทางศิลปะจริง 3 ด้าน: ความกลมกลืนของสี (40%), จังหวะการจัดวางกริด (35%), และมิติความลึกของแสงเงา (25%) โดยมีระบบชดเชยค่าความอิ่มตัวสี (Saturation Fairness) เพื่อให้ภาพโทนสีสดใสมีชีวิตชีวาได้รับคะแนนที่ยุติธรรมเทียบเท่าฟีดมินิมอลแบบตะวันตก",
+    },
+    {
+      q: "เกิดอะไรขึ้นหากบริการ AI ภายนอกขัดข้องหรือไม่สามารถเชื่อมต่อได้?",
+      a: "ระบบจะเปิดใช้งาน 'Honest Degraded Mode' โดยอัตโนมัติ ซึ่งจะประมวลผลคะแนนจากข้อมูลพิกเซลบน Canvas ในเครื่องของคุณ 100% เพื่อให้คุณยังคงได้รับการ์ด Wrapped ที่มีข้อมูลสถิติและสีจริง โดยไม่มีการสร้างข้อมูลหรือคะแนนเท็จขึ้นมาหลอกผู้ใช้",
+    },
+  ];
+
   return (
     <section className="shell" style={{ paddingBlock: "50px 90px" }}>
       {/* Back button */}
       <div className="mb-7">
         <button
           onClick={onBackToHome}
-          className="bg-white border-1.5 border-ink rounded-full px-4 py-2 text-xs font-bold cursor-pointer inline-flex items-center gap-1.5 hover:bg-paper transition-colors"
+          className="bg-white border-1.5 border-ink rounded-full px-4 py-2 text-xs font-bold cursor-pointer inline-flex items-center gap-1.5 hover:bg-paper transition-all hover:-translate-y-0.5 shadow-sm"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>กลับหน้าแรก</span>
         </button>
       </div>
 
-      {/* Header */}
-      <div className="max-w-[780px] mb-12">
-        <span className="font-['Manrope'] font-bold text-xs tracking-wider text-purple uppercase">
-          TRANSPARENCY & METHODOLOGY
-        </span>
-        <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight leading-tight my-3 text-ink">
-          เบื้องหลังการทำงาน &<br />ความโปร่งใสของ IGOTYOU
+      {/* Header & Trust Manifesto */}
+      <div className="max-w-[840px] mb-12">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple/10 border border-purple/30 mb-3.5">
+          <Sparkles className="w-3.5 h-3.5 text-purple" />
+          <span className="font-['Manrope'] font-bold text-xs tracking-wider text-purple uppercase">
+            INTERNATIONAL TRANSPARENCY & METHODOLOGY
+          </span>
+        </div>
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight leading-tight my-3 text-ink">
+          เบื้องหลังการทำงาน &<br className="hidden sm:inline" />ความโปร่งใสตามมาตรฐานสากล
         </h1>
-        <p className="text-lg text-muted leading-relaxed m-0">
-          เราเชื่อว่าระบบ AI ที่ดีต้องอธิบายที่มาที่ไปได้ (Explainable AI) ไม่ตัดสินผู้ใช้จากรูปลักษณ์ภายนอก และเคารพความเป็นส่วนตัวของผู้ใช้ 100%
+        <p className="text-base sm:text-lg text-muted leading-relaxed m-0">
+          เรายึดมั่นในหลักการ <strong>Explainable AI (XAI)</strong> ตามกรอบมาตรฐานสากล NIST AI RMF และ ISO/IEC 42001
+          ระบบต้องอธิบายที่มาของผลลัพธ์ได้อย่างชัดเจน ไม่ตัดสินอัตลักษณ์ส่วนบุคคล และเคารพความเป็นส่วนตัวของผู้ใช้ 100%
         </p>
+
+        {/* 4 Quick Trust Badges */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 mt-6">
+          <div className="bg-white border-1.5 border-ink rounded-xl p-3 text-center shadow-[3px_3px_0_var(--ink)]">
+            <ShieldCheck className="w-5 h-5 text-green mx-auto mb-1.5" />
+            <div className="font-bold text-xs text-ink">Zero Retention</div>
+            <div className="text-[10px] text-muted">ไม่บันทึกภาพลงฐานข้อมูล</div>
+          </div>
+          <div className="bg-white border-1.5 border-ink rounded-xl p-3 text-center shadow-[3px_3px_0_var(--ink)]">
+            <EyeOff className="w-5 h-5 text-purple mx-auto mb-1.5" />
+            <div className="font-bold text-xs text-ink">No Biometrics</div>
+            <div className="text-[10px] text-muted">ไม่ประเมินใบหน้าหรือบุคคล</div>
+          </div>
+          <div className="bg-white border-1.5 border-ink rounded-xl p-3 text-center shadow-[3px_3px_0_var(--ink)]">
+            <Cpu className="w-5 h-5 text-orange mx-auto mb-1.5" />
+            <div className="font-bold text-xs text-ink">Client-Side First</div>
+            <div className="text-[10px] text-muted">สกัดสีบนเบราว์เซอร์คุณ</div>
+          </div>
+          <div className="bg-white border-1.5 border-ink rounded-xl p-3 text-center shadow-[3px_3px_0_var(--ink)]">
+            <Lock className="w-5 h-5 text-acid-text mx-auto mb-1.5" />
+            <div className="font-bold text-xs text-ink">No Login Needed</div>
+            <div className="text-[10px] text-muted">ไม่ต้องกรอกรหัสผ่าน</div>
+          </div>
+        </div>
       </div>
 
-      {/* Main Pillars Grid */}
-      <div className="grid gap-7 max-w-[900px]">
-        {/* Pillar 1: Scoring Algorithm */}
-        <div className="bg-white border-2 border-ink rounded-[20px] p-5 sm:p-8 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
+      {/* Main Container */}
+      <div className="grid gap-8 max-w-[920px]">
+        {/* Section 1: Dual Ingestion Architecture */}
+        <div className="bg-white border-2 border-ink rounded-[22px] p-5 sm:p-8 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
           <div className="flex items-center gap-3 mb-3.5">
-            <span className="w-8 h-8 rounded-full bg-acid border-1.5 border-ink grid place-items-center font-extrabold text-sm text-ink">
+            <span className="w-8 h-8 rounded-full bg-acid border-1.5 border-ink grid place-items-center font-extrabold text-sm text-ink shrink-0">
               01
             </span>
-            <h2 className="m-0 text-xl font-bold text-ink">ระบบประเมินคะแนน Aesthetic อย่างไร?</h2>
+            <div>
+              <span className="text-[11px] font-bold tracking-wider uppercase text-purple block font-['Manrope']">
+                DUAL INGESTION ARCHITECTURE
+              </span>
+              <h2 className="m-0 text-xl font-bold text-ink">สถาปัตยกรรม 2 รูปแบบในการรับข้อมูล</h2>
+            </div>
           </div>
-          <p className="text-muted text-sm leading-relaxed mb-5">
-            ระบบไม่ได้เดามั่วเป็น Black-box แต่ประเมินจากสัดส่วนคุณสมบัติทางศิลปะของภาพถ่ายจริง (Visual Curation Metrics):
+          <p className="text-muted text-sm leading-relaxed mb-6">
+            เพื่อความยืดหยุ่นและความปลอดภัยสูงสุด ระบบรองรับ 2 ช่องทางในการประมวลผลข้อมูลโปรไฟล์ โดยผู้ใช้เป็นผู้เลือกเองอย่างโปร่งใส:
           </p>
 
-          <div className="grid gap-3.5">
-            <div className="border-1.5 border-ink rounded-2xl p-4 bg-paper">
-              <div className="flex justify-between items-center font-bold text-sm mb-1.5">
-                <span className="inline-flex items-center gap-2 flex-wrap">
-                  <Palette className="w-4 h-4 text-purple" />
-                  <span>1. Color Harmony & Palette Cohesion</span>
-                </span>
-                <span className="text-purple font-extrabold">40%</span>
+          <div className="grid sm:grid-cols-2 gap-4">
+            {/* Pipeline A: Direct Scraper */}
+            <div className="border-2 border-ink rounded-2xl p-5 bg-paper flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-2.5">
+                  <span className="inline-flex items-center gap-1.5 font-extrabold text-sm text-ink">
+                    <Globe className="w-4 h-4 text-purple" />
+                    <span>วิธีที่ 1: พิมพ์ชื่อบัญชี IG</span>
+                  </span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple/15 text-purple border border-purple/30">
+                    Direct Inspection
+                  </span>
+                </div>
+                <p className="text-xs text-muted leading-relaxed mb-3">
+                  สำหรับบัญชีสาธารณะ (Public) ระบบจะดึงข้อมูลโครงสร้าง JSON และสถิติจริง 100% จาก Instagram โดยตรง
+                </p>
+                <ul className="text-xs text-ink/80 space-y-1.5 pl-4 list-disc mb-4">
+                  <li><strong>ตัวเลขสถิติแม่นยำ 100%:</strong> ผู้ติดตาม, กำลังติดตาม และจำนวนโพสต์ไม่คลาดเคลื่อน</li>
+                  <li><strong>รูปภาพความละเอียดสูง:</strong> สกัด Avatar HD และโพสต์ล่าสุด 9–12 รูปภาพ</li>
+                  <li><strong>ตรวจจับบัญชี Private อัตโนมัติ:</strong> หากเป็นบัญชีส่วนตัว ระบบจะแจ้งเตือนและแนะนำให้สลับไปใช้วิธีอัปโหลดภาพหน้าจอทันที ไม่มีการฝ่าฝืนสิทธิ์</li>
+                </ul>
               </div>
-              <div className="h-2 bg-[#e0dcd2] rounded-full overflow-hidden">
-                <div className="w-[40%] h-full bg-purple" />
+              <div className="pt-3 border-t border-ink/15 text-[11px] text-muted flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-green shrink-0" />
+                <span>ประมวลผลแบบ In-Memory และทำลายทันที</span>
               </div>
-              <p className="mt-2 text-xs text-muted leading-relaxed">
-                คำนวณจากความเข้ากันของกลุ่มเฉดสีบนภาพถ่ายจริงด้วย Canvas ในระดับพิกเซล (Hue Dispersion & Saturation Consistency) เพื่อดูว่าฟีดของคุณคุมโทนได้ละมุนและมีทิศทางสีที่กลมกลืนกันเพียงใด
-              </p>
             </div>
 
-            <div className="border-1.5 border-ink rounded-2xl p-4 bg-paper">
-              <div className="flex justify-between items-center font-bold text-sm mb-1.5">
-                <span className="inline-flex items-center gap-2 flex-wrap">
-                  <LayoutGrid className="w-4 h-4 text-green" />
-                  <span>2. Composition & Visual Rhythm</span>
-                </span>
-                <span className="text-green font-extrabold">35%</span>
+            {/* Pipeline B: On-Device Vision */}
+            <div className="border-2 border-ink rounded-2xl p-5 bg-paper flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-2.5">
+                  <span className="inline-flex items-center gap-1.5 font-extrabold text-sm text-ink">
+                    <Camera className="w-4 h-4 text-green" />
+                    <span>วิธีที่ 2: อัปโหลดภาพหน้าจอ</span>
+                  </span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green/15 text-green border border-green/30">
+                    On-Device Vision
+                  </span>
+                </div>
+                <p className="text-xs text-muted leading-relaxed mb-3">
+                  สำหรับทุกบัญชี (รองรับบัญชี Private 100%) หรือผู้ใช้ที่ไม่ต้องการเปิดเผยชื่อบัญชีในระบบเน็ตเวิร์ก
+                </p>
+                <ul className="text-xs text-ink/80 space-y-1.5 pl-4 list-disc mb-4">
+                  <li><strong>ตรวจจับด้วย YOLO บนเบราว์เซอร์:</strong> รันโมเดล AI ผ่าน ONNX Runtime Web ในเครื่องคุณ 100%</li>
+                  <li><strong>ตัดขอบภาพอัตโนมัติ:</strong> ตัดแยกเฉพาะภาพโพสต์และ Avatar ออกจาก UI ของ Instagram</li>
+                  <li><strong>ปลอดภัยระดับเครื่องลูกข่าย:</strong> สกัดพิกเซลสีและวัดแสงเงาบน Browser Canvas โดยตรง</li>
+                </ul>
               </div>
-              <div className="h-2 bg-[#e0dcd2] rounded-full overflow-hidden">
-                <div className="w-[35%] h-full bg-green" />
+              <div className="pt-3 border-t border-ink/15 text-[11px] text-muted flex items-center gap-1.5">
+                <Lock className="w-3.5 h-3.5 text-purple shrink-0" />
+                <span>ข้อมูลและรูปภาพอยู่บนเครื่องของคุณ 100%</span>
               </div>
-              <p className="mt-2 text-xs text-muted leading-relaxed">
-                AI มัลติโมดอลประเมินจังหวะการจัดวางภาพบนตารางกริด IG (Visual Rhythm) ว่ามีความหลากหลาย น่าสนใจ และมีความสมดุลระหว่างภาพบุคคล ทิวทัศน์ และวัตถุ
-              </p>
-            </div>
-
-            <div className="border-1.5 border-ink rounded-2xl p-4 bg-paper">
-              <div className="flex justify-between items-center font-bold text-sm mb-1.5">
-                <span className="inline-flex items-center gap-2 flex-wrap">
-                  <Scale className="w-4 h-4 text-orange" />
-                  <span>3. Contrast & Luminance Range</span>
-                </span>
-                <span className="text-orange font-extrabold">25%</span>
-              </div>
-              <div className="h-2 bg-[#e0dcd2] rounded-full overflow-hidden">
-                <div className="w-[25%] h-full bg-orange" />
-              </div>
-              <p className="mt-2 text-xs text-muted leading-relaxed">
-                วัดค่าเบี่ยงเบนมาตรฐานของความสว่าง (Luminance Standard Deviation) ในระดับพิกเซล เพื่อประเมินมิติและคอนทราสต์ของภาพ ให้มั่นใจว่าภาพมีมิติโดดเด่น คมชัดสมบูรณ์
-              </p>
             </div>
           </div>
         </div>
 
-        {/* Pillar 2: AI Top Content Ranking & Card Customization */}
-        <div className="bg-white border-2 border-ink rounded-[20px] p-5 sm:p-8 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
+        {/* Section 2: Scientific Scoring Metrics */}
+        <div className="bg-white border-2 border-ink rounded-[22px] p-5 sm:p-8 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
           <div className="flex items-center gap-3 mb-3.5">
-            <span className="w-8 h-8 rounded-full bg-green text-white border-1.5 border-ink grid place-items-center font-extrabold text-sm">
+            <span className="w-8 h-8 rounded-full bg-green text-white border-1.5 border-ink grid place-items-center font-extrabold text-sm shrink-0">
               02
             </span>
-            <h2 className="m-0 text-xl font-bold text-ink">
-              การคัดเลือกรูป TOP CONTENT & อิสระในการปรับแต่ง
-            </h2>
+            <div>
+              <span className="text-[11px] font-bold tracking-wider uppercase text-green block font-['Manrope']">
+                SCIENTIFIC EVALUATION METRICS
+              </span>
+              <h2 className="m-0 text-xl font-bold text-ink">ระบบประเมินคะแนน Aesthetic อย่างไร?</h2>
+            </div>
+          </div>
+          <p className="text-muted text-sm leading-relaxed mb-5">
+            เราไม่ใช้โมเดลกล่องดำ (Black-Box) แต่คำนวณจากสัดส่วนคุณสมบัติทางศิลปะและวิทยาศาสตร์ของภาพถ่ายจริง (Visual Curation Metrics):
+          </p>
+
+          <div className="grid gap-3.5">
+            {/* Metric 1 */}
+            <div className="border-1.5 border-ink rounded-2xl p-4.5 bg-paper">
+              <div className="flex justify-between items-center font-bold text-sm mb-1.5">
+                <span className="inline-flex items-center gap-2 flex-wrap">
+                  <Palette className="w-4 h-4 text-purple" />
+                  <span>1. Color Harmony & Palette Cohesion (ความกลมกลืนของสี)</span>
+                </span>
+                <span className="text-purple font-extrabold text-base">40%</span>
+              </div>
+              <div className="h-2 bg-[#e0dcd2] rounded-full overflow-hidden mb-2">
+                <div className="w-[40%] h-full bg-purple" />
+              </div>
+              <p className="m-0 text-xs text-muted leading-relaxed">
+                คำนวณจากความเข้ากันของกลุ่มเฉดสีบนภาพถ่ายจริงด้วย Browser Canvas ในระดับพิกเซล วัดการกระจายตัวของฮิว (Hue Dispersion) และความคงเส้นคงวาของความอิ่มสี (Saturation Consistency) เพื่อประเมินว่าฟีดของคุณคุมโทนได้สมดุลเพียงใด
+              </p>
+            </div>
+
+            {/* Metric 2 */}
+            <div className="border-1.5 border-ink rounded-2xl p-4.5 bg-paper">
+              <div className="flex justify-between items-center font-bold text-sm mb-1.5">
+                <span className="inline-flex items-center gap-2 flex-wrap">
+                  <LayoutGrid className="w-4 h-4 text-green" />
+                  <span>2. Composition & Visual Rhythm (จังหวะการจัดวางกริด)</span>
+                </span>
+                <span className="text-green font-extrabold text-base">35%</span>
+              </div>
+              <div className="h-2 bg-[#e0dcd2] rounded-full overflow-hidden mb-2">
+                <div className="w-[35%] h-full bg-green" />
+              </div>
+              <p className="m-0 text-xs text-muted leading-relaxed">
+                ประเมินจังหวะการจัดวางภาพบนตาราง 3×3 (Visual Rhythm) ตรวจสอบความสมดุลระหว่างภาพบุคคล (Portrait), ทิวทัศน์ (Landscape) และวัตถุ (Details) เพื่อให้ฟีดดูมีมิติน่าติดตาม ไม่ซ้ำซากจำเจ
+              </p>
+            </div>
+
+            {/* Metric 3 */}
+            <div className="border-1.5 border-ink rounded-2xl p-4.5 bg-paper">
+              <div className="flex justify-between items-center font-bold text-sm mb-1.5">
+                <span className="inline-flex items-center gap-2 flex-wrap">
+                  <Scale className="w-4 h-4 text-orange" />
+                  <span>3. Contrast & Luminance Dynamic Range (มิติแสงและเงา)</span>
+                </span>
+                <span className="text-orange font-extrabold text-base">25%</span>
+              </div>
+              <div className="h-2 bg-[#e0dcd2] rounded-full overflow-hidden mb-2">
+                <div className="w-[25%] h-full bg-orange" />
+              </div>
+              <p className="m-0 text-xs text-muted leading-relaxed">
+                วัดค่าเบี่ยงเบนมาตรฐานของความสว่าง (Luminance Standard Deviation) ในระดับพิกเซลจริง เพื่อยืนยันว่าภาพถ่ายมี Dynamic Range ที่มีมิติ คมชัดสมบูรณ์ ไม่แบนหรือขาวซีดจนขาดรายละเอียด
+              </p>
+            </div>
+          </div>
+
+          {/* Graceful Degradation Note */}
+          <div className="mt-4 p-3.5 rounded-xl bg-purple/5 border border-purple/20 text-xs text-ink/80 flex items-start gap-2.5">
+            <RefreshCw className="w-4 h-4 text-purple shrink-0 mt-0.5" />
+            <div className="leading-relaxed">
+              <strong>ความโปร่งใสระบบสำรอง (Honest Degradation):</strong> หากเซิร์ฟเวอร์ AI ภายนอกขัดข้อง ระบบจะปรับเข้าสู่โหมดคำนวณทางคณิตศาสตร์จากพิกเซล Canvas ในเครื่องของคุณโดยอัตโนมัติ โดยไม่มีการแต่งเติมหรือสุ่มคะแนนเท็จขึ้นมาหลอกผู้ใช้
+            </div>
+          </div>
+        </div>
+
+        {/* Section 3: TOP CONTENT & Human-in-the-Loop */}
+        <div className="bg-white border-2 border-ink rounded-[22px] p-5 sm:p-8 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
+          <div className="flex items-center gap-3 mb-3.5">
+            <span className="w-8 h-8 rounded-full bg-purple text-white border-1.5 border-ink grid place-items-center font-extrabold text-sm shrink-0">
+              03
+            </span>
+            <div>
+              <span className="text-[11px] font-bold tracking-wider uppercase text-purple block font-['Manrope']">
+                HUMAN-IN-THE-LOOP & USER AGENCY
+              </span>
+              <h2 className="m-0 text-xl font-bold text-ink">การคัดเลือกรูป TOP CONTENT & สิทธิการควบคุมของผู้ใช้</h2>
+            </div>
           </div>
           <div className="grid gap-4 text-sm leading-relaxed text-muted">
             <p className="m-0">
-              แทนที่จะหยิบเพียง 3 รูปแรกสุดบนตารางฟีดแบบเรียงตามลำดับ ระบบจะคัดสรรและเปิดโอกาสให้คุณปรับแต่งได้ตามใจ:
+              ตามหลักการ <strong>Human-in-the-Loop</strong> ผู้ใช้ต้องมีอำนาจในการควบคุมผลลัพธ์ของตัวเองเสมอ ระบบจึงออกแบบให้ AI ทำหน้าที่เป็นผู้ช่วยคัดสรรเบื้องต้น และให้คุณเป็นผู้ตัดสินใจขั้นสุดท้าย:
             </p>
+
             <div className="grid sm:grid-cols-2 gap-3.5">
               <div className="border-1.5 border-ink rounded-2xl p-4 bg-paper">
                 <div className="font-extrabold text-ink text-sm flex items-center gap-1.5 mb-1.5">
                   <Sparkles className="w-4 h-4 text-purple shrink-0" />
-                  <span>1. AI & Pixel Aesthetic Ranking</span>
+                  <span>AI & Per-Tile Aesthetic Scoring</span>
                 </div>
                 <p className="m-0 text-xs text-muted leading-relaxed">
-                  ผสานการประเมินองค์ประกอบภาพจาก <strong>Gemini Vision</strong> เข้ากับค่าคุณภาพพิกเซลรายใบ (<strong>Per-Tile Aesthetic Score</strong>: มิติแสงเงา ความคมชัดตรงจุดโฟกัส และความเข้ากันกับพาเลตต์ Color DNA) เพื่อจัดอันดับรูปที่เด่นที่สุดขึ้นเป็น <strong>#1, #2, #3</strong> โดยอัตโนมัติ
+                  ผสานการวิเคราะห์องค์ประกอบภาพจาก <strong>Gemini Vision</strong> เข้ากับคะแนนพิกเซลรายใบ (Per-Tile Aesthetic Score: มิติแสงเงา ความคมชัด และความเข้ากันกับ Color DNA) จัดอันดับรูปที่โดดเด่นที่สุดขึ้นเป็น <strong>#1, #2, #3</strong> โดยอัตโนมัติ
                 </p>
               </div>
+
               <div className="border-1.5 border-ink rounded-2xl p-4 bg-paper">
                 <div className="font-extrabold text-ink text-sm flex items-center gap-1.5 mb-1.5">
-                  <LayoutGrid className="w-4 h-4 text-green shrink-0" />
-                  <span>2. เลือกสลับและเพิ่มรูปในการ์ดได้เอง 100%</span>
+                  <UserCheck className="w-4 h-4 text-green shrink-0" />
+                  <span>ปรับแต่ง สลับรูป และเพิ่มรูปได้อิสระ 100%</span>
                 </div>
                 <p className="m-0 text-xs text-muted leading-relaxed">
-                  คุณมีอิสระเต็มที่ในการปรับแต่งรูปที่จะนำไปโชว์บนการ์ด IG Story (9:16) สามารถแตะสลับลำดับรูป <strong>#1–#3</strong> ได้ทั้งบนการ์ด <strong>TOP CONTENT</strong> และในหน้าต่างตัวอย่างการ์ด หรือกด <strong>+เพิ่มรูป</strong> เพื่ออัปโหลดรูปโปรดจากเครื่องได้ทันที
+                  คุณสามารถแตะสลับลำดับรูป <strong>#1–#3</strong> ได้อย่างอิสระบนการ์ดผลลัพธ์ หรือกดปุ่ม <strong>+เพิ่มรูปภาพ</strong> จากอุปกรณ์ของคุณโดยตรง เพื่อให้มั่นใจว่ารูปที่ปรากฏบนการ์ด Story สวยถูกใจคุณที่สุดก่อนส่งออก
                 </p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Pillar 3: Aesthetic Diversity & Non-Bias */}
-        <div className="bg-white border-2 border-ink rounded-[20px] p-5 sm:p-8 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
+        {/* Section 4: Ethical AI & Non-Biometric Assessment */}
+        <div className="bg-white border-2 border-ink rounded-[22px] p-5 sm:p-8 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
           <div className="flex items-center gap-3 mb-3.5">
-            <span className="w-8 h-8 rounded-full bg-purple text-white border-1.5 border-ink grid place-items-center font-extrabold text-sm">
-              03
+            <span className="w-8 h-8 rounded-full bg-orange text-white border-1.5 border-ink grid place-items-center font-extrabold text-sm shrink-0">
+              04
             </span>
-            <h2 className="m-0 text-xl font-bold text-ink">ความหลากหลายของภาพ & การลดอคติ (Fairness)</h2>
+            <div>
+              <span className="text-[11px] font-bold tracking-wider uppercase text-orange block font-['Manrope']">
+                ETHICAL AI & RESPONSIBLE COMPUTING
+              </span>
+              <h2 className="m-0 text-xl font-bold text-ink">จริยธรรม AI & การลดอคติเชิงอัลกอริทึม (Fairness)</h2>
+            </div>
           </div>
+
           <div className="grid gap-4 text-sm leading-relaxed text-muted">
-            <p className="m-0">
-              โมเดลคอมพิวเตอร์วิชันและ AI ส่วนใหญ่ในโลกมักถูกเทรนด้วยภาพถ่ายแบบตะวันตกที่เน้นความขาว มินิมอล และโทนสี Muted ซึ่งอาจมองข้ามเสน่ห์ของภาพถ่ายที่มีสีสันสดใสแบบวัฒนธรรมเอเชีย (เช่น สตรีทฟู้ด ตลาดกลางคืน คาเฟ่สดใส หรืองานเทศกาล)
-            </p>
-            <div className="bg-[#f8f6f0] border-l-4 border-acid p-3.5 text-ink font-medium">
-              <strong className="font-bold">การปรับสมดุลของเรา:</strong> ระบบของ IGOTYOU มีระบบชดเชยค่าความอิ่มตัวของสี (Saturation Fairness) เพื่อให้ฟีดสไตล์จัดจ้าน มีชีวิตชีวา ได้รับคะแนนที่ยุติธรรมเทียบเท่าฟีดสายมินิมอลคุมโทนเรียบ
+            <div className="border-1.5 border-ink rounded-2xl p-4.5 bg-paper">
+              <div className="font-extrabold text-ink text-sm flex items-center gap-2 mb-2">
+                <EyeOff className="w-4 h-4 text-purple" />
+                <span>พันธสัญญาไม่ประเมินบุคคล (No Biometric / Facial Profiling)</span>
+              </div>
+              <p className="m-0 text-xs text-muted leading-relaxed">
+                ระบบของ IGOTYOU <strong>ไม่มีการสแกนใบหน้า ไม่ใช้เทคโนโลยีระบุตัวตนบุคคล และไม่ประเมินเพศ อายุ สีผิว รูปร่าง หรือชาติพันธุ์</strong> เราประเมินเฉพาะคุณสมบัติทางศิลปะของภาพถ่าย (ระดับแสงเงา ความสอดคล้องของเฉดสี และองค์ประกอบทางเรขาคณิต) เท่านั้น
+              </p>
+            </div>
+
+            <div className="border-1.5 border-ink rounded-2xl p-4.5 bg-paper">
+              <div className="font-extrabold text-ink text-sm flex items-center gap-2 mb-2">
+                <Palette className="w-4 h-4 text-green" />
+                <span>การชดเชยค่าความอิ่มตัวสี (Saturation & Diversity Fairness)</span>
+              </div>
+              <p className="m-0 text-xs text-muted leading-relaxed">
+                โมเดล AI ส่วนใหญ่ในโลกมักถูกเทรนด้วยภาพถ่ายสไตล์ตะวันตกที่เน้นความขาวมินิมอลและสีเรียบ (Muted Tones) เราจึงพัฒนาฟังก์ชันชดเชยค่า Saturation เพื่อให้ภาพถ่ายที่มีสีสันสดใสแบบวัฒนธรรมเอเชีย (สตรีทฟู้ด คาเฟ่ ตลาดกลางคืน หรืองานเทศกาล) ได้รับคะแนนที่เป็นธรรมเทียบเท่าสไตล์มินิมอล
+              </p>
+            </div>
+
+            <div className="border-1.5 border-ink rounded-2xl p-4.5 bg-paper">
+              <div className="font-extrabold text-ink text-sm flex items-center gap-2 mb-2">
+                <HeartHandshake className="w-4 h-4 text-orange" />
+                <span>จิตวิทยาเชิงบวกและการไม่กลั่นแกล้ง (Constructive Satire)</span>
+              </div>
+              <p className="m-0 text-xs text-muted leading-relaxed">
+                ระบบคำวิจารณ์ ไบโอรีมิกซ์ และฉายา ถูกออกแบบด้วยแนวคิด Positive Psychology เพื่อสร้างรอยยิ้ม ความสนุกสนาน และมุมมองใหม่ๆ ในการดูแลฟีดของตนเอง ไม่สนับสนุนการนำคะแนนไปเปรียบเทียบเพื่อตัดสินหรือกลั่นแกล้งผู้อื่น
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Pillar 4: Privacy First */}
-        <div className="bg-white border-2 border-ink rounded-[20px] p-5 sm:p-8 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
+        {/* Section 5: Data Privacy Lifecycle Matrix */}
+        <div className="bg-white border-2 border-ink rounded-[22px] p-5 sm:p-8 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
           <div className="flex items-center gap-3 mb-3.5">
-            <span className="w-8 h-8 rounded-full bg-orange text-white border-1.5 border-ink grid place-items-center font-extrabold text-sm">
-              04
+            <span className="w-8 h-8 rounded-full bg-acid border-1.5 border-ink grid place-items-center font-extrabold text-sm text-ink shrink-0">
+              05
             </span>
-            <h2 className="m-0 text-xl font-bold text-ink inline-flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-orange" />
-              <span>ความปลอดภัยสูงสุด & ความเป็นส่วนตัว (Privacy-First)</span>
-            </h2>
+            <div>
+              <span className="text-[11px] font-bold tracking-wider uppercase text-purple block font-['Manrope']">
+                DATA PRIVACY & SECURITY LIFECYCLE
+              </span>
+              <h2 className="m-0 text-xl font-bold text-ink">ตารางวงจรชีวิตข้อมูลตามหลักสากล (GDPR / PDPA)</h2>
+            </div>
           </div>
-          <div className="grid gap-3.5 text-sm leading-relaxed text-muted">
-            <p className="m-0">
-              เราให้ความสำคัญสูงสุดกับความปลอดภัยและความเป็นส่วนตัวของผู้ใช้ทุกคน:
-            </p>
-            <ul className="m-0 pl-5 grid gap-2.5 list-disc">
-              <li><strong>ตรวจจับและคัดแยกภาพบนเครื่องของคุณ (Client-Side Detection):</strong> โมเดล AI ในเบราว์เซอร์ช่วยคัดแยกและตัดเฉพาะกรอบรูปโพสต์จริงทีละใบ โดยไม่ต้องอัปโหลดรูปทั้งจอขึ้นไปจัดเก็บบนเซิร์ฟเวอร์ภายนอก</li>
-              <li><strong>สกัดพิกเซลสีบนเครื่อง 100% (Client Canvas):</strong> การสกัด Color DNA และการวิเคราะห์มิติแสงเงาทำงานบน Browser Canvas ในเครื่องของคุณ 100% ข้อมูลภาพถ่ายจึงปลอดภัยอยู่กับคุณ</li>
-              <li><strong>ประมวลผลชั่วคราวแล้วทำลายทันที (Ephemeral Processing):</strong> ภาพหน้าจอที่ผ่านการย่อขนาดจะถูกส่งไปประมวลผลข้อความไบโอผ่าน Google Gemini API ชั่วคราว และถูกทำลายทิ้งทันทีเมื่อวิเคราะห์เสร็จสิ้น</li>
-              <li><strong>ไม่มีฐานข้อมูลจัดเก็บภาพ (Zero Retention):</strong> เราไม่มี Database ใดๆ ในการเก็บรูปหรือข้อมูลบัญชี Instagram ของคุณ ข้อมูลทั้งหมดประมวลผลแบบ In-Memory บนเครื่องของคุณ</li>
-              <li><strong>ไม่ขอรหัสผ่านหรือสิทธิ์เข้าถึงบัญชี:</strong> ไม่ต้องล็อกอินบัญชี Instagram จึงไม่มีความเสี่ยงต่อความปลอดภัยของบัญชีคุณ</li>
-              <li><strong>สร้างขึ้นเพื่อความสนุกสนาน (Made for Fun):</strong> โปรเจกต์นี้สร้างขึ้นเพื่อความบันเทิงและให้เห็นมุมมองใหม่ๆ ของโปรไฟล์คุณเอง ไม่สนับสนุนการนำไปตัดสินหรือกลั่นแกล้งผู้อื่น</li>
-            </ul>
+          <p className="text-muted text-sm leading-relaxed mb-5">
+            เราปฏิบัติตามหลักการ Data Minimization (เก็บข้อมูลน้อยที่สุดตามความจำเป็น) และ Zero-Retention (ทำลายทันทีหลังประมวลผล):
+          </p>
+
+          <div className="overflow-x-auto border-2 border-ink rounded-2xl">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-ink text-white font-['Manrope']">
+                  <th className="p-3.5 border-r border-ink/20 font-extrabold">ชนิดข้อมูล (Data Type)</th>
+                  <th className="p-3.5 border-r border-ink/20 font-extrabold">แหล่งที่มา</th>
+                  <th className="p-3.5 border-r border-ink/20 font-extrabold">สถานที่ประมวลผล</th>
+                  <th className="p-3.5 font-extrabold">ระยะเวลาจัดเก็บ (Retention)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-ink/15 bg-white text-ink">
+                <tr>
+                  <td className="p-3.5 font-bold border-r border-ink/15 bg-paper/50">
+                    ชื่อบัญชี (@handle)
+                  </td>
+                  <td className="p-3.5 border-r border-ink/15 text-muted">
+                    ผู้ใช้กรอก หรือ OCR จากภาพ
+                  </td>
+                  <td className="p-3.5 border-r border-ink/15 text-muted">
+                    In-Memory Proxy ชั่วคราว
+                  </td>
+                  <td className="p-3.5 font-semibold text-green">
+                    ทำลายทันที (0 วินาทีหลังวิเคราะห์)
+                  </td>
+                </tr>
+                <tr>
+                  <td className="p-3.5 font-bold border-r border-ink/15 bg-paper/50">
+                    ตัวเลขสถิติ (Posts, Followers)
+                  </td>
+                  <td className="p-3.5 border-r border-ink/15 text-muted">
+                    Scraper หรือ OCR
+                  </td>
+                  <td className="p-3.5 border-r border-ink/15 text-muted">
+                    Client Browser Session
+                  </td>
+                  <td className="p-3.5 font-semibold text-green">
+                    คงอยู่เฉพาะตอนเปิดแท็บเบราว์เซอร์
+                  </td>
+                </tr>
+                <tr>
+                  <td className="p-3.5 font-bold border-r border-ink/15 bg-paper/50">
+                    ภาพถ่ายโพสต์ & Avatar
+                  </td>
+                  <td className="p-3.5 border-r border-ink/15 text-muted">
+                    IG Public หรือ ภาพแคปหน้าจอ
+                  </td>
+                  <td className="p-3.5 border-r border-ink/15 text-muted">
+                    Browser Canvas / In-Memory API
+                  </td>
+                  <td className="p-3.5 font-semibold text-green">
+                    ไม่บันทึกลงฮาร์ดดิสก์หรือฐานข้อมูลใดๆ
+                  </td>
+                </tr>
+                <tr>
+                  <td className="p-3.5 font-bold border-r border-ink/15 bg-paper/50">
+                    ข้อมูลพิกเซลสี (Color DNA)
+                  </td>
+                  <td className="p-3.5 border-r border-ink/15 text-muted">
+                    สกัดจากพิกเซลภาพ
+                  </td>
+                  <td className="p-3.5 border-r border-ink/15 text-muted">
+                    เครื่องของผู้ใช้ 100% (Client-Side)
+                  </td>
+                  <td className="p-3.5 font-semibold text-green">
+                    หายไปทันทีเมื่อรีเฟรชหน้าเว็บ
+                  </td>
+                </tr>
+                <tr>
+                  <td className="p-3.5 font-bold border-r border-ink/15 bg-paper/50">
+                    รหัสผ่าน / แชท / ข้อมูลส่วนตัว
+                  </td>
+                  <td className="p-3.5 border-r border-ink/15 text-muted">
+                    ไม่มีการเรียกหรือเข้าถึง
+                  </td>
+                  <td className="p-3.5 border-r border-ink/15 text-muted">
+                    ไม่มีการแตะต้อง (N/A)
+                  </td>
+                  <td className="p-3.5 font-semibold text-purple">
+                    ไม่จัดเก็บเด็ดขาด ปลอดภัย 100%
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Section 6: Interactive FAQ Accordion */}
+        <div className="bg-white border-2 border-ink rounded-[22px] p-5 sm:p-8 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
+          <div className="flex items-center gap-3 mb-3.5">
+            <span className="w-8 h-8 rounded-full bg-green text-white border-1.5 border-ink grid place-items-center font-extrabold text-sm shrink-0">
+              06
+            </span>
+            <div>
+              <span className="text-[11px] font-bold tracking-wider uppercase text-green block font-['Manrope']">
+                FREQUENTLY ASKED QUESTIONS
+              </span>
+              <h2 className="m-0 text-xl font-bold text-ink">คำถามที่พบบ่อย (FAQ)</h2>
+            </div>
+          </div>
+          <p className="text-muted text-sm leading-relaxed mb-5">
+            รวบรวมข้อสงสัยยอดนิยมเกี่ยวกับความปลอดภัย การทำงานของระบบ และการนำผลลัพธ์ไปใช้งาน:
+          </p>
+
+          <div className="grid gap-3">
+            {faqs.map((faq, idx) => {
+              const isOpen = openFaqIndex === idx;
+              return (
+                <div
+                  key={idx}
+                  className="border-1.5 border-ink rounded-2xl overflow-hidden bg-paper transition-colors"
+                >
+                  <button
+                    type="button"
+                    onClick={() => toggleFaq(idx)}
+                    className="w-full p-4 text-left font-bold text-sm text-ink flex items-center justify-between gap-3 cursor-pointer hover:bg-paper/80 transition-colors"
+                  >
+                    <span className="flex items-center gap-2">
+                      <HelpCircle className="w-4 h-4 text-purple shrink-0" />
+                      <span>{faq.q}</span>
+                    </span>
+                    <ChevronDown
+                      className={`w-4 h-4 text-ink shrink-0 transition-transform duration-200 ${
+                        isOpen ? "rotate-180 text-purple" : ""
+                      }`}
+                    />
+                  </button>
+                  {isOpen && (
+                    <div className="px-4 pb-4 pt-1 text-xs text-muted leading-relaxed border-t border-ink/10 animate-fadeIn">
+                      {faq.a}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Section 7: Legal Disclaimer & Fair Use */}
+        <div className="bg-paper border-2 border-ink rounded-[22px] p-5 sm:p-6 shadow-[5px_5px_0_var(--ink)] scroll-reveal-item">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-purple shrink-0 mt-0.5" />
+            <div className="space-y-2 text-xs text-muted leading-relaxed">
+              <h3 className="m-0 text-sm font-bold text-ink">
+                ข้อชี้แจงทางกฎหมายและเครื่องหมายการค้า (Legal Disclaimer & Fair Use Notice)
+              </h3>
+              <p className="m-0">
+                <strong>Trademark Disclaimer:</strong> IGOTYOU เป็นโปรเจกต์อิสระที่สร้างขึ้นเพื่อการศึกษาและการวิเคราะห์เชิงศิลปะสร้างสรรค์ โดย<strong>ไม่มีส่วนเกี่ยวข้อง ไม่ได้รับการรับรอง และไม่ได้รับทุนสนับสนุนจาก Instagram, Meta Platforms, Inc.</strong> หรือบริษัทในเครือใดๆ ทั้งสิ้น เครื่องหมายการค้า Instagram และสัญลักษณ์ที่เกี่ยวข้องเป็นทรัพย์สินของ Meta Platforms, Inc.
+              </p>
+              <p className="m-0">
+                <strong>Fair Use & Data Usage:</strong> การเข้าถึงข้อมูลโปรไฟล์สาธารณะดำเนินการภายใต้หลักการ Fair Use เพื่อการวิเคราะห์ทางศิลปะแบบ Real-time ข้อมูลทั้งหมดไม่มีการบันทึกหรือทำสำเนาลงฐานข้อมูลถาวร และไม่มีการนำข้อมูลไปใช้ในเชิงพาณิชย์โดยไม่ได้รับอนุญาต
+              </p>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Pro Tips Box */}
-      <div className="mt-8 max-w-[900px] bg-white border-2 border-ink rounded-[20px] p-5 sm:p-6 shadow-[5px_5px_0_var(--ink)] scroll-reveal-item">
+      <div className="mt-8 max-w-[920px] bg-white border-2 border-ink rounded-[22px] p-5 sm:p-6 shadow-[5px_5px_0_var(--ink)] scroll-reveal-item">
         <div className="flex items-center gap-2.5 mb-2 font-extrabold text-ink text-base">
           <Camera className="w-5 h-5 text-purple shrink-0" />
-          <span>ทริกการแคปภาพให้ได้ผลลัพธ์แม่นยำที่สุด</span>
+          <span>ทริกการใช้งานเพื่อให้ได้ผลลัพธ์แม่นยำที่สุด</span>
         </div>
         <p className="text-muted text-xs sm:text-sm leading-relaxed m-0">
-          แคปหน้าจอโปรไฟล์ IG ให้เห็นทั้ง <strong>ชื่อบัญชี (@handle)</strong>, <strong>ยอดผู้ติดตาม</strong> และ <strong>กริดรูปภาพโพสต์ 3–6 รูป</strong> (หากบัญชีของคุณตั้งค่าเป็นส่วนตัว หรือยังไม่มีโพสต์ ระบบจะสกัดโทนสีจากรูป Avatar แทนโดยอัตโนมัติ)
+          • <strong>หากพิมพ์ชื่อ IG:</strong> ตรวจสอบว่าบัญชีของคุณตั้งค่าเป็นสาธารณะ (Public) และมีตัวสะกดถูกต้อง<br />
+          • <strong>หากอัปโหลดภาพหน้าจอ:</strong> แคปหน้าจอโปรไฟล์ให้เห็น <strong>ชื่อบัญชี (@handle)</strong>, <strong>ยอดสถิติ</strong> และ <strong>กริดรูปภาพ 3–6 รูป</strong> (สำหรับบัญชี Private หรือบัญชีที่ยังไม่มีโพสต์ ระบบจะสกัดโทนสีจากรูป Avatar แทนโดยอัตโนมัติ)
         </p>
       </div>
 
@@ -194,7 +547,7 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
       <div className="mt-10 text-left scroll-reveal-item">
         <button
           onClick={onBackToHome}
-          className="primary-button inline-flex items-center justify-center gap-2 w-auto px-8 cursor-pointer"
+          className="primary-button inline-flex items-center justify-center gap-2 w-auto px-8 cursor-pointer hover:-translate-y-0.5 transition-all"
         >
           <span>เริ่มต้นสร้าง Wrapped ของคุณเลย</span>
           <ArrowRight className="w-5 h-5" />
