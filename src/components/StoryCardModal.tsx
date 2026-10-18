@@ -540,6 +540,16 @@ export default function StoryCardModal({
         }}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Hidden File Input for Custom Photo Upload */}
+        <input
+          ref={customPhotoInputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          multiple
+          hidden
+          aria-hidden="true"
+          onChange={handleCustomPhotoUpload}
+        />
         {/* Top Controls: Theme Switcher & Ratio Switcher (Mobile only) */}
         {!isDesktop && (
           <div
