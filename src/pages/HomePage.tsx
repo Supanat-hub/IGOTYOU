@@ -203,21 +203,21 @@ export default function HomePage({
               </div>
 
               {scraperAlert && (
-                <div className="p-3 mb-3.5 rounded-xl bg-orange/10 border border-orange/20 text-xs text-ink flex flex-col gap-1.5 animate-fadeIn">
+                <div className="p-3.5 mb-3.5 rounded-xl bg-orange/10 border border-orange/30 text-xs text-ink flex flex-col gap-2 animate-fadeIn shadow-sm">
                   <div className="flex items-start gap-2">
                     <AlertCircle className="w-4 h-4 text-orange shrink-0 mt-0.5" />
-                    <span className="leading-relaxed">{scraperAlert.message}</span>
+                    <span className="leading-relaxed font-semibold">{scraperAlert.message}</span>
                   </div>
                   {scraperAlert.allowFallback && (
                     <button
                       type="button"
-                      className="self-start text-xs font-bold text-purple underline hover:text-purple/80 cursor-pointer pl-6"
+                      className="self-start text-xs font-bold text-purple hover:text-purple/80 cursor-pointer pl-6 inline-flex items-center gap-1 underline underline-offset-2"
                       onClick={() => {
                         setActiveTab("upload");
                         onClearScraperAlert?.();
                       }}
                     >
-                      สลับไปใช้วิธีอัปโหลดภาพแทน
+                      <span>👉 สลับไปใช้วิธีอัปโหลดภาพแทน (รองรับบัญชี Private 100%)</span>
                     </button>
                   )}
                 </div>
@@ -234,7 +234,7 @@ export default function HomePage({
                 {isScrapingLoading ? (
                   <>
                     <span className="loader" />
-                    <span>กำลังดึงข้อมูล...</span>
+                    <span>กำลังดึงข้อมูลจาก Instagram...</span>
                   </>
                 ) : (
                   <>

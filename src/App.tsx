@@ -118,10 +118,13 @@ export default function App() {
     }
   };
 
+  const [isScrapingMode, setIsScrapingMode] = useState(false);
+
   const handleAnalyze = async () => {
     if (!files.length) return;
     setErrorMessage(null);
     setScraperAlert(null);
+    setIsScrapingMode(false);
     isAnalyzingRef.current = true;
     setIsAnalyzing(true);
     navigateTo("result");
@@ -144,18 +147,14 @@ export default function App() {
   const handleAnalyzeScraped = async (username: string) => {
     setScraperAlert(null);
     setErrorMessage(null);
-    isAnalyzingRef.current = true;
-    setIsAnalyzing(true);
     setIsScrapingLoading(true);
-    navigateTo("result");
+    setIsScrapingMode(true);
 
     try {
       const res = await fetchScrapedProfile(username);
       if (res.status === "NOT_FOUND") {
-        isAnalyzingRef.current = false;
-        setIsAnalyzing(false);
         setIsScrapingLoading(false);
-        navigateTo("home");
+        setIsScrapingMode(false);
         setScraperAlert({
           message: res.message || `ไม่พบบัญชี @${username} บน Instagram กรุณาตรวจสอบตัวสะกดอีกครั้ง`,
           allowFallback: false,
@@ -163,18 +162,20 @@ export default function App() {
         return;
       }
       if (res.status === "PRIVATE_ACCOUNT") {
-        isAnalyzingRef.current = false;
-        setIsAnalyzing(false);
         setIsScrapingLoading(false);
-        navigateTo("home");
+        setIsScrapingMode(false);
         setScraperAlert({
-          message: "🔒 บัญชีนี้ตั้งค่าเป็นส่วนตัว (Private Account) ทำให้ระบบไม่สามารถเข้าถึงรูปภาพในกริดได้",
+          message: "🔒 บัญชีนี้ตั้งค่าเป็นส่วนตัว (Private Account) ทำให้ระบบไม่สามารถเข้าถึงรูปภาพได้ แนะนำให้แคปภาพหน้าจอโปรไฟล์ของคุณ แล้วสลับไปใช้วิธี 'อัปโหลดภาพ' แทน",
           allowFallback: true,
         });
         return;
       }
       if (res.status === "PUBLIC" && res.data) {
         setIsScrapingLoading(false);
+        isAnalyzingRef.current = true;
+        setIsAnalyzing(true);
+        navigateTo("result");
+
         const analyzed = await analyzeScrapedProfile(res.data);
         hasResultRef.current = analyzed.isValidProfile !== false;
         setResult({ ...analyzed, isPresetDemo: false });
@@ -182,17 +183,18 @@ export default function App() {
       }
     } catch (err: any) {
       console.error("Scraper Error:", err);
-      isAnalyzingRef.current = false;
-      setIsAnalyzing(false);
       setIsScrapingLoading(false);
-      navigateTo("home");
+      setIsScrapingMode(false);
       setScraperAlert({
-        message: err.message || "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ Scraper ได้ในขณะนี้",
+        message: err.message || "ระบบไม่สามารถดึงข้อมูลบัญชีได้ในขณะนี้ แนะนำให้แคปภาพหน้าจอโปรไฟล์ของคุณ แล้วสลับไปใช้วิธี 'อัปโหลดภาพ' แทน",
         allowFallback: true,
       });
+      if (isAnalyzingRef.current) {
+        setErrorMessage(err.message || "เกิดข้อผิดพลาดในการวิเคราะห์โปรไฟล์ กรุณาลองใหม่อีกครั้ง");
+      }
     } finally {
-      isAnalyzingRef.current = false;
       setIsScrapingLoading(false);
+      isAnalyzingRef.current = false;
       setIsAnalyzing(false);
     }
   };
@@ -201,6 +203,7 @@ export default function App() {
     isAnalyzingRef.current = false;
     setIsAnalyzing(false);
     setIsScrapingLoading(false);
+    setIsScrapingMode(false);
     navigateTo("home");
   };
 
@@ -302,7 +305,7 @@ export default function App() {
           onRetry={handleAnalyze}
           onCancel={handleCancelAnalysis}
           isAnalyzing={isAnalyzing}
-          isScraping={isScrapingLoading}
+          isScraping={isScrapingMode}
         />
       )}
 
