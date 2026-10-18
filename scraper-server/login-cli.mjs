@@ -239,7 +239,9 @@ async function handleAutoLogin() {
       await passwordInput.press("Enter");
     }
 
-    await page.waitForTimeout(5000);
+    // Wait for response/navigation after clicking login
+    console.log("⏳ กำลังตรวจสอบผลการเข้าสู่ระบบ...");
+    await page.waitForTimeout(6000);
 
     // Check for explicit error message from Instagram
     const alertMsg = await page
@@ -252,44 +254,50 @@ async function handleAutoLogin() {
       console.log(`\n🚨 Instagram แจ้งข้อความ: "${alertMsg}"`);
     }
 
-    // Check if challenge / checkpoint page
     let currentUrl = page.url();
-    if (currentUrl.includes("/challenge/")) {
-      console.log("\n🛡️ Instagram ขอให้ยืนยันตัวตน (Security Challenge / Checkpoint)");
-      const sendCodeBtn = await page.$(
-        'button:has-text("Send Security Code"), button:has-text("ส่งรหัสความปลอดภัย"), button:has-text("Send Code"), button:has-text("ต่อไป")'
-      );
-      if (sendCodeBtn) {
-        console.log("📨 กำลังกดขอรับรหัสยืนยันความปลอดภัย...");
-        await sendCodeBtn.click().catch(() => {});
-        await page.waitForTimeout(3000);
-      }
-    }
 
-    // Check if 2FA or Security Code verification input is requested
-    const twoFactorInput = await page.$(
-      'input[name="verificationCode"], input[name="security_code"], input[aria-label*="Security Code"], input[placeholder*="Security Code"], input[type="tel"]'
-    );
-    if (twoFactorInput) {
-      console.log("\n🛡️ Instagram ต้องการรหัสยืนยันความปลอดภัย 6 หลัก (จาก SMS/Email/2FA)");
-      const code = await ask("🔢 กรุณากรอกรหัสยืนยัน (6 หลัก): ");
-      await twoFactorInput.fill(code);
-      await page.waitForTimeout(500);
+    // Check if challenge, auth_platform, codeentry, or two_factor page
+    if (
+      currentUrl.includes("codeentry") ||
+      currentUrl.includes("auth_platform") ||
+      currentUrl.includes("challenge") ||
+      currentUrl.includes("two_factor")
+    ) {
+      console.log("\n🛡️ Instagram ขอให้ยืนยันตัวตนด้วยรหัสความปลอดภัย (OTP)");
+      console.log("   (ระบบได้ส่งรหัส 6 หลักไปยัง Email หรือ SMS หรือแอป IG ของคุณแล้ว)");
 
-      const confirmBtn = await page.$(
-        'button:has-text("Confirm"), button:has-text("Submit"), button[type="button"], button[type="submit"]'
-      );
-      if (confirmBtn) {
-        await confirmBtn.click();
+      // Look for code input
+      const codeInput = await page
+        .waitForSelector(
+          'input[inputmode="numeric"], input[name*="code" i], input[placeholder*="code" i], input[type="tel"], input[type="text"]',
+          { timeout: 15000 }
+        )
+        .catch(() => null);
+
+      if (codeInput) {
+        const code = await ask("\n🔢 กรุณากรอกรหัส OTP / Security Code (6 หลัก): ");
+        await codeInput.fill(code);
+        await page.waitForTimeout(600);
+
+        const confirmBtn = await page.$(
+          'div[role="button"][aria-label*="Confirm" i], div[role="button"]:has-text("Confirm"), div[role="button"]:has-text("ยืนยัน"), button:has-text("Confirm"), button:has-text("Submit"), button[type="submit"]'
+        );
+        if (confirmBtn) {
+          await confirmBtn.click().catch(() => {});
+        } else {
+          await codeInput.press("Enter");
+        }
+
+        console.log("⏳ กำลังยืนยันรหัสความปลอดภัย...");
+        await page.waitForTimeout(7000);
       } else {
-        await page.keyboard.press("Enter");
+        console.warn("⚠️ ไม่พบช่องกรอกรหัส กรุณาเปิดแอป IG บนมือถือเพื่อกดยืนยัน 'This Was Me'");
       }
-      await page.waitForTimeout(6000);
     }
 
     // Check for "Save Your Login Info" prompt
     const saveInfoBtn = await page.$(
-      'button:has-text("Save Info"), button:has-text("Save info"), button:has-text("บันทึกข้อมูล"), button:has-text("Save information")'
+      'div[role="button"]:has-text("Save Info"), div[role="button"]:has-text("Save info"), button:has-text("Save Info"), button:has-text("บันทึกข้อมูล")'
     );
     if (saveInfoBtn) {
       console.log("💾 กดบันทึกข้อมูลการเข้าสู่ระบบ (Save Login Info)...");
@@ -299,7 +307,7 @@ async function handleAutoLogin() {
 
     // Check for "Turn on Notifications" prompt
     const notNowBtn = await page.$(
-      'button:has-text("Not Now"), button:has-text("ไม่ใช่ตอนนี้"), button:has-text("Not now")'
+      'div[role="button"]:has-text("Not Now"), div[role="button"]:has-text("ไม่ใช่ตอนนี้"), button:has-text("Not Now")'
     );
     if (notNowBtn) {
       await notNowBtn.click().catch(() => {});
@@ -320,18 +328,20 @@ async function handleAutoLogin() {
       currentUrl = page.url();
       if (
         !currentUrl.includes("/accounts/login/") &&
-        !currentUrl.includes("challenge")
+        !currentUrl.includes("challenge") &&
+        !currentUrl.includes("auth_platform") &&
+        !currentUrl.includes("codeentry")
       ) {
         console.log("\n====================================================");
         console.log("✅ เข้าสู่ระบบสำเร็จ (URL ปัจจุบัน:", currentUrl, ")");
         console.log(`📁 เซฟ Session ลงใน: ${SESSION_DIR}`);
         console.log("====================================================\n");
       } else {
-        console.warn("\n⚠️ ยังอยู่ในหน้า:", currentUrl);
+        console.warn("\n⚠️ ยังอยู่ในหน้ายืนยัน:", currentUrl);
         const debugPath = path.resolve(process.cwd(), "login-debug.png");
         await page.screenshot({ path: debugPath, fullPage: true }).catch(() => {});
         console.warn(`📸 บันทึกภาพหน้าจอล็อกอินไว้ที่: ${debugPath}`);
-        console.warn("แนะนำ: หาก Instagram ป้องกันการล็อกอินผ่านเซิร์ฟเวอร์ ให้เลือกเมนู [2] วาง sessionid cookie โดยตรง");
+        console.warn("หากได้รับรหัส OTP แต่ไม่ได้กรอก ให้รันใหม่อีกครั้งเพื่อกรอกรหัส หรือใช้ตัวเลือก [2] วาง sessionid cookie โดยตรง");
       }
     }
   } catch (err) {
