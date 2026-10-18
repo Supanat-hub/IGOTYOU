@@ -34,6 +34,7 @@ interface HomePageProps {
   isScrapingLoading?: boolean;
   scraperAlert?: { message: string; allowFallback: boolean } | null;
   onClearScraperAlert?: () => void;
+  onLoadDemo?: () => void;
 }
 
 const MARQUEE_ITEMS = [
@@ -61,6 +62,7 @@ export default function HomePage({
   isScrapingLoading = false,
   scraperAlert = null,
   onClearScraperAlert,
+  onLoadDemo,
 }: HomePageProps) {
   const fileInput = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<"username" | "upload">("username");
@@ -131,15 +133,24 @@ export default function HomePage({
             )}
           </div>
 
-          {/* Test Mode Tab Switcher */}
+          {/* Test Mode Smooth Segmented Tab Switcher with Sliding Indicator */}
           {isTestMode && (
-            <div className="flex border-b border-black/10 dark:border-white/10 mb-4 gap-2">
+            <div className="relative flex p-1 bg-black/[0.04] dark:bg-white/[0.06] rounded-xl mb-4 border border-black/5 dark:border-white/5 select-none overflow-hidden">
+              {/* Smooth Gliding Pill Indicator */}
+              <div
+                className="absolute top-1 bottom-1 w-[calc(50%-4px)] bg-white rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-transform duration-250 ease-[cubic-bezier(0.16,1,0.3,1)] pointer-events-none"
+                style={{
+                  left: "4px",
+                  transform: activeTab === "username" ? "translateX(0)" : "translateX(100%)",
+                }}
+              />
+
               <button
                 type="button"
-                className={`pb-2.5 px-3 font-bold text-xs sm:text-sm transition-all border-b-2 flex items-center gap-1.5 cursor-pointer ${
+                className={`relative z-10 flex-1 py-2 px-3 font-bold text-xs sm:text-sm rounded-lg transition-colors duration-200 flex items-center justify-center gap-1.5 cursor-pointer ${
                   activeTab === "username"
-                    ? "border-purple text-purple"
-                    : "border-transparent text-muted hover:text-ink"
+                    ? "text-ink"
+                    : "text-muted hover:text-ink"
                 }`}
                 onClick={() => {
                   setActiveTab("username");
@@ -147,14 +158,14 @@ export default function HomePage({
                 }}
               >
                 <InstagramIcon className="w-3.5 h-3.5" />
-                <span>ชื่อบัญชี / ลิงก์ IG</span>
+                <span>ชื่อบัญชี / Url</span>
               </button>
               <button
                 type="button"
-                className={`pb-2.5 px-3 font-bold text-xs sm:text-sm transition-all border-b-2 flex items-center gap-1.5 cursor-pointer ${
+                className={`relative z-10 flex-1 py-2 px-3 font-bold text-xs sm:text-sm rounded-lg transition-colors duration-200 flex items-center justify-center gap-1.5 cursor-pointer ${
                   activeTab === "upload"
-                    ? "border-purple text-purple"
-                    : "border-transparent text-muted hover:text-ink"
+                    ? "text-ink"
+                    : "text-muted hover:text-ink"
                 }`}
                 onClick={() => {
                   setActiveTab("upload");
@@ -162,14 +173,14 @@ export default function HomePage({
                 }}
               >
                 <Upload className="w-3.5 h-3.5" />
-                <span>อัปโหลดภาพหน้าจอ</span>
+                <span>อัปโหลดภาพ</span>
               </button>
             </div>
           )}
 
           {/* Tab 1: Username Input (Only when isTestMode && activeTab === "username") */}
           {isTestMode && activeTab === "username" ? (
-            <div className="username-panel flex flex-col">
+            <div key="username-panel" className="username-panel flex flex-col tab-pane-animate">
               <div className="relative flex items-center mb-3">
                 <span className="absolute left-3.5 text-muted flex items-center justify-center select-none pointer-events-none">
                   <InstagramIcon className="w-4 h-4 text-muted" />
@@ -208,7 +219,7 @@ export default function HomePage({
                         onClearScraperAlert?.();
                       }}
                     >
-                      สลับไปใช้วิธีอัปโหลดภาพหน้าจอแทน
+                      สลับไปใช้วิธีอัปโหลดภาพแทน
                     </button>
                   )}
                 </div>
@@ -241,7 +252,7 @@ export default function HomePage({
               </div>
             </div>
           ) : (
-            <>
+            <div key="upload-panel" className="tab-pane-animate">
               <div
                 className={`drop-zone ${isDragging ? "is-dragging" : ""}`}
                 onClick={() => fileInput.current?.click()}
@@ -311,7 +322,20 @@ export default function HomePage({
                   </>
                 )}
               </button>
-            </>
+            </div>
+          )}
+
+          {onLoadDemo && (
+            <div className="flex items-center justify-center mt-3 pt-3 border-t border-black/10 dark:border-white/10">
+              <button
+                type="button"
+                onClick={onLoadDemo}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-purple hover:underline cursor-pointer transition-opacity hover:opacity-85"
+              >
+                <Sparkles className="w-3.5 h-3.5 fill-purple text-purple" />
+                <span>ทดลองดูตัวอย่างผลลัพธ์ (Demo Preview) ทันที ✦</span>
+              </button>
+            </div>
           )}
 
           <p className="consent text-[11px] text-muted text-center mt-3 leading-relaxed">

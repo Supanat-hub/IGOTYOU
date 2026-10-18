@@ -183,12 +183,12 @@ export default function StoryPlayerModal({
       role="dialog"
       aria-modal="true"
       aria-label="Story Wrapped Full-Screen Player"
-      className="fixed inset-0 z-[9999] bg-ink/90 backdrop-blur-md flex items-center justify-center p-0 md:p-6 select-none"
+      className="fixed inset-0 z-[9999] bg-ink/90 backdrop-blur-md flex items-center justify-center p-0 md:p-6 select-none modal-backdrop-animate"
       onClick={onClose}
     >
       {/* 9:16 Story Frame Container */}
       <div
-        className="w-full h-[100dvh] md:w-[420px] md:h-[840px] md:max-h-[94vh] bg-paper rounded-none md:rounded-[28px] border-0 md:border-3 border-ink relative overflow-hidden flex flex-col justify-between"
+        className="w-full h-[100dvh] md:w-[420px] md:h-[840px] md:max-h-[94vh] bg-paper rounded-none md:rounded-[28px] border-0 md:border-3 border-ink relative overflow-hidden flex flex-col justify-between modal-dialog-animate"
         onClick={(e) => e.stopPropagation()}
         style={{
           boxShadow: "0 25px 60px -15px rgba(0, 0, 0, 0.85), 0 0 0 2px var(--ink)",
