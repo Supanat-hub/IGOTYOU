@@ -800,7 +800,14 @@ export async function analyzeScrapedProfile(scraped: ScrapedProfileData): Promis
   const contrast = extraction.metrics.contrastScore;
 
   // 3. Prepare payload for Gemini API
-  const geminiImages = postImages.slice(0, 12).map((b64) => ({
+  const rawImagesForGemini =
+    postImages.length > 0
+      ? postImages.slice(0, 12)
+      : scraped.avatarBase64
+      ? [scraped.avatarBase64]
+      : [];
+
+  const geminiImages = rawImagesForGemini.map((b64) => ({
     mimeType: "image/jpeg",
     data: b64.replace(/^data:image\/[a-z]+;base64,/, ""),
   }));
@@ -838,7 +845,12 @@ export async function analyzeScrapedProfile(scraped: ScrapedProfileData): Promis
   }
 
   // 4. Order top content images by AI aesthetic ranking if available, or keep order
-  let allImages = postImages.length > 0 ? [...postImages] : [PRESETS.cafe.topContent.images[0]];
+  let allImages =
+    postImages.length > 0
+      ? [...postImages]
+      : scraped.avatarBase64
+      ? [scraped.avatarBase64]
+      : [PRESETS.cafe.topContent.images[0]];
   if (parsed?.topPostIndices && Array.isArray(parsed.topPostIndices)) {
     const reordered: string[] = [];
     const usedIndices = new Set<number>();
