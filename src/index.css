@@ -27,13 +27,14 @@
 }
 
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; overflow-x: clip; }
 body {
   margin: 0;
   background: var(--paper);
   color: var(--ink);
   font-family: "IBM Plex Sans Thai", sans-serif;
   -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
 }
 button, input { font: inherit; }
 button, [role="button"] { -webkit-tap-highlight-color: transparent; }
