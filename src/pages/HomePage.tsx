@@ -127,7 +127,7 @@ export default function HomePage({
                 }}
               >
                 <AtSign className="w-3.5 h-3.5" />
-                <span>พิมพ์ชื่อบัญชี IG</span>
+                <span>ชื่อบัญชี/Url</span>
               </button>
               <button
                 type="button"
@@ -199,11 +199,11 @@ export default function HomePage({
                 {isScrapingLoading ? (
                   <>
                     <span className="loader" />
-                    <span>กำลังดึงข้อมูล & วิเคราะห์โปรไฟล์...</span>
+                    <span>กำลังดึงข้อมูล...</span>
                   </>
                 ) : (
                   <>
-                    <span>ดึงข้อมูล & วิเคราะห์โปรไฟล์</span>
+                    <span>วิเคราะห์โปรไฟล์</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
