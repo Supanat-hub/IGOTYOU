@@ -50,10 +50,13 @@ export default function App() {
   // Modal states
   const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
   const [isStoryPlayerOpen, setIsStoryPlayerOpen] = useState(false);
+  const isNavigatingRef = useRef(false);
 
   // Sync hash routing with browser history and redirect unanalyzed #wrapped to home
   useEffect(() => {
     const handleHashChange = () => {
+      if (isNavigatingRef.current) return;
+
       const updateState = () => {
         const hash = window.location.hash.toLowerCase();
         if (hash.includes("beta")) {
@@ -64,7 +67,7 @@ export default function App() {
           setHasResult(true);
           hasResultRef.current = true;
           setCurrentRoute("result");
-          window.scrollTo({ top: 0, behavior: "smooth" });
+          window.scrollTo(0, 0);
           return;
         }
         if (hash === "#wrapped") {
@@ -79,7 +82,7 @@ export default function App() {
         } else {
           setCurrentRoute("home");
         }
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        window.scrollTo(0, 0);
       };
 
       if (typeof document !== "undefined" && "startViewTransition" in document) {
@@ -110,35 +113,45 @@ export default function App() {
   }, [hasResult, isAnalyzing]);
 
   const navigateTo = (route: Route) => {
+    isNavigatingRef.current = true;
     const updateDOM = () => {
       setCurrentRoute(route);
       if (route === "result") window.location.hash = "wrapped";
       else if (route === "how-it-works") window.location.hash = "how-it-works";
       else window.location.hash = "";
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      window.scrollTo(0, 0);
     };
 
     if (typeof document !== "undefined" && "startViewTransition" in document) {
-      document.startViewTransition(() => updateDOM());
+      const transition = document.startViewTransition(() => updateDOM());
+      transition.finished.finally(() => {
+        isNavigatingRef.current = false;
+      });
     } else {
       updateDOM();
+      isNavigatingRef.current = false;
     }
   };
 
   const handleLoadDemo = () => {
+    isNavigatingRef.current = true;
     const updateDOM = () => {
       setResult(PRESETS.cafe);
       setHasResult(true);
       hasResultRef.current = true;
       setCurrentRoute("result");
       window.location.hash = "wrapped";
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      window.scrollTo(0, 0);
     };
 
     if (typeof document !== "undefined" && "startViewTransition" in document) {
-      document.startViewTransition(() => updateDOM());
+      const transition = document.startViewTransition(() => updateDOM());
+      transition.finished.finally(() => {
+        isNavigatingRef.current = false;
+      });
     } else {
       updateDOM();
+      isNavigatingRef.current = false;
     }
   };
 

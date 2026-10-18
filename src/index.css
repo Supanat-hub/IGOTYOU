@@ -211,31 +211,23 @@ a { color: inherit; text-decoration: none; }
 .swatches .swatch:hover { transform: scale(1.05); z-index: 2; filter: brightness(1.08); }
 .remix-card { grid-column: span 12; min-height: auto !important; background: var(--green); color: white; padding: 24px 28px !important; display: flex; flex-direction: column; gap: 16px; }
 .remix-card .card-topline { display: flex; justify-content: space-between; opacity: .75; font: 700 11px Manrope, sans-serif; letter-spacing: .08em; }
-/* Staggered Spring Reveal for Result Page Cards */
+/* Calm & Stable Reveal for Result Page Cards (Zero Shake) */
 .result-reveal article {
-  animation: smooth-stagger-reveal 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
-  will-change: transform, opacity;
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+  animation: smooth-stagger-reveal 0.28s ease-out both;
 }
-.result-reveal article:hover {
-  transform: translateY(-2px);
-  box-shadow: 6px 6px 0 var(--ink);
-}
-.result-reveal article:nth-child(1) { animation-delay: 0.03s; }
-.result-reveal article:nth-child(2) { animation-delay: 0.08s; }
-.result-reveal article:nth-child(3) { animation-delay: 0.13s; }
-.result-reveal article:nth-child(4) { animation-delay: 0.18s; }
-.result-reveal article:nth-child(5) { animation-delay: 0.23s; }
-.result-reveal article:nth-child(6) { animation-delay: 0.28s; }
+.result-reveal article:nth-child(1) { animation-delay: 0.02s; }
+.result-reveal article:nth-child(2) { animation-delay: 0.06s; }
+.result-reveal article:nth-child(3) { animation-delay: 0.10s; }
+.result-reveal article:nth-child(4) { animation-delay: 0.14s; }
+.result-reveal article:nth-child(5) { animation-delay: 0.18s; }
+.result-reveal article:nth-child(6) { animation-delay: 0.22s; }
 
 @keyframes smooth-stagger-reveal {
   from {
     opacity: 0;
-    transform: translateY(16px) scale(0.985);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
   }
 }
 
@@ -739,13 +731,11 @@ a { color: inherit; text-decoration: none; }
    Modern Native View Transitions API (Cross-document & same-document transitions)
    ========================================================================== */
 ::view-transition-old(root) {
-  animation: 180ms cubic-bezier(0.4, 0, 1, 1) both vt-fade-out,
-             180ms cubic-bezier(0.4, 0, 0.2, 1) both vt-slide-out;
+  animation: 160ms ease-out both vt-fade-out;
 }
 
 ::view-transition-new(root) {
-  animation: 260ms cubic-bezier(0, 0, 0.2, 1) 30ms both vt-fade-in,
-             260ms cubic-bezier(0.16, 1, 0.3, 1) 30ms both vt-slide-in;
+  animation: 200ms ease-out both vt-fade-in;
 }
 
 @keyframes vt-fade-out {
@@ -756,16 +746,6 @@ a { color: inherit; text-decoration: none; }
 @keyframes vt-fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
-}
-
-@keyframes vt-slide-out {
-  from { transform: translateY(0); }
-  to { transform: translateY(-8px); }
-}
-
-@keyframes vt-slide-in {
-  from { transform: translateY(12px); }
-  to { transform: translateY(0); }
 }
 
 /* Accessibility: Respect user preference for reduced motion */
@@ -781,28 +761,27 @@ a { color: inherit; text-decoration: none; }
 }
 
 /* ==========================================================================
-   Tactile Spring Physics for Buttons & Interactive Controls
+   Tactile Press Feedback for Buttons & Controls (Calm & Stable)
    ========================================================================== */
 .primary-button,
 .nav-pill-btn,
 .ethics-trigger-btn,
-.action-btn,
-button:not(:disabled) {
-  transition: transform 160ms cubic-bezier(0.34, 1.56, 0.64, 1),
-              box-shadow 160ms ease,
-              background-color 160ms ease,
-              opacity 160ms ease;
+.action-btn {
+  transition: transform 120ms cubic-bezier(0.2, 0.8, 0.2, 1),
+              box-shadow 120ms ease,
+              background-color 150ms ease,
+              opacity 150ms ease;
   will-change: transform;
 }
 
 .primary-button:active,
 .ethics-trigger-btn:active,
 .action-btn:active {
-  transform: scale(0.97) translateY(2px) !important;
+  transform: scale(0.98) !important;
 }
 
 .nav-pill-btn:active {
-  transform: scale(0.95) !important;
+  transform: scale(0.96) !important;
 }
 
 /* ==========================================================================

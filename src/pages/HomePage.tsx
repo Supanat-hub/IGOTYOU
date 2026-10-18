@@ -138,9 +138,9 @@ export default function HomePage({
             <div className="relative flex p-1 bg-black/[0.04] dark:bg-white/[0.06] rounded-xl mb-4 border border-black/5 dark:border-white/5 select-none">
               <button
                 type="button"
-                className={`flex-1 py-2 px-3 font-bold text-xs sm:text-sm rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer ${
+                className={`flex-1 py-2 px-3 font-bold text-xs sm:text-sm rounded-lg transition-all duration-150 flex items-center justify-center gap-1.5 cursor-pointer ${
                   activeTab === "username"
-                    ? "bg-white text-ink shadow-[0_2px_8px_rgba(0,0,0,0.08)] scale-[1.01]"
+                    ? "bg-white text-ink shadow-[0_2px_6px_rgba(0,0,0,0.08)]"
                     : "text-muted hover:text-ink hover:bg-black/[0.02]"
                 }`}
                 onClick={() => {
@@ -153,9 +153,9 @@ export default function HomePage({
               </button>
               <button
                 type="button"
-                className={`flex-1 py-2 px-3 font-bold text-xs sm:text-sm rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer ${
+                className={`flex-1 py-2 px-3 font-bold text-xs sm:text-sm rounded-lg transition-all duration-150 flex items-center justify-center gap-1.5 cursor-pointer ${
                   activeTab === "upload"
-                    ? "bg-white text-ink shadow-[0_2px_8px_rgba(0,0,0,0.08)] scale-[1.01]"
+                    ? "bg-white text-ink shadow-[0_2px_6px_rgba(0,0,0,0.08)]"
                     : "text-muted hover:text-ink hover:bg-black/[0.02]"
                 }`}
                 onClick={() => {
