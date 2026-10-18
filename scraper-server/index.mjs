@@ -415,9 +415,9 @@ app.get("/health", (req, res) => {
   });
 });
 
-// Main Scrape Endpoint
-app.post("/api/scrape", requireAuth, async (req, res) => {
-  const { username } = req.body || {};
+// Main Scrape Endpoint (Supports both POST and GET)
+app.all("/api/scrape", requireAuth, async (req, res) => {
+  const username = req.body?.username || req.query?.username;
   if (!username || typeof username !== "string") {
     return res.status(400).json({ error: "กรุณาระบุ username ที่ต้องการดึงข้อมูล" });
   }
