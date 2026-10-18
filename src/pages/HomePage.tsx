@@ -34,7 +34,6 @@ interface HomePageProps {
   isScrapingLoading?: boolean;
   scraperAlert?: { message: string; allowFallback: boolean } | null;
   onClearScraperAlert?: () => void;
-  onLoadDemo?: () => void;
 }
 
 const MARQUEE_ITEMS = [
@@ -62,7 +61,6 @@ export default function HomePage({
   isScrapingLoading = false,
   scraperAlert = null,
   onClearScraperAlert,
-  onLoadDemo,
 }: HomePageProps) {
   const fileInput = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<"username" | "upload">("username");
@@ -321,19 +319,6 @@ export default function HomePage({
                     <ArrowRight className="w-5 h-5" />
                   </>
                 )}
-              </button>
-            </div>
-          )}
-
-          {onLoadDemo && (
-            <div className="flex items-center justify-center mt-3 pt-3 border-t border-black/10 dark:border-white/10">
-              <button
-                type="button"
-                onClick={onLoadDemo}
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-purple hover:underline cursor-pointer transition-opacity hover:opacity-85"
-              >
-                <Sparkles className="w-3.5 h-3.5 fill-purple text-purple" />
-                <span>ทดลองดูตัวอย่างผลลัพธ์ (Demo Preview) ทันที ✦</span>
               </button>
             </div>
           )}
