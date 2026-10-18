@@ -1,5 +1,5 @@
 import React, { ChangeEvent, DragEvent, useRef, useState } from "react";
-import { Sparkles, Check, Upload, Image as ImageIcon, X, ArrowRight, AtSign, AlertCircle, HelpCircle } from "lucide-react";
+import { Sparkles, Check, Upload, Image as ImageIcon, X, ArrowRight, AtSign, AlertCircle, HelpCircle, Zap, ShieldCheck } from "lucide-react";
 
 interface HomePageProps {
   files: File[];
@@ -75,7 +75,7 @@ export default function HomePage({
             บอกอะไรได้บ้าง?
           </h1>
           <p className="hero-lead text-muted text-lg">
-            อัปโหลดภาพโปรไฟล์ แล้วให้ AI สรุปตัวตนบนโซเชียลของคุณ
+            ระบุชื่อบัญชี IG หรืออัปโหลดภาพหน้าจอ แล้วให้ AI สรุปตัวตนบนโซเชียลของคุณ
             เป็นการ์ด Wrapped สนุกๆ ในไม่กี่วินาที
           </p>
           <div className="benefit-row">
@@ -99,49 +99,57 @@ export default function HomePage({
         </div>
 
         <div className="upload-card min-w-0 max-w-full overflow-hidden">
-          <div className="card-heading flex justify-between items-start mb-4">
+          <div className="card-heading flex justify-between items-start mb-3">
             <div>
-              <span className="step-label text-purple text-xs font-bold tracking-wider">STEP 01</span>
+              <span className="step-label text-purple text-xs font-bold tracking-wider">
+                STEP 01 · {activeTab === "username" ? "AUTO-FETCH" : "SCREENSHOT"}
+              </span>
               <h2 className="text-xl font-extrabold text-ink mt-1">
-                {isTestMode && activeTab === "username" ? "ระบุชื่อโปรไฟล์ Instagram" : "ใส่ภาพโปรไฟล์ของคุณ"}
+                {isTestMode && activeTab === "username" ? "วิเคราะห์สไตล์ IG ทันที" : "ใส่ภาพโปรไฟล์ของคุณ"}
               </h2>
+              <p className="text-xs text-muted mt-1 leading-normal">
+                {isTestMode && activeTab === "username"
+                  ? "ดึงรูปกริดและถอด Color DNA อัตโนมัติ ไม่ต้องแคปหน้าจอ"
+                  : "ลากภาพหน้าจอโปรไฟล์ 1-3 ภาพมาวางเพื่อเริ่มต้น"}
+              </p>
             </div>
             {(!isTestMode || activeTab === "upload") && (
               <span className="count-pill">{files.length}/3</span>
             )}
           </div>
 
-          {/* Test Mode Tab Switcher */}
+          {/* Mode Switcher */}
           {isTestMode && (
-            <div className="flex border-b border-black/10 dark:border-white/10 mb-4 gap-2">
+            <div className="p-1 rounded-2xl bg-black/[0.04] dark:bg-white/[0.06] border border-black/5 dark:border-white/5 flex gap-1 mb-4">
               <button
                 type="button"
-                className={`pb-2.5 px-3 font-bold text-xs sm:text-sm transition-all border-b-2 flex items-center gap-1.5 cursor-pointer ${
+                className={`flex-1 py-2 px-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                   activeTab === "username"
-                    ? "border-purple text-purple"
-                    : "border-transparent text-muted hover:text-ink"
+                    ? "bg-white dark:bg-zinc-800 text-ink shadow-xs"
+                    : "text-muted hover:text-ink"
                 }`}
                 onClick={() => {
                   setActiveTab("username");
                   onClearScraperAlert?.();
                 }}
               >
-                <AtSign className="w-3.5 h-3.5" />
-                <span>พิมพ์ชื่อบัญชี IG</span>
+                <Sparkles className="w-3.5 h-3.5 text-purple fill-purple shrink-0" />
+                <span>ค้นหาด้วยชื่อ IG</span>
+                <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-full bg-purple/10 text-purple hidden sm:inline-block">เร็วสุด</span>
               </button>
               <button
                 type="button"
-                className={`pb-2.5 px-3 font-bold text-xs sm:text-sm transition-all border-b-2 flex items-center gap-1.5 cursor-pointer ${
+                className={`flex-1 py-2 px-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                   activeTab === "upload"
-                    ? "border-purple text-purple"
-                    : "border-transparent text-muted hover:text-ink"
+                    ? "bg-white dark:bg-zinc-800 text-ink shadow-xs"
+                    : "text-muted hover:text-ink"
                 }`}
                 onClick={() => {
                   setActiveTab("upload");
                   onClearScraperAlert?.();
                 }}
               >
-                <Upload className="w-3.5 h-3.5" />
+                <Upload className="w-3.5 h-3.5 text-muted shrink-0" />
                 <span>อัปโหลดภาพหน้าจอ</span>
               </button>
             </div>
@@ -150,24 +158,91 @@ export default function HomePage({
           {/* Tab 1: Username Input (Only when isTestMode && activeTab === "username") */}
           {isTestMode && activeTab === "username" ? (
             <div className="username-panel flex flex-col">
-              <div className="relative flex items-center mb-3">
-                <span className="absolute left-3.5 text-muted font-bold text-base select-none">@</span>
-                <input
-                  type="text"
-                  value={usernameInput}
-                  onChange={(e) => {
-                    setUsernameInput(e.target.value);
-                    if (scraperAlert) onClearScraperAlert?.();
-                  }}
-                  placeholder="เช่น minimal.vibes หรือ pongthakorn_2007"
-                  className="w-full pl-8 pr-4 py-3 rounded-xl bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 focus:outline-none focus:border-purple font-semibold text-ink text-sm sm:text-base transition-colors"
-                  disabled={isAnalyzing || isScrapingLoading}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && usernameInput.trim() && !isAnalyzing && !isScrapingLoading) {
-                      onAnalyzeScraped?.(usernameInput.trim());
-                    }
-                  }}
-                />
+              <div className="relative flex items-center p-1.5 pl-2.5 rounded-2xl bg-black/[0.03] dark:bg-white/[0.05] border-2 border-black/10 dark:border-white/10 focus-within:border-purple focus-within:bg-white dark:focus-within:bg-zinc-900 focus-within:shadow-[0_0_0_4px_rgba(142,84,233,0.12)] transition-all gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888] flex items-center justify-center text-white shrink-0 shadow-xs">
+                  <AtSign className="w-4 h-4 stroke-[2.5]" />
+                </div>
+                <div className="flex-1 flex flex-col justify-center min-w-0">
+                  <span className="text-[10px] font-bold text-muted uppercase tracking-wider leading-none mb-0.5">
+                    Instagram Handle
+                  </span>
+                  <input
+                    type="text"
+                    value={usernameInput}
+                    onChange={(e) => {
+                      setUsernameInput(e.target.value);
+                      if (scraperAlert) onClearScraperAlert?.();
+                    }}
+                    placeholder="เช่น igot_chu69, natgeo"
+                    className="w-full bg-transparent border-0 outline-none p-0 font-bold text-ink text-sm sm:text-base placeholder:text-muted/40 placeholder:font-normal"
+                    disabled={isAnalyzing || isScrapingLoading}
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && usernameInput.trim() && !isAnalyzing && !isScrapingLoading) {
+                        onAnalyzeScraped?.(usernameInput.trim().replace(/^@/, ""));
+                      }
+                    }}
+                  />
+                </div>
+                {usernameInput.trim() && (
+                  <button
+                    type="button"
+                    onClick={() => setUsernameInput("")}
+                    className="p-1.5 mr-1 text-muted hover:text-ink rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                    aria-label="ล้างข้อความ"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+
+              {/* Dynamic status preview or example chips */}
+              {usernameInput.trim() ? (
+                <div className="flex items-center justify-between text-xs px-2 pt-2 text-muted">
+                  <span className="flex items-center gap-1.5 truncate">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                    <span className="font-mono text-ink font-semibold">instagram.com/{usernameInput.trim().replace(/^@/, "")}</span>
+                  </span>
+                  <span className="text-[11px] font-bold text-purple shrink-0">กด Enter ↵</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 px-1 pt-2 flex-wrap">
+                  <span className="text-[11px] text-muted font-medium flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-purple" />
+                    ตัวอย่าง:
+                  </span>
+                  {["natgeo", "zuck", "design"].map((handle) => (
+                    <button
+                      key={handle}
+                      type="button"
+                      onClick={() => setUsernameInput(handle)}
+                      className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-black/[0.04] dark:bg-white/[0.06] hover:bg-purple/10 hover:text-purple text-ink transition-colors cursor-pointer border border-black/5 dark:border-white/5"
+                    >
+                      @{handle}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* 3 Value Proposition Feature Cards */}
+              <div className="grid grid-cols-3 gap-2 my-3.5 pt-0.5">
+                <div className="flex flex-col items-center justify-center text-center p-2 rounded-xl bg-black/[0.02] dark:bg-white/[0.04] border border-black/5 dark:border-white/5">
+                  <Zap className="w-4 h-4 text-purple mb-1 shrink-0" />
+                  <span className="text-[11px] font-bold text-ink leading-tight">ดึง 12 รูปจริง</span>
+                  <span className="text-[9px] text-muted leading-tight mt-0.5">ไม่ต้องแคปจอ</span>
+                </div>
+                <div className="flex flex-col items-center justify-center text-center p-2 rounded-xl bg-black/[0.02] dark:bg-white/[0.04] border border-black/5 dark:border-white/5">
+                  <Sparkles className="w-4 h-4 text-[#dc2743] mb-1 shrink-0" />
+                  <span className="text-[11px] font-bold text-ink leading-tight">Color DNA</span>
+                  <span className="text-[9px] text-muted leading-tight mt-0.5">โทนสีพิกเซลจริง</span>
+                </div>
+                <div className="flex flex-col items-center justify-center text-center p-2 rounded-xl bg-black/[0.02] dark:bg-white/[0.04] border border-black/5 dark:border-white/5">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600 mb-1 shrink-0" />
+                  <span className="text-[11px] font-bold text-ink leading-tight">ปลอดภัย 100%</span>
+                  <span className="text-[9px] text-muted leading-tight mt-0.5">ไม่ต้องล็อกอิน</span>
+                </div>
               </div>
 
               {scraperAlert && (
@@ -192,9 +267,9 @@ export default function HomePage({
               )}
 
               <button
-                className="primary-button cursor-pointer flex items-center justify-center gap-2 mb-1"
+                className="primary-button cursor-pointer flex items-center justify-center gap-2 mb-2"
                 disabled={!usernameInput.trim() || isAnalyzing || isScrapingLoading}
-                onClick={() => onAnalyzeScraped?.(usernameInput.trim())}
+                onClick={() => onAnalyzeScraped?.(usernameInput.trim().replace(/^@/, ""))}
               >
                 {isScrapingLoading ? (
                   <>
@@ -203,13 +278,14 @@ export default function HomePage({
                   </>
                 ) : (
                   <>
-                    <span>ดึงข้อมูล & วิเคราะห์โปรไฟล์</span>
-                    <ArrowRight className="w-4 h-4" />
+                    <Sparkles className="w-4 h-4" />
+                    <span>สร้างการ์ด Wrapped เลย</span>
+                    <ArrowRight className="w-4 h-4 ml-0.5" />
                   </>
                 )}
               </button>
 
-              <div className="flex items-center gap-1.5 text-muted text-[11px] mt-2 justify-center">
+              <div className="flex items-center gap-1.5 text-muted text-[11px] mt-1 justify-center">
                 <HelpCircle className="w-3.5 h-3.5 text-muted shrink-0" />
                 <span>รองรับบัญชีสาธารณะ (Public Profile) เท่านั้น</span>
               </div>
@@ -331,9 +407,9 @@ export default function HomePage({
             <div style={{ width: "42px", height: "42px", borderRadius: "50%", background: "var(--paper)", border: "1.5px solid var(--ink)", display: "grid", placeItems: "center", fontWeight: 800, fontSize: "16px", marginBottom: "16px" }}>
               01
             </div>
-            <h3 style={{ margin: "0 0 8px", fontSize: "20px" }}>แคปหน้าจอโปรไฟล์</h3>
+            <h3 style={{ margin: "0 0 8px", fontSize: "20px" }}>ระบุชื่อ IG หรืออัปโหลดภาพ</h3>
             <p style={{ margin: 0, color: "var(--muted)", fontSize: "14px", lineHeight: 1.6 }}>
-              ถ่ายภาพหน้าจอโปรไฟล์ IG ของคุณ 1 ถึง 3 ภาพ (รองรับทั้งมือถือ/แท็บเล็ต, คนมีรูปน้อย หรือบัญชีไม่มีโพสต์/Private)
+              พิมพ์ชื่อบัญชีเพื่อดึงรูปและโพสต์อัตโนมัติ หรือถ่ายภาพหน้าจอโปรไฟล์ 1 ถึง 3 ภาพเพื่อเริ่มวิเคราะห์
             </p>
           </div>
 
