@@ -818,16 +818,6 @@ export default function ResultPage({
                   />
                   <button
                     type="button"
-                    onClick={() => gridPhotoInputRef.current?.click()}
-                    title="อัปโหลดรูปภาพเพิ่มเติมจากเครื่องเพื่อใส่ในการ์ด"
-                    className="bg-white/15 hover:bg-acid hover:text-ink hover:border-ink text-white border border-white/30 rounded-xl px-3 py-2 text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1.5 shadow-[2px_2px_0_rgba(0,0,0,0.2)]"
-                  >
-                    <ImagePlus className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">+เพิ่มรูปจากเครื่อง</span>
-                    <span className="sm:hidden">+เพิ่มรูป</span>
-                  </button>
-                  <button
-                    type="button"
                     onClick={onOpenStoryModal}
                     title="เปิดดูและปรับแต่งการ์ด IG Story"
                     className="round-arrow hover:bg-acid hover:text-ink hover:border-ink transition-colors cursor-pointer bg-transparent text-white"
