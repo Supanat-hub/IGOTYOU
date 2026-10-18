@@ -1,5 +1,46 @@
-import { ExtractedColor, BoundingBox, extractColorDNA } from "./colorExtractor";
+import { ExtractedColor, BoundingBox, extractColorDNA, extractColorDNAFromBase64Images } from "./colorExtractor";
 import { runLocalYoloDetection } from "./yoloDetector";
+
+export interface ScrapedPost {
+  id: string;
+  imageBase64: string;
+  caption?: string;
+  likes?: number;
+  comments?: number;
+  isVideo?: boolean;
+  timestamp?: number;
+}
+
+export interface ScrapedProfileData {
+  username: string;
+  fullName?: string;
+  biography?: string;
+  category?: string;
+  externalUrl?: string;
+  isVerified?: boolean;
+  stats: {
+    postsCount: number;
+    followersCount: number;
+    followingCount: number;
+    followerRatio: string;
+  };
+  avatarBase64: string;
+  posts: ScrapedPost[];
+}
+
+export interface ScrapedResponse {
+  status: "PUBLIC" | "PRIVATE_ACCOUNT" | "NOT_FOUND";
+  data?: ScrapedProfileData;
+  message?: string;
+  username?: string;
+  isPrivate?: boolean;
+  error?: string;
+  stats?: {
+    postsCount: number;
+    followersCount: number;
+    followingCount: number;
+  };
+}
 
 export interface AnalysisResult {
   username: string;
@@ -691,6 +732,170 @@ export async function analyzeProfile(files: File[], presetKey?: string): Promise
         "AI Service Offline: แสดงเฉพาะข้อมูลที่วัดได้จริงจากพิกเซล Canvas โดยไม่มีการแต่งเติมข้อมูลเท็จ",
       ],
       transparencyNote: `คำนวณจากค่าพิกเซลจริง (Color Harmony: ${harmony}, Contrast: ${contrast})`,
+    },
+  };
+}
+
+/**
+ * Calls /api/scrape endpoint to fetch structured profile data and images from Azure Scraper
+ */
+export async function fetchScrapedProfile(username: string): Promise<ScrapedResponse> {
+  const clean = username.trim().toLowerCase().replace(/^@+/, "");
+  if (!clean) {
+    return { status: "NOT_FOUND", message: "กรุณาระบุชื่อผู้ใช้ Instagram" };
+  }
+
+  const res = await fetch("/api/scrape", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username: clean }),
+  });
+
+  const json = await res.json().catch(() => null);
+  if (!res.ok) {
+    const errorMsg = json?.message || json?.error || "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ดึงข้อมูลได้";
+    if (res.status === 404 || json?.status === "NOT_FOUND") {
+      return { status: "NOT_FOUND", message: `ไม่พบบัญชี @${clean} ใน Instagram`, username: clean };
+    }
+    throw new Error(errorMsg);
+  }
+
+  return json;
+}
+
+/**
+ * Analyzes authentic scraped Instagram profile:
+ * 1. Extracts real Color DNA directly from avatar and post thumbnails on client canvas.
+ * 2. Calls /api/analyze with verified profile data (no OCR hallucination!).
+ * 3. Builds standard AnalysisResult compatible with ResultPage & StoryCardModal.
+ */
+export async function analyzeScrapedProfile(scraped: ScrapedProfileData): Promise<AnalysisResult> {
+  // 1. Gather all post images and avatar
+  const postImages = (scraped.posts || []).map((p) => p.imageBase64).filter(Boolean);
+  const colorSourceImages = scraped.avatarBase64
+    ? [scraped.avatarBase64, ...postImages.slice(0, 8)]
+    : postImages.slice(0, 9);
+
+  // 2. Client-side Canvas Color DNA Extraction
+  const extraction = await extractColorDNAFromBase64Images(colorSourceImages);
+  const colorDNA = extraction.palette;
+  const harmony = extraction.metrics.harmonyScore;
+  const contrast = extraction.metrics.contrastScore;
+
+  // 3. Prepare payload for Gemini API
+  const geminiImages = postImages.slice(0, 12).map((b64) => ({
+    mimeType: "image/jpeg",
+    data: b64.replace(/^data:image\/[a-z]+;base64,/, ""),
+  }));
+
+  let parsed: any = null;
+  let lastError = "";
+
+  if (geminiImages.length > 0) {
+    try {
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          images: geminiImages,
+          scrapedProfile: {
+            username: scraped.username,
+            fullName: scraped.fullName,
+            biography: scraped.biography,
+            category: scraped.category,
+            isVerified: scraped.isVerified,
+            stats: scraped.stats,
+          },
+        }),
+      });
+
+      if (res.ok) {
+        parsed = await res.json();
+      } else {
+        const errJson = await res.json().catch(() => null);
+        lastError = errJson?.error || `Server responded with ${res.status}`;
+      }
+    } catch (e: any) {
+      lastError = e.message || "Failed to call Gemini analyze API";
+    }
+  }
+
+  // 4. Order top content images by AI aesthetic ranking if available, or keep order
+  let allImages = postImages.length > 0 ? [...postImages] : [PRESETS.cafe.topContent.images[0]];
+  if (parsed?.topPostIndices && Array.isArray(parsed.topPostIndices)) {
+    const reordered: string[] = [];
+    const usedIndices = new Set<number>();
+    for (const idx of parsed.topPostIndices) {
+      if (typeof idx === "number" && idx >= 0 && idx < postImages.length && !usedIndices.has(idx)) {
+        reordered.push(postImages[idx]);
+        usedIndices.add(idx);
+      }
+    }
+    for (let i = 0; i < postImages.length; i++) {
+      if (!usedIndices.has(i)) {
+        reordered.push(postImages[i]);
+      }
+    }
+    if (reordered.length > 0) allImages = reordered;
+  }
+
+  const userGrid = allImages.slice(0, 6);
+  const cardImages = allImages.slice(0, 3);
+
+  // 5. Build final score
+  const compositionScore = parsed?.compositionScore ?? Math.round((harmony + contrast) / 2);
+  const aestheticScoreValue = Math.round(harmony * 0.45 + compositionScore * 0.35 + contrast * 0.2);
+
+  return {
+    username: `@${scraped.username.replace(/^@+/, "")}`,
+    isPresetDemo: false,
+    isValidProfile: true,
+    isAiDegraded: !parsed,
+    degradedReason: lastError,
+    persona: {
+      title: parsed?.persona?.title || "ตัวตึงคุมโทน · โดดเด่นเกินต้าน",
+      description: parsed?.persona?.description || "ฉายาประจำโปรไฟล์ของคุณคือ",
+      tags: parsed?.persona?.tags || ["เทสดีมีสไตล์", "clean vibe", "curated feed"],
+    },
+    aestheticScore: {
+      score: parsed?.aestheticScore?.score ?? aestheticScoreValue,
+      verdict: parsed?.aestheticScore?.verdict || (aestheticScoreValue >= 75 ? "คุมโทนระดับมาสเตอร์" : "ฟีดไลฟ์สไตล์มีเอกลักษณ์"),
+      description: parsed?.aestheticScore?.description || "โทนสีและภาพถ่ายมีความกลมกลืนตามธรรมชาติ",
+      honestCritique: parsed?.aestheticScore?.honestCritique || "ดึงข้อมูลและประมวลผลจากภาพโพสต์จริงของคุณโดยตรง",
+      breakdown: {
+        colorHarmony: harmony,
+        gridCohesion: compositionScore,
+        contrast: contrast,
+      },
+    },
+    colorDNA,
+    avatarImage: scraped.avatarBase64 || undefined,
+    stats: {
+      followerRatio: scraped.stats.followerRatio || "1.0×",
+      postDensity: String(scraped.stats.postsCount || postImages.length || 0),
+      ocrNote: "ดึงข้อมูลสถิติแม่นยำ 100% ตรงจาก Instagram",
+    },
+    topContent: {
+      category: parsed?.topContent?.category || "TOP CONTENT",
+      description: parsed?.topContent?.description || "ภาพถ่ายที่ดีที่สุดจากฟีดของคุณ",
+      images: userGrid,
+      allImages,
+      cardImages,
+    },
+    bioRemix: {
+      text: parsed?.bioRemix?.text || (scraped.biography ? scraped.biography.slice(0, 60) : "living quietly, creating loudly."),
+      subtext: parsed?.bioRemix?.subtext || "คลิกเพื่อแก้ไขคำแซวไบโอและฉายาได้ทันที",
+    },
+    ethicsAudit: {
+      weights: {
+        colorHarmony: 45,
+        composition: 35,
+        contrast: 20,
+      },
+      detectedBiases: [
+        "Direct Data Scraper: ข้อมูลสถิติและรูปภาพดึงตรงจาก Instagram ไม่มีการสร้างข้อมูลเท็จ",
+      ],
+      transparencyNote: `คำนวณจากโพสต์จริง ${postImages.length} ภาพ (Color Harmony: ${harmony}, Contrast: ${contrast})`,
     },
   };
 }

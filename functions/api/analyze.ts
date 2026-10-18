@@ -61,7 +61,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
     );
   }
 
-  const { images } = body || {};
+  const { images, scrapedProfile } = body || {};
   const effectiveKey = env.GEMINI_API_KEY || "";
 
   if (!effectiveKey) {
@@ -73,9 +73,10 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
     );
   }
 
-  if (!images || !Array.isArray(images) || images.length === 0 || images.length > 3) {
+  const maxImages = scrapedProfile ? 12 : 3;
+  if (!images || !Array.isArray(images) || images.length === 0 || images.length > maxImages) {
     return new Response(
-      JSON.stringify({ error: "ต้องมีรูปภาพระหว่าง 1 ถึง 3 ภาพเท่านั้น" }),
+      JSON.stringify({ error: `ต้องมีรูปภาพระหว่าง 1 ถึง ${maxImages} ภาพเท่านั้น` }),
       { status: 400, headers: securityHeaders }
     );
   }
@@ -94,7 +95,70 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
     }
   }
 
-  const prompt = `You are IGOTYOU, an objective, insightful, culturally-attuned Instagram aesthetic & profile analyzer (like Spotify Wrapped, but for Instagram visual identity).
+  const prompt = scrapedProfile
+    ? `You are IGOTYOU, an objective, insightful, culturally-attuned Instagram aesthetic & profile analyzer (like Spotify Wrapped, but for Instagram visual identity).
+You are analyzing the authentic Instagram profile data and post photos of @${scrapedProfile.username}.
+
+PROFILE INFORMATION (100% VERIFIED ACCURATE):
+- Username: @${scrapedProfile.username}
+- Full Name: ${scrapedProfile.fullName || "-"}
+- Biography: ${scrapedProfile.biography || "-"}
+- Category: ${scrapedProfile.category || "-"}
+- Verified Status: ${scrapedProfile.isVerified ? "Verified" : "Standard"}
+- Stats: Posts: ${scrapedProfile.stats?.postsCount ?? 0}, Followers: ${scrapedProfile.stats?.followersCount ?? 0}, Following: ${scrapedProfile.stats?.followingCount ?? 0}, Follower Ratio: ${scrapedProfile.stats?.followerRatio ?? "1.0×"}
+
+ATTACHED PHOTOS:
+The attached images are the actual individual post photos (${images.length} photos) from this user's profile feed.
+
+TASKS:
+1. STRICT COMPOSITION & COHESION SCORING (NO FLATTERY BIAS):
+   Evaluate compositionScore honestly on a 25 to 98 scale:
+   - 90–98: Master curation (unified cohesive color story, consistent lighting/shadows, intentional grid flow).
+   - 75–89: Good aesthetic taste, but has 1-2 photos with disjointed lighting or color deviation.
+   - 55–74: Casual everyday uncurated feed (mixed subjects, random lighting, no deliberate color theme).
+   - 35–54: Chaotic/clashing (mismatched neon vs dull tones, harsh conflicting lighting, jarring angles).
+   - < 35: Extremely messy or cluttered visuals.
+
+2. Persona title in Thai:
+   - Create a witty, trendy, rhyming Spotify-Wrapped ARCHETYPE BADGE in Thai ("คำเฟี้ยวๆ สไตล์ตัวตึง ตัวแม่ ตัวพ่อ สัมผัสคล้องจอง จำง่าย ติดหู").
+   - EXAMPLES OF GREAT PERSONAS (MUST BE PUNCHY & RHYMING):
+     "เทสดีมีสไตล์ · คล้ายพี่ดารา"
+     "ตัวตึงคุมโทน · โดดเด่นเกินต้าน"
+     "สายแฟตัวแม่ · แคร์แค่แสงเงา"
+     "มินิมอลตัวพ่อ · หล่อแบบนิ่งๆ"
+     "สเปซคูลๆ · ดูดีทุกองศา"
+     "อาร์ตตัวท็อป · ช็อตนี้ต้องหยุดดู"
+     "เด็กสถาปัตย์ · ดึกดื่นตื่นมาคุมโทน"
+     "สถาปนิกเงา · ผู้คุมมู้ดดาร์ก"
+     "กวีแห่งแสงเงา · เล่าเรื่องด้วยมู้ด"
+     "สโลว์ไลฟ์สายชิค · จิบคราฟต์กาแฟ"
+   - STRICT PROHIBITION: NEVER simply join words from their bio, school acronyms, or MBTI with dots (DO NOT output things like "KMITL · INTP สายอาร์ต" or "Chula · ENFP สายเที่ยว")! That is robotic and lacks insight. Instead, synthesize their visual world, aesthetics, and lifestyle into a meaningful, witty persona title they will proudly share on IG Story.
+   - Max 14-24 characters. Connect the 2 natural rhyming halves using " · " (so it displays crisply on a single line on the story card).
+   - Tags: 2-3 creative aesthetic tags (e.g. "dark academia", "shadow play", "concrete poetry", "monochrome vibes"), NOT raw school acronyms.
+
+3. Aesthetic score verdict & honest critique:
+   - verdict: Short punchy phrase reflecting reality (e.g. "คุมโทนระดับมาสเตอร์", "โทนภาพมีเอกลักษณ์", "ฟีดตามใจฉัน สไตล์ไลฟ์สไตล์", "สีและแสงค่อนข้างตีกัน").
+   - description: 1-2 thoughtful sentences explaining their visual harmony and color choice.
+   - honestCritique: A truthful 1-sentence critique in Thai pointing out both what works and what reduced the score (e.g. "โทนสีสตรีทมีความดิบเท่ แต่ภาพที่มีแสงแฟลชสว่างโดดออกมาจากโทนรวม ทำให้ความกลมกลืนของกริดลดลง").
+
+4. Top 3 content pillars in Thai (e.g. แสงเงาสตรีท · สถาปัตยกรรมมืด · มุมมองขาวดำ), AND rank the attached post photos by visual quality:
+   - Return "topPostIndices": an array of 0-based image indices (0 to ${images.length - 1}) ordered from the MOST aesthetically striking, best-composed, well-lit, and color-cohesive photo (#1 best) down to the rest (e.g. [2, 0, 4, 1, 3, 5]).
+5. A witty, poetic 1-line English bio remix with a clever Thai subtext.
+
+Return ONLY valid JSON matching this exact structure:
+{
+  "isValidProfile": true,
+  "invalidReason": "",
+  "username": "@${scrapedProfile.username}",
+  "topPostIndices": [0, 1, 2],
+  "persona": { "title": "...", "description": "ฉายาประจำโปรไฟล์ของคุณคือ", "tags": ["tag1", "tag2"] },
+  "aestheticScore": { "verdict": "...", "description": "...", "honestCritique": "..." },
+  "compositionScore": 72,
+  "stats": { "followerRatio": "${scrapedProfile.stats?.followerRatio || "1.0×"}", "postDensity": "${scrapedProfile.stats?.postsCount || "0"}", "ocrNote": "ข้อมูลสถิติแม่นยำดึงตรงจาก Instagram" },
+  "topContent": { "category": "TOP CONTENT", "description": "..." },
+  "bioRemix": { "text": "...", "subtext": "..." }
+}`
+    : `You are IGOTYOU, an objective, insightful, culturally-attuned Instagram aesthetic & profile analyzer (like Spotify Wrapped, but for Instagram visual identity).
 Analyze the provided screenshot(s).
 
 TASKS:

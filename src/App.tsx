@@ -7,11 +7,24 @@ import HowItWorksPage from "./pages/HowItWorksPage";
 import StoryCardModal from "./components/StoryCardModal";
 import StoryPlayerModal from "./components/StoryPlayerModal";
 import InAppBrowserModal from "./components/InAppBrowserModal";
-import { PRESETS, AnalysisResult, analyzeProfile } from "./utils/analysisEngine";
+import { PRESETS, AnalysisResult, analyzeProfile, fetchScrapedProfile, analyzeScrapedProfile } from "./utils/analysisEngine";
 
 type Route = "home" | "result" | "how-it-works";
 
 export default function App() {
+  const [isTestMode, setIsTestMode] = useState<boolean>(() => {
+    const hash = window.location.hash.toLowerCase();
+    const search = window.location.search.toLowerCase();
+    const path = window.location.pathname.toLowerCase();
+    return (
+      hash.includes("test-scraper") ||
+      hash.includes("beta") ||
+      search.includes("test=1") ||
+      search.includes("beta=1") ||
+      path.includes("test-scraper")
+    );
+  });
+
   const [currentRoute, setCurrentRoute] = useState<Route>(() => {
     const hash = window.location.hash.toLowerCase();
     if (hash === "#wrapped") return "result";
@@ -22,6 +35,8 @@ export default function App() {
   const [files, setFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isScrapingLoading, setIsScrapingLoading] = useState(false);
+  const [scraperAlert, setScraperAlert] = useState<{ message: string; allowFallback: boolean } | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [result, setResult] = useState<AnalysisResult>(PRESETS.cafe);
   const [hasResult, setHasResult] = useState(false);
@@ -34,9 +49,12 @@ export default function App() {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.toLowerCase();
+      if (hash.includes("test-scraper") || hash.includes("beta")) {
+        setIsTestMode(true);
+      }
       if (hash === "#wrapped") {
         if (!hasResult && !isAnalyzing) {
-          window.location.hash = "";
+          window.location.hash = isTestMode ? "test-scraper" : "";
           setCurrentRoute("home");
         } else {
           setCurrentRoute("result");
@@ -51,27 +69,32 @@ export default function App() {
 
     window.addEventListener("hashchange", handleHashChange);
     return () => window.removeEventListener("hashchange", handleHashChange);
-  }, [hasResult, isAnalyzing]);
+  }, [hasResult, isAnalyzing, isTestMode]);
 
   // Initial check on mount
   useEffect(() => {
-    if (window.location.hash.toLowerCase() === "#wrapped" && !hasResult && !isAnalyzing) {
-      window.location.hash = "";
+    const hash = window.location.hash.toLowerCase();
+    if (hash.includes("test-scraper") || hash.includes("beta")) {
+      setIsTestMode(true);
+    }
+    if (hash === "#wrapped" && !hasResult && !isAnalyzing) {
+      window.location.hash = isTestMode ? "test-scraper" : "";
       setCurrentRoute("home");
     }
-  }, []);
+  }, [hasResult, isAnalyzing, isTestMode]);
 
   const navigateTo = (route: Route) => {
     setCurrentRoute(route);
     if (route === "result") window.location.hash = "wrapped";
     else if (route === "how-it-works") window.location.hash = "how-it-works";
-    else window.location.hash = "";
+    else window.location.hash = isTestMode ? "test-scraper" : "";
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleAnalyze = async () => {
     if (!files.length) return;
     setErrorMessage(null);
+    setScraperAlert(null);
     setIsAnalyzing(true);
     navigateTo("result");
     try {
@@ -88,6 +111,47 @@ export default function App() {
     }
   };
 
+  const handleAnalyzeScraped = async (username: string) => {
+    setScraperAlert(null);
+    setErrorMessage(null);
+    setIsScrapingLoading(true);
+
+    try {
+      const res = await fetchScrapedProfile(username);
+      if (res.status === "NOT_FOUND") {
+        setScraperAlert({
+          message: res.message || `ไม่พบบัญชี @${username} บน Instagram กรุณาตรวจสอบตัวสะกดอีกครั้ง`,
+          allowFallback: false,
+        });
+        return;
+      }
+      if (res.status === "PRIVATE_ACCOUNT") {
+        setScraperAlert({
+          message: "🔒 บัญชีนี้ตั้งค่าเป็นส่วนตัว (Private Account) ทำให้ระบบไม่สามารถเข้าถึงรูปภาพในกริดได้",
+          allowFallback: true,
+        });
+        return;
+      }
+      if (res.status === "PUBLIC" && res.data) {
+        setIsScrapingLoading(false);
+        setIsAnalyzing(true);
+        navigateTo("result");
+        const analyzed = await analyzeScrapedProfile(res.data);
+        setResult({ ...analyzed, isPresetDemo: false });
+        setHasResult(analyzed.isValidProfile !== false);
+      }
+    } catch (err: any) {
+      console.error("Scraper Error:", err);
+      setScraperAlert({
+        message: err.message || "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ Scraper ได้ในขณะนี้",
+        allowFallback: true,
+      });
+    } finally {
+      setIsScrapingLoading(false);
+      setIsAnalyzing(false);
+    }
+  };
+
   const handleCancelAnalysis = () => {
     setIsAnalyzing(false);
     navigateTo("home");
@@ -96,6 +160,30 @@ export default function App() {
   return (
     <main>
       <InAppBrowserModal />
+
+      {/* Beta Test Environment Indicator Bar */}
+      {isTestMode && (
+        <div className="bg-purple text-white px-3 sm:px-4 py-2 text-xs font-bold border-b border-black/20 shadow-sm sticky top-0 z-[100]">
+          <div className="shell flex items-center justify-between gap-2">
+            <span className="flex items-center gap-1.5 truncate">
+              <span className="animate-pulse">🧪</span>
+              <span className="truncate">
+                <span className="bg-white/20 px-1.5 py-0.5 rounded text-[10px] tracking-wide uppercase mr-1">BETA TEST</span>
+                โหมดทดสอบระบบดึงข้อมูล Instagram อัตโนมัติ (URL แยกสำหรับการทดสอบ)
+              </span>
+            </span>
+            <button
+              onClick={() => {
+                setIsTestMode(false);
+                window.location.hash = "";
+              }}
+              className="text-[11px] underline hover:text-acid cursor-pointer shrink-0 font-medium transition-colors"
+            >
+              สลับกลับโหมดปกติ
+            </button>
+          </div>
+        </div>
+      )}
 
       <Navbar
         currentRoute={currentRoute}
@@ -142,10 +230,15 @@ export default function App() {
           files={files}
           isDragging={isDragging}
           isAnalyzing={isAnalyzing}
+          isTestMode={isTestMode}
           onFilesChange={setFiles}
           onDragStateChange={setIsDragging}
           onAnalyze={handleAnalyze}
+          onAnalyzeScraped={handleAnalyzeScraped}
           onNavigateToHowItWorks={() => navigateTo("how-it-works")}
+          isScrapingLoading={isScrapingLoading}
+          scraperAlert={scraperAlert}
+          onClearScraperAlert={() => setScraperAlert(null)}
         />
       )}
 

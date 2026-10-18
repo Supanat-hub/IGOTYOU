@@ -1258,3 +1258,97 @@ export async function extractColorDNA(
     metrics,
   };
 }
+
+/**
+ * Fast client-side Color DNA extraction directly from base64 images (avatar + post thumbnails)
+ * Used by the Instagram Scraper pipeline where clean, isolated images are already extracted.
+ */
+export async function extractColorDNAFromBase64Images(
+  images: string[]
+): Promise<ColorExtractionResult> {
+  const defaultPalette: ExtractedColor[] = [
+    { hex: "#e8dcc3", name: "Oat Milk" },
+    { hex: "#9da77a", name: "Matcha" },
+    { hex: "#6c4434", name: "Espresso" },
+    { hex: "#d8a16f", name: "Warm Amber" },
+  ];
+
+  if (!images || images.length === 0) {
+    return {
+      palette: defaultPalette,
+      croppedImages: [],
+      metrics: { harmonyScore: 85, contrastScore: 80 },
+    };
+  }
+
+  const colorBuckets: Record<string, ColorBucketItem> = {};
+  const sampledLuminances: number[] = [];
+  const validImages: string[] = [];
+
+  for (const src of images) {
+    if (!src) continue;
+    try {
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = (e) => reject(e);
+        image.src = src;
+      });
+
+      validImages.push(src);
+      const canvas = document.createElement("canvas");
+      canvas.width = 64;
+      canvas.height = 64;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) continue;
+      ctx.drawImage(img, 0, 0, 64, 64);
+      const imgData = ctx.getImageData(0, 0, 64, 64);
+      const d = imgData.data;
+
+      for (let i = 0; i < d.length; i += 4) {
+        const r = d[i];
+        const g = d[i + 1];
+        const b = d[i + 2];
+        const a = d[i + 3];
+        if (a < 128) continue;
+        if (isAppBackground(r, g, b)) continue;
+
+        const lum = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+        sampledLuminances.push(lum);
+
+        const qr = Math.round(r / 16) * 16;
+        const qg = Math.round(g / 16) * 16;
+        const qb = Math.round(b / 16) * 16;
+        const key = `${qr},${qg},${qb}`;
+
+        const maxDiff = Math.max(Math.abs(r - g), Math.abs(r - b), Math.abs(g - b));
+        const isChrom = maxDiff >= 18;
+
+        if (!colorBuckets[key]) {
+          colorBuckets[key] = {
+            r: qr,
+            g: qg,
+            b: qb,
+            count: 1,
+            weight: isChrom ? 2.5 : 0.8,
+            isChromatic: isChrom,
+          };
+        } else {
+          colorBuckets[key].count += 1;
+          colorBuckets[key].weight += isChrom ? 2.5 : 0.8;
+        }
+      }
+    } catch {
+      // Continue next image
+    }
+  }
+
+  const selected = selectColorPaletteFromBuckets(colorBuckets, defaultPalette);
+  const metrics = calculatePhotoMetrics(sampledLuminances, selected);
+
+  return {
+    palette: selected,
+    croppedImages: validImages,
+    metrics,
+  };
+}

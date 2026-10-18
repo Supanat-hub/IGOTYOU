@@ -1,0 +1,4 @@
+node_modules/
+ig-session/
+.env
+*.log

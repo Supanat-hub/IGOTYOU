@@ -1,14 +1,19 @@
-import React, { ChangeEvent, DragEvent, useRef } from "react";
-import { Sparkles, Check, Upload, Image as ImageIcon, X, ArrowRight } from "lucide-react";
+import React, { ChangeEvent, DragEvent, useRef, useState } from "react";
+import { Sparkles, Check, Upload, Image as ImageIcon, X, ArrowRight, AtSign, AlertCircle, HelpCircle } from "lucide-react";
 
 interface HomePageProps {
   files: File[];
   isDragging: boolean;
   isAnalyzing: boolean;
+  isTestMode?: boolean;
   onFilesChange: (files: File[]) => void;
   onDragStateChange: (dragging: boolean) => void;
   onAnalyze: () => void;
+  onAnalyzeScraped?: (username: string) => void;
   onNavigateToHowItWorks: () => void;
+  isScrapingLoading?: boolean;
+  scraperAlert?: { message: string; allowFallback: boolean } | null;
+  onClearScraperAlert?: () => void;
 }
 
 const MARQUEE_ITEMS = [
@@ -27,12 +32,19 @@ export default function HomePage({
   files,
   isDragging,
   isAnalyzing,
+  isTestMode = false,
   onFilesChange,
   onDragStateChange,
   onAnalyze,
+  onAnalyzeScraped,
   onNavigateToHowItWorks,
+  isScrapingLoading = false,
+  scraperAlert = null,
+  onClearScraperAlert,
 }: HomePageProps) {
   const fileInput = useRef<HTMLInputElement>(null);
+  const [activeTab, setActiveTab] = useState<"username" | "upload">("username");
+  const [usernameInput, setUsernameInput] = useState("");
 
   const addFiles = (incoming: File[]) => {
     const imageFiles = incoming.filter((file) => file.type.startsWith("image/"));
@@ -87,82 +99,194 @@ export default function HomePage({
         </div>
 
         <div className="upload-card min-w-0 max-w-full overflow-hidden">
-          <div className="card-heading flex justify-between items-start mb-5">
+          <div className="card-heading flex justify-between items-start mb-4">
             <div>
               <span className="step-label text-purple text-xs font-bold tracking-wider">STEP 01</span>
-              <h2 className="text-xl font-extrabold text-ink mt-1">ใส่ภาพโปรไฟล์ของคุณ</h2>
+              <h2 className="text-xl font-extrabold text-ink mt-1">
+                {isTestMode && activeTab === "username" ? "ระบุชื่อโปรไฟล์ Instagram" : "ใส่ภาพโปรไฟล์ของคุณ"}
+              </h2>
             </div>
-            <span className="count-pill">{files.length}/3</span>
-          </div>
-          <div
-            className={`drop-zone ${isDragging ? "is-dragging" : ""}`}
-            onClick={() => fileInput.current?.click()}
-            onDragEnter={(event) => {
-              event.preventDefault();
-              onDragStateChange(true);
-            }}
-            onDragLeave={() => onDragStateChange(false)}
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={handleDrop}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(event) => event.key === "Enter" && fileInput.current?.click()}
-          >
-            <input
-              ref={fileInput}
-              accept="image/png,image/jpeg,image/webp"
-              hidden
-              multiple
-              onChange={handleFiles}
-              type="file"
-              aria-label="อัปโหลดภาพหน้าจอ Instagram (สูงสุด 3 ภาพ)"
-            />
-            <span className="upload-icon flex items-center justify-center">
-              <Upload className="w-6 h-6 text-ink" />
-            </span>
-            <strong className="text-base text-ink">ลากรูปมาวาง หรือคลิกเพื่อเลือก</strong>
-            <span className="text-muted text-sm mt-1">หน้าไบโอ · กริดโพสต์ · ไฮไลต์</span>
-            <small className="text-xs text-ink font-semibold mt-4">JPG, PNG หรือ WEBP · สูงสุด 3 ภาพ</small>
+            {(!isTestMode || activeTab === "upload") && (
+              <span className="count-pill">{files.length}/3</span>
+            )}
           </div>
 
-          {files.length > 0 && (
-            <div className="file-list min-w-0 max-w-full overflow-hidden">
-              {files.map((file, index) => (
-                <div className="file-item min-w-0 max-w-full overflow-hidden flex items-center gap-2" key={`${file.name}-${index}`}>
-                  <span className="file-icon shrink-0">
-                    <ImageIcon className="w-4 h-4 text-purple" />
-                  </span>
-                  <span className="file-name min-w-0 flex-1 truncate text-xs sm:text-sm font-semibold">{file.name}</span>
-                  <span className="file-size shrink-0 text-[11px] text-muted whitespace-nowrap">{(file.size / 1024 / 1024).toFixed(1)} MB</span>
-                  <button
-                    aria-label={`ลบ ${file.name}`}
-                    className="icon-button shrink-0 hover:text-orange transition-colors"
-                    onClick={() => onFilesChange(files.filter((_, itemIndex) => itemIndex !== index))}
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
+          {/* Test Mode Tab Switcher */}
+          {isTestMode && (
+            <div className="flex border-b border-black/10 dark:border-white/10 mb-4 gap-2">
+              <button
+                type="button"
+                className={`pb-2.5 px-3 font-bold text-xs sm:text-sm transition-all border-b-2 flex items-center gap-1.5 cursor-pointer ${
+                  activeTab === "username"
+                    ? "border-purple text-purple"
+                    : "border-transparent text-muted hover:text-ink"
+                }`}
+                onClick={() => {
+                  setActiveTab("username");
+                  onClearScraperAlert?.();
+                }}
+              >
+                <AtSign className="w-3.5 h-3.5" />
+                <span>พิมพ์ชื่อบัญชี IG</span>
+              </button>
+              <button
+                type="button"
+                className={`pb-2.5 px-3 font-bold text-xs sm:text-sm transition-all border-b-2 flex items-center gap-1.5 cursor-pointer ${
+                  activeTab === "upload"
+                    ? "border-purple text-purple"
+                    : "border-transparent text-muted hover:text-ink"
+                }`}
+                onClick={() => {
+                  setActiveTab("upload");
+                  onClearScraperAlert?.();
+                }}
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <span>อัปโหลดภาพหน้าจอ</span>
+              </button>
             </div>
           )}
 
-          <button
-            className="primary-button cursor-pointer flex items-center justify-center gap-2"
-            disabled={isAnalyzing}
-            onClick={onAnalyze}
-          >
-            {isAnalyzing ? (
-              <>
-                <span className="loader" />
-                <span>กำลังประมวลผลโทนสีและ Vibe...</span>
-              </>
-            ) : (
-              <>
-                <span>{files.length ? "วิเคราะห์โปรไฟล์ของฉัน" : "เลือกภาพเพื่อเริ่มต้น"}</span>
-                <ArrowRight className="w-5 h-5" />
-              </>
-            )}
-          </button>
+          {/* Tab 1: Username Input (Only when isTestMode && activeTab === "username") */}
+          {isTestMode && activeTab === "username" ? (
+            <div className="username-panel flex flex-col">
+              <div className="relative flex items-center mb-3">
+                <span className="absolute left-3.5 text-muted font-bold text-base select-none">@</span>
+                <input
+                  type="text"
+                  value={usernameInput}
+                  onChange={(e) => {
+                    setUsernameInput(e.target.value);
+                    if (scraperAlert) onClearScraperAlert?.();
+                  }}
+                  placeholder="เช่น minimal.vibes หรือ pongthakorn_2007"
+                  className="w-full pl-8 pr-4 py-3 rounded-xl bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 focus:outline-none focus:border-purple font-semibold text-ink text-sm sm:text-base transition-colors"
+                  disabled={isAnalyzing || isScrapingLoading}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && usernameInput.trim() && !isAnalyzing && !isScrapingLoading) {
+                      onAnalyzeScraped?.(usernameInput.trim());
+                    }
+                  }}
+                />
+              </div>
+
+              {scraperAlert && (
+                <div className="p-3 mb-3.5 rounded-xl bg-orange/10 border border-orange/20 text-xs text-ink flex flex-col gap-1.5 animate-fadeIn">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-orange shrink-0 mt-0.5" />
+                    <span className="leading-relaxed">{scraperAlert.message}</span>
+                  </div>
+                  {scraperAlert.allowFallback && (
+                    <button
+                      type="button"
+                      className="self-start text-xs font-bold text-purple underline hover:text-purple/80 cursor-pointer pl-6"
+                      onClick={() => {
+                        setActiveTab("upload");
+                        onClearScraperAlert?.();
+                      }}
+                    >
+                      สลับไปใช้วิธีอัปโหลดภาพหน้าจอแทน
+                    </button>
+                  )}
+                </div>
+              )}
+
+              <button
+                className="primary-button cursor-pointer flex items-center justify-center gap-2 mb-1"
+                disabled={!usernameInput.trim() || isAnalyzing || isScrapingLoading}
+                onClick={() => onAnalyzeScraped?.(usernameInput.trim())}
+              >
+                {isScrapingLoading ? (
+                  <>
+                    <span className="loader" />
+                    <span>กำลังดึงข้อมูล & วิเคราะห์โปรไฟล์...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>ดึงข้อมูล & วิเคราะห์โปรไฟล์</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+
+              <div className="flex items-center gap-1.5 text-muted text-[11px] mt-2 justify-center">
+                <HelpCircle className="w-3.5 h-3.5 text-muted shrink-0" />
+                <span>รองรับบัญชีสาธารณะ (Public Profile) เท่านั้น</span>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div
+                className={`drop-zone ${isDragging ? "is-dragging" : ""}`}
+                onClick={() => fileInput.current?.click()}
+                onDragEnter={(event) => {
+                  event.preventDefault();
+                  onDragStateChange(true);
+                }}
+                onDragLeave={() => onDragStateChange(false)}
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={handleDrop}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(event) => event.key === "Enter" && fileInput.current?.click()}
+              >
+                <input
+                  ref={fileInput}
+                  accept="image/png,image/jpeg,image/webp"
+                  hidden
+                  multiple
+                  onChange={handleFiles}
+                  type="file"
+                  aria-label="อัปโหลดภาพหน้าจอ Instagram (สูงสุด 3 ภาพ)"
+                />
+                <span className="upload-icon flex items-center justify-center">
+                  <Upload className="w-6 h-6 text-ink" />
+                </span>
+                <strong className="text-base text-ink">ลากรูปมาวาง หรือคลิกเพื่อเลือก</strong>
+                <span className="text-muted text-sm mt-1">หน้าไบโอ · กริดโพสต์ · ไฮไลต์</span>
+                <small className="text-xs text-ink font-semibold mt-4">JPG, PNG หรือ WEBP · สูงสุด 3 ภาพ</small>
+              </div>
+
+              {files.length > 0 && (
+                <div className="file-list min-w-0 max-w-full overflow-hidden">
+                  {files.map((file, index) => (
+                    <div className="file-item min-w-0 max-w-full overflow-hidden flex items-center gap-2" key={`${file.name}-${index}`}>
+                      <span className="file-icon shrink-0">
+                        <ImageIcon className="w-4 h-4 text-purple" />
+                      </span>
+                      <span className="file-name min-w-0 flex-1 truncate text-xs sm:text-sm font-semibold">{file.name}</span>
+                      <span className="file-size shrink-0 text-[11px] text-muted whitespace-nowrap">{(file.size / 1024 / 1024).toFixed(1)} MB</span>
+                      <button
+                        aria-label={`ลบ ${file.name}`}
+                        className="icon-button shrink-0 hover:text-orange transition-colors"
+                        onClick={() => onFilesChange(files.filter((_, itemIndex) => itemIndex !== index))}
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <button
+                className="primary-button cursor-pointer flex items-center justify-center gap-2"
+                disabled={isAnalyzing}
+                onClick={onAnalyze}
+              >
+                {isAnalyzing ? (
+                  <>
+                    <span className="loader" />
+                    <span>กำลังประมวลผลโทนสีและ Vibe...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>{files.length ? "วิเคราะห์โปรไฟล์ของฉัน" : "เลือกภาพเพื่อเริ่มต้น"}</span>
+                    <ArrowRight className="w-5 h-5" />
+                  </>
+                )}
+              </button>
+            </>
+          )}
 
           <p className="consent text-[11px] text-muted text-center mt-3 leading-relaxed">
             เมื่อใช้งานต่อ คุณยืนยันว่าเป็นภาพของคุณหรือได้รับอนุญาตแล้ว · ประมวลผลชั่วคราวอย่างปลอดภัยบนเบราว์เซอร์และ Google Gemini Vision โดยไม่มีการบันทึกภาพลงฐานข้อมูลของระบบ
