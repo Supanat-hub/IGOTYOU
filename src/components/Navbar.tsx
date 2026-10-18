@@ -2,8 +2,8 @@ import React from "react";
 import { Sparkles, ShieldCheck } from "lucide-react";
 
 interface NavbarProps {
-  currentRoute: "home" | "result" | "how-it-works";
-  onNavigate: (route: "home" | "result" | "how-it-works") => void;
+  currentRoute: "home" | "result" | "how-it-works" | "terms";
+  onNavigate: (route: "home" | "result" | "how-it-works" | "terms") => void;
   hasResult: boolean;
   isAnalyzing?: boolean;
 }

@@ -2,7 +2,7 @@ import React from "react";
 import { Sparkles, ShieldCheck } from "lucide-react";
 
 interface FooterProps {
-  onNavigate: (route: "home" | "result" | "how-it-works") => void;
+  onNavigate: (route: "home" | "result" | "how-it-works" | "terms") => void;
 }
 
 export default function Footer({ onNavigate }: FooterProps) {
@@ -22,11 +22,19 @@ export default function Footer({ onNavigate }: FooterProps) {
         <p className="footer-slogan">See yourself, a little differently.</p>
       </div>
 
-      <div className="footer-action-group">
+      <div className="footer-action-group flex items-center gap-3.5 flex-wrap">
         <button
           onClick={() => onNavigate("how-it-works")}
+          className="cursor-pointer"
         >
-          <span>เบื้องหลัง & ความเป็นส่วนตัว</span>
+          <span>เบื้องหลัง & ความโปร่งใส</span>
+        </button>
+        <span className="text-muted/40 text-xs hidden sm:inline">•</span>
+        <button
+          onClick={() => onNavigate("terms")}
+          className="cursor-pointer"
+        >
+          <span>ข้อกำหนดการใช้งาน (Terms of Use)</span>
         </button>
       </div>
 

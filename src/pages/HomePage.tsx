@@ -31,6 +31,7 @@ interface HomePageProps {
   onAnalyze: () => void;
   onAnalyzeScraped?: (username: string) => void;
   onNavigateToHowItWorks: () => void;
+  onNavigateToTerms?: () => void;
   isScrapingLoading?: boolean;
   scraperAlert?: { message: string; allowFallback: boolean } | null;
   onClearScraperAlert?: () => void;
@@ -58,6 +59,7 @@ export default function HomePage({
   onAnalyze,
   onAnalyzeScraped,
   onNavigateToHowItWorks,
+  onNavigateToTerms,
   isScrapingLoading = false,
   scraperAlert = null,
   onClearScraperAlert,
@@ -324,7 +326,15 @@ export default function HomePage({
           )}
 
           <p className="consent text-[11px] text-muted text-center mt-3 leading-relaxed">
-            เมื่อใช้งานต่อ คุณยืนยันว่าเป็นภาพของคุณหรือได้รับอนุญาตแล้ว · ประมวลผลชั่วคราวอย่างปลอดภัยบนเบราว์เซอร์และ Google Gemini Vision โดยไม่มีการบันทึกภาพลงฐานข้อมูลของระบบ
+            เมื่อใช้งานต่อ ถือว่าคุณยอมรับ{" "}
+            <button
+              type="button"
+              onClick={onNavigateToTerms}
+              className="underline font-bold text-ink hover:text-purple cursor-pointer inline bg-transparent border-0 p-0"
+            >
+              ข้อกำหนดการใช้งาน (Terms of Use)
+            </button>{" "}
+            และยืนยันว่าเป็นภาพของคุณหรือได้รับอนุญาตแล้ว · ประมวลผลชั่วคราวแบบ Zero Retention
           </p>
         </div>
       </section>

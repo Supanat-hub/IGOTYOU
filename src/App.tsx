@@ -4,12 +4,13 @@ import Footer from "./components/Footer";
 import HomePage from "./pages/HomePage";
 import ResultPage from "./pages/ResultPage";
 import HowItWorksPage from "./pages/HowItWorksPage";
+import TermsPage from "./pages/TermsPage";
 import StoryCardModal from "./components/StoryCardModal";
 import StoryPlayerModal from "./components/StoryPlayerModal";
 import InAppBrowserModal from "./components/InAppBrowserModal";
 import { PRESETS, AnalysisResult, analyzeProfile, fetchScrapedProfile, analyzeScrapedProfile } from "./utils/analysisEngine";
 
-type Route = "home" | "result" | "how-it-works";
+type Route = "home" | "result" | "how-it-works" | "terms";
 
 export default function App() {
   const [isTestMode, setIsTestMode] = useState<boolean>(true);
@@ -23,6 +24,7 @@ export default function App() {
     const hash = window.location.hash.toLowerCase();
     if (hash === "#wrapped") return "result";
     if (hash === "#how-it-works") return "how-it-works";
+    if (hash === "#terms") return "terms";
     return "home";
   });
 
@@ -71,6 +73,8 @@ export default function App() {
           }
         } else if (hash === "#how-it-works") {
           setCurrentRoute("how-it-works");
+        } else if (hash === "#terms") {
+          setCurrentRoute("terms");
         } else {
           setCurrentRoute("home");
         }
@@ -103,6 +107,7 @@ export default function App() {
       setCurrentRoute(route);
       if (route === "result") window.location.hash = "wrapped";
       else if (route === "how-it-works") window.location.hash = "how-it-works";
+      else if (route === "terms") window.location.hash = "terms";
       else window.location.hash = "";
       window.scrollTo(0, 0);
     };
@@ -298,6 +303,7 @@ export default function App() {
           onAnalyze={handleAnalyze}
           onAnalyzeScraped={handleAnalyzeScraped}
           onNavigateToHowItWorks={() => navigateTo("how-it-works")}
+          onNavigateToTerms={() => navigateTo("terms")}
           isScrapingLoading={isScrapingLoading}
           scraperAlert={scraperAlert}
           onClearScraperAlert={() => setScraperAlert(null)}
@@ -321,6 +327,13 @@ export default function App() {
 
       {currentRoute === "how-it-works" && (
         <HowItWorksPage onBackToHome={() => navigateTo("home")} />
+      )}
+
+      {currentRoute === "terms" && (
+        <TermsPage
+          onBackToHome={() => navigateTo("home")}
+          onNavigateToHowItWorks={() => navigateTo("how-it-works")}
+        />
       )}
 
       <Footer onNavigate={navigateTo} />
