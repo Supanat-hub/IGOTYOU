@@ -1,5 +1,25 @@
 import React, { ChangeEvent, DragEvent, useRef, useState } from "react";
-import { Sparkles, Check, Upload, Image as ImageIcon, X, ArrowRight, AtSign, AlertCircle, HelpCircle } from "lucide-react";
+import { Sparkles, Check, Upload, Image as ImageIcon, X, ArrowRight, AlertCircle, HelpCircle } from "lucide-react";
+import { extractInstagramUsername } from "../utils/analysisEngine";
+
+function InstagramIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+      <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+    </svg>
+  );
+}
 
 interface HomePageProps {
   files: File[];
@@ -126,8 +146,8 @@ export default function HomePage({
                   onClearScraperAlert?.();
                 }}
               >
-                <AtSign className="w-3.5 h-3.5" />
-                <span>ชื่อบัญชี/Url</span>
+                <InstagramIcon className="w-3.5 h-3.5" />
+                <span>ชื่อบัญชี / ลิงก์ IG</span>
               </button>
               <button
                 type="button"
@@ -151,7 +171,9 @@ export default function HomePage({
           {isTestMode && activeTab === "username" ? (
             <div className="username-panel flex flex-col">
               <div className="relative flex items-center mb-3">
-                <span className="absolute left-3.5 text-muted font-bold text-base select-none">@</span>
+                <span className="absolute left-3.5 text-muted flex items-center justify-center select-none pointer-events-none">
+                  <InstagramIcon className="w-4 h-4 text-muted" />
+                </span>
                 <input
                   type="text"
                   value={usernameInput}
@@ -159,12 +181,13 @@ export default function HomePage({
                     setUsernameInput(e.target.value);
                     if (scraperAlert) onClearScraperAlert?.();
                   }}
-                  placeholder="เช่น minimal.vibes หรือ pongthakorn_2007"
-                  className="w-full pl-8 pr-4 py-3 rounded-xl bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 focus:outline-none focus:border-purple font-semibold text-ink text-sm sm:text-base transition-colors"
+                  placeholder="ชื่อบัญชี หรือ ลิงก์ IG (เช่น instagram.com/name)"
+                  className="w-full pl-9 pr-4 py-3 rounded-xl bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 focus:outline-none focus:border-purple font-semibold text-ink text-sm sm:text-base transition-colors"
                   disabled={isAnalyzing || isScrapingLoading}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && usernameInput.trim() && !isAnalyzing && !isScrapingLoading) {
-                      onAnalyzeScraped?.(usernameInput.trim());
+                    const clean = extractInstagramUsername(usernameInput);
+                    if (e.key === "Enter" && clean && !isAnalyzing && !isScrapingLoading) {
+                      onAnalyzeScraped?.(clean);
                     }
                   }}
                 />
@@ -193,8 +216,11 @@ export default function HomePage({
 
               <button
                 className="primary-button cursor-pointer flex items-center justify-center gap-2 mb-1"
-                disabled={!usernameInput.trim() || isAnalyzing || isScrapingLoading}
-                onClick={() => onAnalyzeScraped?.(usernameInput.trim())}
+                disabled={!extractInstagramUsername(usernameInput) || isAnalyzing || isScrapingLoading}
+                onClick={() => {
+                  const clean = extractInstagramUsername(usernameInput);
+                  if (clean) onAnalyzeScraped?.(clean);
+                }}
               >
                 {isScrapingLoading ? (
                   <>

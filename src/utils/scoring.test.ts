@@ -6,6 +6,7 @@ import {
   getAestheticVerdict,
   buildUserGridImages,
   rankTopContentImages,
+  extractInstagramUsername,
 } from "./analysisEngine";
 import {
   isAppBackground,
@@ -605,5 +606,17 @@ test("computeTileAestheticScore and rankTopContentImages prioritize AI-ranked an
   const rankedByAi = rankTopContentImages(images, [scoreBlown, scoreAesthetic, 72], [2, 1, 0]);
   assert.equal(rankedByAi[0], "img2_medium");
   assert.equal(rankedByAi[1], "img1_aesthetic");
+});
+
+test("extractInstagramUsername extracts clean username from handles, URLs, and queries", () => {
+  assert.equal(extractInstagramUsername("https://www.instagram.com/pong4955/?igsh=123"), "pong4955");
+  assert.equal(extractInstagramUsername("https://instagram.com/igot_chu69/"), "igot_chu69");
+  assert.equal(extractInstagramUsername("http://instagram.com/natgeo"), "natgeo");
+  assert.equal(extractInstagramUsername("instagram.com/zuck"), "zuck");
+  assert.equal(extractInstagramUsername("www.instagram.com/design/"), "design");
+  assert.equal(extractInstagramUsername("@minimal.vibes"), "minimal.vibes");
+  assert.equal(extractInstagramUsername("simple_user"), "simple_user");
+  assert.equal(extractInstagramUsername("  https://www.instagram.com/creators?utm_source=ig  "), "creators");
+  assert.equal(extractInstagramUsername(""), "");
 });
 

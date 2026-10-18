@@ -737,10 +737,27 @@ export async function analyzeProfile(files: File[], presetKey?: string): Promise
 }
 
 /**
+ * Extracts a clean Instagram username from a username, handle, or full URL
+ * Supports: https://instagram.com/username, www.instagram.com/username/, @username, username, etc.
+ */
+export function extractInstagramUsername(input: string): string {
+  const trimmed = (input || "").trim();
+  if (!trimmed) return "";
+  const match = trimmed.match(/(?:https?:\/\/)?(?:www\.)?instagram\.com\/(?:[a-zA-Z]{2}\/)?([a-zA-Z0-9._]+)/i);
+  if (match) {
+    const name = match[1].toLowerCase();
+    if (!["p", "reel", "reels", "stories", "explore", "direct"].includes(name)) {
+      return match[1];
+    }
+  }
+  return trimmed.replace(/^@+/, "");
+}
+
+/**
  * Calls /api/scrape endpoint to fetch structured profile data and images from Azure Scraper
  */
 export async function fetchScrapedProfile(username: string): Promise<ScrapedResponse> {
-  const clean = username.trim().toLowerCase().replace(/^@+/, "");
+  const clean = extractInstagramUsername(username).toLowerCase();
   if (!clean) {
     return { status: "NOT_FOUND", message: "กรุณาระบุชื่อผู้ใช้ Instagram" };
   }
