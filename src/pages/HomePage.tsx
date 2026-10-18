@@ -1,5 +1,5 @@
 import React, { ChangeEvent, DragEvent, useRef, useState } from "react";
-import { Sparkles, Check, Upload, Image as ImageIcon, X, ArrowRight, AtSign, AlertCircle, HelpCircle, Zap, ShieldCheck } from "lucide-react";
+import { Sparkles, Check, Upload, Image as ImageIcon, X, ArrowRight, AlertCircle, HelpCircle, Search, Globe, ShieldCheck } from "lucide-react";
 
 interface HomePageProps {
   files: File[];
@@ -99,17 +99,17 @@ export default function HomePage({
         </div>
 
         <div className="upload-card min-w-0 max-w-full overflow-hidden">
-          <div className="card-heading flex justify-between items-start mb-3">
+          <div className="card-heading flex justify-between items-start mb-4">
             <div>
               <span className="step-label text-purple text-xs font-bold tracking-wider">
-                STEP 01 · {activeTab === "username" ? "AUTO-FETCH" : "SCREENSHOT"}
+                STEP 01 · {activeTab === "username" ? "INSTANT SEARCH" : "UPLOAD"}
               </span>
               <h2 className="text-xl font-extrabold text-ink mt-1">
-                {isTestMode && activeTab === "username" ? "วิเคราะห์สไตล์ IG ทันที" : "ใส่ภาพโปรไฟล์ของคุณ"}
+                {isTestMode && activeTab === "username" ? "ค้นหาโปรไฟล์ Instagram" : "ใส่ภาพโปรไฟล์ของคุณ"}
               </h2>
               <p className="text-xs text-muted mt-1 leading-normal">
                 {isTestMode && activeTab === "username"
-                  ? "ดึงรูปกริดและถอด Color DNA อัตโนมัติ ไม่ต้องแคปหน้าจอ"
+                  ? "ระบุชื่อบัญชีเพื่อดึงรูปกริดและถอด Color DNA อัตโนมัติ"
                   : "ลากภาพหน้าจอโปรไฟล์ 1-3 ภาพมาวางเพื่อเริ่มต้น"}
               </p>
             </div>
@@ -120,10 +120,10 @@ export default function HomePage({
 
           {/* Mode Switcher */}
           {isTestMode && (
-            <div className="p-1 rounded-2xl bg-black/[0.04] dark:bg-white/[0.06] border border-black/5 dark:border-white/5 flex gap-1 mb-4">
+            <div className="p-1 rounded-2xl bg-black/[0.04] dark:bg-white/[0.06] border border-black/5 dark:border-white/5 flex gap-1 mb-5">
               <button
                 type="button"
-                className={`flex-1 py-2 px-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                className={`flex-1 py-2.5 px-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${
                   activeTab === "username"
                     ? "bg-white dark:bg-zinc-800 text-ink shadow-xs"
                     : "text-muted hover:text-ink"
@@ -133,13 +133,12 @@ export default function HomePage({
                   onClearScraperAlert?.();
                 }}
               >
-                <Sparkles className="w-3.5 h-3.5 text-purple fill-purple shrink-0" />
-                <span>ค้นหาด้วยชื่อ IG</span>
-                <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-full bg-purple/10 text-purple hidden sm:inline-block">เร็วสุด</span>
+                <Search className="w-3.5 h-3.5 text-purple shrink-0" />
+                <span>ค้นหาอัตโนมัติ</span>
               </button>
               <button
                 type="button"
-                className={`flex-1 py-2 px-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                className={`flex-1 py-2.5 px-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${
                   activeTab === "upload"
                     ? "bg-white dark:bg-zinc-800 text-ink shadow-xs"
                     : "text-muted hover:text-ink"
@@ -150,7 +149,7 @@ export default function HomePage({
                 }}
               >
                 <Upload className="w-3.5 h-3.5 text-muted shrink-0" />
-                <span>อัปโหลดภาพหน้าจอ</span>
+                <span>อัปโหลดภาพ</span>
               </button>
             </div>
           )}
@@ -158,13 +157,12 @@ export default function HomePage({
           {/* Tab 1: Username Input (Only when isTestMode && activeTab === "username") */}
           {isTestMode && activeTab === "username" ? (
             <div className="username-panel flex flex-col">
-              <div className="relative flex items-center p-1.5 pl-2.5 rounded-2xl bg-black/[0.03] dark:bg-white/[0.05] border-2 border-black/10 dark:border-white/10 focus-within:border-purple focus-within:bg-white dark:focus-within:bg-zinc-900 focus-within:shadow-[0_0_0_4px_rgba(142,84,233,0.12)] transition-all gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888] flex items-center justify-center text-white shrink-0 shadow-xs">
-                  <AtSign className="w-4 h-4 stroke-[2.5]" />
-                </div>
-                <div className="flex-1 flex flex-col justify-center min-w-0">
-                  <span className="text-[10px] font-bold text-muted uppercase tracking-wider leading-none mb-0.5">
-                    Instagram Handle
+              {/* Integrated Omni Search Bar */}
+              <div className="relative flex flex-col sm:flex-row items-stretch sm:items-center p-1.5 sm:p-2 rounded-2xl bg-black/[0.03] dark:bg-white/[0.05] border-2 border-black/10 dark:border-white/10 focus-within:border-purple focus-within:bg-white dark:focus-within:bg-zinc-900 focus-within:shadow-[0_0_0_4px_rgba(142,84,233,0.12)] transition-all gap-2">
+                <div className="flex items-center flex-1 min-w-0 pl-2.5">
+                  <Search className="w-5 h-5 text-muted shrink-0 mr-2.5" />
+                  <span className="text-muted font-mono font-medium text-xs sm:text-sm select-none shrink-0 hidden xs:inline-block sm:inline-block">
+                    instagram.com/
                   </span>
                   <input
                     type="text"
@@ -173,8 +171,8 @@ export default function HomePage({
                       setUsernameInput(e.target.value);
                       if (scraperAlert) onClearScraperAlert?.();
                     }}
-                    placeholder="เช่น igot_chu69, natgeo"
-                    className="w-full bg-transparent border-0 outline-none p-0 font-bold text-ink text-sm sm:text-base placeholder:text-muted/40 placeholder:font-normal"
+                    placeholder="username"
+                    className="flex-1 bg-transparent border-0 outline-none p-0 font-bold text-ink text-sm sm:text-base placeholder:text-muted/40 placeholder:font-normal min-w-0"
                     disabled={isAnalyzing || isScrapingLoading}
                     autoCapitalize="none"
                     autoCorrect="off"
@@ -185,68 +183,41 @@ export default function HomePage({
                       }
                     }}
                   />
-                </div>
-                {usernameInput.trim() && (
-                  <button
-                    type="button"
-                    onClick={() => setUsernameInput("")}
-                    className="p-1.5 mr-1 text-muted hover:text-ink rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
-                    aria-label="ล้างข้อความ"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-
-              {/* Dynamic status preview or example chips */}
-              {usernameInput.trim() ? (
-                <div className="flex items-center justify-between text-xs px-2 pt-2 text-muted">
-                  <span className="flex items-center gap-1.5 truncate">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                    <span className="font-mono text-ink font-semibold">instagram.com/{usernameInput.trim().replace(/^@/, "")}</span>
-                  </span>
-                  <span className="text-[11px] font-bold text-purple shrink-0">กด Enter ↵</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-1.5 px-1 pt-2 flex-wrap">
-                  <span className="text-[11px] text-muted font-medium flex items-center gap-1">
-                    <Sparkles className="w-3 h-3 text-purple" />
-                    ตัวอย่าง:
-                  </span>
-                  {["natgeo", "zuck", "design"].map((handle) => (
+                  {usernameInput.trim() && (
                     <button
-                      key={handle}
                       type="button"
-                      onClick={() => setUsernameInput(handle)}
-                      className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-black/[0.04] dark:bg-white/[0.06] hover:bg-purple/10 hover:text-purple text-ink transition-colors cursor-pointer border border-black/5 dark:border-white/5"
+                      onClick={() => setUsernameInput("")}
+                      className="p-1.5 text-muted hover:text-ink rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer mr-1 shrink-0"
+                      aria-label="ล้างข้อความ"
                     >
-                      @{handle}
+                      <X className="w-4 h-4" />
                     </button>
-                  ))}
+                  )}
                 </div>
-              )}
 
-              {/* 3 Value Proposition Feature Cards */}
-              <div className="grid grid-cols-3 gap-2 my-3.5 pt-0.5">
-                <div className="flex flex-col items-center justify-center text-center p-2 rounded-xl bg-black/[0.02] dark:bg-white/[0.04] border border-black/5 dark:border-white/5">
-                  <Zap className="w-4 h-4 text-purple mb-1 shrink-0" />
-                  <span className="text-[11px] font-bold text-ink leading-tight">ดึง 12 รูปจริง</span>
-                  <span className="text-[9px] text-muted leading-tight mt-0.5">ไม่ต้องแคปจอ</span>
-                </div>
-                <div className="flex flex-col items-center justify-center text-center p-2 rounded-xl bg-black/[0.02] dark:bg-white/[0.04] border border-black/5 dark:border-white/5">
-                  <Sparkles className="w-4 h-4 text-[#dc2743] mb-1 shrink-0" />
-                  <span className="text-[11px] font-bold text-ink leading-tight">Color DNA</span>
-                  <span className="text-[9px] text-muted leading-tight mt-0.5">โทนสีพิกเซลจริง</span>
-                </div>
-                <div className="flex flex-col items-center justify-center text-center p-2 rounded-xl bg-black/[0.02] dark:bg-white/[0.04] border border-black/5 dark:border-white/5">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600 mb-1 shrink-0" />
-                  <span className="text-[11px] font-bold text-ink leading-tight">ปลอดภัย 100%</span>
-                  <span className="text-[9px] text-muted leading-tight mt-0.5">ไม่ต้องล็อกอิน</span>
-                </div>
+                <button
+                  type="button"
+                  className="h-11 sm:h-12 px-5 rounded-xl font-bold text-xs sm:text-sm bg-ink text-white hover:bg-purple transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+                  disabled={!usernameInput.trim() || isAnalyzing || isScrapingLoading}
+                  onClick={() => onAnalyzeScraped?.(usernameInput.trim().replace(/^@/, ""))}
+                >
+                  {isScrapingLoading ? (
+                    <>
+                      <span className="loader" />
+                      <span>กำลังดึงข้อมูล...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>เริ่มวิเคราะห์</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
               </div>
 
+              {/* Scraper Error / Private Account Notice */}
               {scraperAlert && (
-                <div className="p-3 mb-3.5 rounded-xl bg-orange/10 border border-orange/20 text-xs text-ink flex flex-col gap-1.5 animate-fadeIn">
+                <div className="p-3 my-3 rounded-xl bg-orange/10 border border-orange/20 text-xs text-ink flex flex-col gap-1.5 animate-fadeIn">
                   <div className="flex items-start gap-2">
                     <AlertCircle className="w-4 h-4 text-orange shrink-0 mt-0.5" />
                     <span className="leading-relaxed">{scraperAlert.message}</span>
@@ -266,28 +237,29 @@ export default function HomePage({
                 </div>
               )}
 
-              <button
-                className="primary-button cursor-pointer flex items-center justify-center gap-2 mb-2"
-                disabled={!usernameInput.trim() || isAnalyzing || isScrapingLoading}
-                onClick={() => onAnalyzeScraped?.(usernameInput.trim().replace(/^@/, ""))}
-              >
-                {isScrapingLoading ? (
-                  <>
-                    <span className="loader" />
-                    <span>กำลังดึงข้อมูล & วิเคราะห์โปรไฟล์...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4" />
-                    <span>สร้างการ์ด Wrapped เลย</span>
-                    <ArrowRight className="w-4 h-4 ml-0.5" />
-                  </>
-                )}
-              </button>
-
-              <div className="flex items-center gap-1.5 text-muted text-[11px] mt-1 justify-center">
-                <HelpCircle className="w-3.5 h-3.5 text-muted shrink-0" />
-                <span>รองรับบัญชีสาธารณะ (Public Profile) เท่านั้น</span>
+              {/* Guidance Row */}
+              <div className="flex flex-col gap-2 mt-4 pt-3 border-t border-black/5 dark:border-white/5">
+                <div className="flex items-center justify-between text-xs text-muted flex-wrap gap-2">
+                  <span className="inline-flex items-center gap-1.5 font-medium">
+                    <Globe className="w-3.5 h-3.5 text-purple shrink-0" />
+                    รองรับเฉพาะบัญชีสาธารณะ (Public Profile)
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 font-medium">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    ปลอดภัย ไม่ต้องใส่รหัสผ่าน
+                  </span>
+                </div>
+                <div className="text-[11px] text-muted leading-relaxed">
+                  💡 บัญชีตั้งเป็น Private? คลิกที่แท็บ{" "}
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("upload")}
+                    className="text-purple font-bold underline cursor-pointer hover:text-purple/80"
+                  >
+                    อัปโหลดภาพ
+                  </button>{" "}
+                  ด้านบนเพื่อวิเคราะห์ผ่านภาพแคปหน้าจอแทน
+                </div>
               </div>
             </div>
           ) : (
