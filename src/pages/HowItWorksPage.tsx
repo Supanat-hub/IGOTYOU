@@ -61,7 +61,7 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
   ];
 
   return (
-    <section className="shell w-full max-w-full min-w-0 overflow-x-hidden" style={{ paddingBlock: "40px 80px" }}>
+    <section className="shell" style={{ paddingBlock: "40px 80px" }}>
       {/* Back button */}
       <div className="mb-6 sm:mb-7">
         <button
@@ -90,23 +90,23 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
         </p>
 
         {/* 4 Quick Trust Badges */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mt-5 sm:mt-6 w-full max-w-full min-w-0">
-          <div className="bg-white border-1.5 border-ink rounded-xl p-2.5 sm:p-3 text-center shadow-[3px_3px_0_var(--ink)] min-w-0 overflow-hidden">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mt-5 sm:mt-6 max-w-full">
+          <div className="bg-white border-1.5 border-ink rounded-xl p-2.5 sm:p-3 text-center shadow-[3px_3px_0_var(--ink)] min-w-0">
             <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 text-green mx-auto mb-1 shrink-0" />
             <div className="font-bold text-[11px] sm:text-xs text-ink truncate">Zero Retention</div>
             <div className="text-[9px] sm:text-[10px] text-muted truncate">ไม่บันทึกภาพลงฐานข้อมูล</div>
           </div>
-          <div className="bg-white border-1.5 border-ink rounded-xl p-2.5 sm:p-3 text-center shadow-[3px_3px_0_var(--ink)] min-w-0 overflow-hidden">
+          <div className="bg-white border-1.5 border-ink rounded-xl p-2.5 sm:p-3 text-center shadow-[3px_3px_0_var(--ink)] min-w-0">
             <EyeOff className="w-4 h-4 sm:w-5 sm:h-5 text-purple mx-auto mb-1 shrink-0" />
             <div className="font-bold text-[11px] sm:text-xs text-ink truncate">No Biometrics</div>
             <div className="text-[9px] sm:text-[10px] text-muted truncate">ไม่ประเมินใบหน้าบุคคล</div>
           </div>
-          <div className="bg-white border-1.5 border-ink rounded-xl p-2.5 sm:p-3 text-center shadow-[3px_3px_0_var(--ink)] min-w-0 overflow-hidden">
+          <div className="bg-white border-1.5 border-ink rounded-xl p-2.5 sm:p-3 text-center shadow-[3px_3px_0_var(--ink)] min-w-0">
             <Cpu className="w-4 h-4 sm:w-5 sm:h-5 text-orange mx-auto mb-1 shrink-0" />
             <div className="font-bold text-[11px] sm:text-xs text-ink truncate">Client-Side First</div>
             <div className="text-[9px] sm:text-[10px] text-muted truncate">สกัดสีบนเบราว์เซอร์คุณ</div>
           </div>
-          <div className="bg-white border-1.5 border-ink rounded-xl p-2.5 sm:p-3 text-center shadow-[3px_3px_0_var(--ink)] min-w-0 overflow-hidden">
+          <div className="bg-white border-1.5 border-ink rounded-xl p-2.5 sm:p-3 text-center shadow-[3px_3px_0_var(--ink)] min-w-0">
             <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-acid-text mx-auto mb-1 shrink-0" />
             <div className="font-bold text-[11px] sm:text-xs text-ink truncate">No Login Needed</div>
             <div className="text-[9px] sm:text-[10px] text-muted truncate">ไม่ต้องกรอกรหัสผ่าน</div>
@@ -115,9 +115,9 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
       </div>
 
       {/* Main Container */}
-      <div className="grid gap-6 sm:gap-8 max-w-[920px] w-full min-w-0 max-w-full">
+      <div className="grid gap-6 sm:gap-8 max-w-[920px]">
         {/* Section 1: Dual Ingestion Architecture */}
-        <div className="bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-7 shadow-[4px_4px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item w-full min-w-0 max-w-full overflow-hidden">
+        <div className="bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
           <div className="flex items-center gap-2.5 sm:gap-3 mb-3">
             <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-acid border-1.5 border-ink grid place-items-center font-extrabold text-xs sm:text-sm text-ink shrink-0">
               01
@@ -191,7 +191,7 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
         </div>
 
         {/* Section 2: Scientific Scoring Metrics */}
-        <div className="bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-7 shadow-[4px_4px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item w-full min-w-0 max-w-full overflow-hidden">
+        <div className="bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
           <div className="flex items-center gap-2.5 sm:gap-3 mb-3">
             <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-green text-white border-1.5 border-ink grid place-items-center font-extrabold text-xs sm:text-sm shrink-0">
               02
@@ -270,7 +270,7 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
         </div>
 
         {/* Section 3: TOP CONTENT & Human-in-the-Loop */}
-        <div className="bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-7 shadow-[4px_4px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item w-full min-w-0 max-w-full overflow-hidden">
+        <div className="bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
           <div className="flex items-center gap-2.5 sm:gap-3 mb-3">
             <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-purple text-white border-1.5 border-ink grid place-items-center font-extrabold text-xs sm:text-sm shrink-0">
               03
@@ -312,7 +312,7 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
         </div>
 
         {/* Section 4: Ethical AI & Non-Biometric Assessment */}
-        <div className="bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-7 shadow-[4px_4px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item w-full min-w-0 max-w-full overflow-hidden">
+        <div className="bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
           <div className="flex items-center gap-2.5 sm:gap-3 mb-3">
             <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-orange text-white border-1.5 border-ink grid place-items-center font-extrabold text-xs sm:text-sm shrink-0">
               04
@@ -359,7 +359,7 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
         </div>
 
         {/* Section 5: Data Privacy Lifecycle Matrix */}
-        <div className="bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-7 shadow-[4px_4px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item w-full min-w-0 max-w-full overflow-hidden">
+        <div className="bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
           <div className="flex items-center gap-2.5 sm:gap-3 mb-3">
             <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-acid border-1.5 border-ink grid place-items-center font-extrabold text-xs sm:text-sm text-ink shrink-0">
               05
@@ -467,7 +467,7 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
         </div>
 
         {/* Section 6: Interactive FAQ Accordion */}
-        <div className="bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-7 shadow-[4px_4px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item w-full min-w-0 max-w-full overflow-hidden">
+        <div className="bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
           <div className="flex items-center gap-2.5 sm:gap-3 mb-3">
             <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-green text-white border-1.5 border-ink grid place-items-center font-extrabold text-xs sm:text-sm shrink-0">
               06
@@ -518,7 +518,7 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
         </div>
 
         {/* Section 7: Legal Disclaimer & Fair Use */}
-        <div className="bg-paper border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-6 shadow-[4px_4px_0_var(--ink)] sm:shadow-[5px_5px_0_var(--ink)] scroll-reveal-item w-full min-w-0 max-w-full overflow-hidden">
+        <div className="bg-paper border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-6 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
           <div className="flex items-start gap-2.5 sm:gap-3">
             <AlertCircle className="w-5 h-5 text-purple shrink-0 mt-0.5" />
             <div className="space-y-2 text-xs text-muted leading-relaxed min-w-0">
@@ -537,7 +537,7 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
       </div>
 
       {/* Pro Tips Box */}
-      <div className="mt-6 sm:mt-8 max-w-[920px] w-full min-w-0 bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-6 shadow-[4px_4px_0_var(--ink)] sm:shadow-[5px_5px_0_var(--ink)] scroll-reveal-item overflow-hidden">
+      <div className="mt-6 sm:mt-8 max-w-[920px] bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-6 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
         <div className="flex items-center gap-2 mb-2 font-extrabold text-ink text-sm sm:text-base">
           <Camera className="w-4 h-4 sm:w-5 sm:h-5 text-purple shrink-0" />
           <span>ทริกการใช้งานเพื่อให้ได้ผลลัพธ์แม่นยำที่สุด</span>

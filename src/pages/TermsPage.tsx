@@ -25,7 +25,7 @@ export default function TermsPage({
   onNavigateToHowItWorks,
 }: TermsPageProps) {
   return (
-    <section className="shell w-full max-w-full min-w-0 overflow-x-hidden" style={{ paddingBlock: "50px 90px" }}>
+    <section className="shell" style={{ paddingBlock: "50px 90px" }}>
       {/* Back button */}
       <div className="mb-7">
         <button
@@ -57,8 +57,8 @@ export default function TermsPage({
       </div>
 
       {/* Quick Summary Cards for 1-minute read */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 mb-8 sm:mb-10 max-w-[920px] w-full min-w-0">
-        <div className="bg-white border-2 border-ink rounded-2xl p-4 shadow-[4px_4px_0_var(--ink)] min-w-0">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 mb-8 sm:mb-10 max-w-[920px]">
+        <div className="bg-white border-2 border-ink rounded-2xl p-4 shadow-[4px_4px_0_var(--ink)]">
           <Sparkles className="w-5 h-5 text-purple mb-2 shrink-0" />
           <div className="font-extrabold text-sm text-ink mb-1">เพื่อความบันเทิงและศิลปะ</div>
           <div className="text-xs text-muted leading-relaxed">
@@ -66,7 +66,7 @@ export default function TermsPage({
           </div>
         </div>
 
-        <div className="bg-white border-2 border-ink rounded-2xl p-4 shadow-[4px_4px_0_var(--ink)] min-w-0">
+        <div className="bg-white border-2 border-ink rounded-2xl p-4 shadow-[4px_4px_0_var(--ink)]">
           <ShieldCheck className="w-5 h-5 text-green mb-2 shrink-0" />
           <div className="font-extrabold text-sm text-ink mb-1">ลิขสิทธิ์ภาพเป็นของคุณ 100%</div>
           <div className="text-xs text-muted leading-relaxed">
@@ -74,7 +74,7 @@ export default function TermsPage({
           </div>
         </div>
 
-        <div className="bg-white border-2 border-ink rounded-2xl p-4 shadow-[4px_4px_0_var(--ink)] min-w-0">
+        <div className="bg-white border-2 border-ink rounded-2xl p-4 shadow-[4px_4px_0_var(--ink)]">
           <Globe className="w-5 h-5 text-orange mb-2 shrink-0" />
           <div className="font-extrabold text-sm text-ink mb-1">โปรเจกต์อิสระ ไม่เกี่ยวกับ Meta</div>
           <div className="text-xs text-muted leading-relaxed">
@@ -82,7 +82,7 @@ export default function TermsPage({
           </div>
         </div>
 
-        <div className="bg-white border-2 border-ink rounded-2xl p-4 shadow-[4px_4px_0_var(--ink)] min-w-0">
+        <div className="bg-white border-2 border-ink rounded-2xl p-4 shadow-[4px_4px_0_var(--ink)]">
           <HeartHandshake className="w-5 h-5 text-acid-text mb-2 shrink-0" />
           <div className="font-extrabold text-sm text-ink mb-1">ห้ามนำไปกลั่นแกล้งผู้อื่น</div>
           <div className="text-xs text-muted leading-relaxed">
@@ -92,9 +92,9 @@ export default function TermsPage({
       </div>
 
       {/* Main Legal Clauses */}
-      <div className="grid gap-6 sm:gap-7 max-w-[920px] w-full min-w-0">
+      <div className="grid gap-6 sm:gap-7 max-w-[920px]">
         {/* Clause 1 */}
-        <div className="bg-white border-2 border-ink rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item w-full min-w-0 overflow-hidden">
+        <div className="bg-white border-2 border-ink rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
           <div className="flex items-center gap-3 mb-3">
             <span className="w-7 h-7 rounded-full bg-acid border-1.5 border-ink grid place-items-center font-extrabold text-xs text-ink shrink-0">
               01
@@ -114,7 +114,7 @@ export default function TermsPage({
         </div>
 
         {/* Clause 2 */}
-        <div className="bg-white border-2 border-ink rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item w-full min-w-0 overflow-hidden">
+        <div className="bg-white border-2 border-ink rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
           <div className="flex items-center gap-3 mb-3">
             <span className="w-7 h-7 rounded-full bg-purple text-white border-1.5 border-ink grid place-items-center font-extrabold text-xs shrink-0">
               02
@@ -137,7 +137,7 @@ export default function TermsPage({
         </div>
 
         {/* Clause 3 */}
-        <div className="bg-white border-2 border-ink rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item w-full min-w-0 overflow-hidden">
+        <div className="bg-white border-2 border-ink rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
           <div className="flex items-center gap-3 mb-3">
             <span className="w-7 h-7 rounded-full bg-green text-white border-1.5 border-ink grid place-items-center font-extrabold text-xs shrink-0">
               03
@@ -167,7 +167,7 @@ export default function TermsPage({
         </div>
 
         {/* Clause 4 */}
-        <div className="bg-white border-2 border-ink rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item w-full min-w-0 overflow-hidden">
+        <div className="bg-white border-2 border-ink rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
           <div className="flex items-center gap-3 mb-3">
             <span className="w-7 h-7 rounded-full bg-orange text-white border-1.5 border-ink grid place-items-center font-extrabold text-xs shrink-0">
               04
@@ -193,7 +193,7 @@ export default function TermsPage({
         </div>
 
         {/* Clause 5 */}
-        <div className="bg-white border-2 border-ink rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item w-full min-w-0 overflow-hidden">
+        <div className="bg-white border-2 border-ink rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
           <div className="flex items-center gap-3 mb-3">
             <span className="w-7 h-7 rounded-full bg-acid border-1.5 border-ink grid place-items-center font-extrabold text-xs text-ink shrink-0">
               05
@@ -216,7 +216,7 @@ export default function TermsPage({
         </div>
 
         {/* Clause 6 */}
-        <div className="bg-white border-2 border-ink rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item w-full min-w-0 overflow-hidden">
+        <div className="bg-white border-2 border-ink rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
           <div className="flex items-center gap-3 mb-3">
             <span className="w-7 h-7 rounded-full bg-purple text-white border-1.5 border-ink grid place-items-center font-extrabold text-xs shrink-0">
               06
@@ -239,7 +239,7 @@ export default function TermsPage({
         </div>
 
         {/* Clause 7 */}
-        <div className="bg-white border-2 border-ink rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item w-full min-w-0 overflow-hidden">
+        <div className="bg-white border-2 border-ink rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
           <div className="flex items-center gap-3 mb-3">
             <span className="w-7 h-7 rounded-full bg-green text-white border-1.5 border-ink grid place-items-center font-extrabold text-xs shrink-0">
               07
@@ -259,7 +259,7 @@ export default function TermsPage({
         </div>
 
         {/* Clause 8 */}
-        <div className="bg-white border-2 border-ink rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item w-full min-w-0 overflow-hidden">
+        <div className="bg-white border-2 border-ink rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
           <div className="flex items-center gap-3 mb-3">
             <span className="w-7 h-7 rounded-full bg-orange text-white border-1.5 border-ink grid place-items-center font-extrabold text-xs shrink-0">
               08
@@ -280,7 +280,7 @@ export default function TermsPage({
       </div>
 
       {/* Helpful Links Box */}
-      <div className="mt-8 max-w-[920px] w-full min-w-0 bg-paper border-2 border-ink rounded-[22px] p-4 sm:p-6 shadow-[5px_5px_0_var(--ink)] scroll-reveal-item flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 overflow-hidden">
+      <div className="mt-8 max-w-[920px] bg-paper border-2 border-ink rounded-[22px] p-4 sm:p-6 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="min-w-0">
           <div className="font-extrabold text-ink text-sm flex items-center gap-2 mb-1">
             <HelpCircle className="w-4 h-4 text-purple shrink-0" />
