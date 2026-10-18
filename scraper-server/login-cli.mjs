@@ -199,21 +199,34 @@ async function handleAutoLogin() {
       }
     }
 
-    // Wait for username input (attached)
+    // Wait for username input (Supports new name="email" and legacy name="username")
     console.log("✍️ กำลังค้นหาช่องกรอกข้อมูล...");
-    const usernameInput = await page.waitForSelector('input[name="username"]', {
-      timeout: 20000,
-      state: "attached",
-    });
+    const usernameInput = await page.waitForSelector(
+      'input[name="email"], input[name="username"], input[aria-label*="Phone"], input[placeholder*="username" i]',
+      {
+        timeout: 20000,
+        state: "attached",
+      }
+    );
 
     await usernameInput.scrollIntoViewIfNeeded().catch(() => {});
-    await page.fill('input[name="username"]', username);
+    await usernameInput.fill(username);
     await page.waitForTimeout(600);
-    await page.fill('input[name="password"]', password);
+
+    const passwordInput = await page.waitForSelector(
+      'input[name="pass"], input[name="password"], input[type="password"]',
+      {
+        timeout: 10000,
+        state: "attached",
+      }
+    );
+    await passwordInput.fill(password);
     await page.waitForTimeout(600);
 
     console.log("📤 กำลังส่งคำขอล็อกอิน...");
-    const submitBtn = await page.$('button[type="submit"]');
+    const submitBtn = await page.$(
+      'button[type="submit"], input[type="submit"], button:has-text("Log in"), button:has-text("เข้าสู่ระบบ")'
+    );
     if (submitBtn) {
       await submitBtn.click();
     } else {
