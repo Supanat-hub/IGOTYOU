@@ -886,7 +886,7 @@ export async function analyzeScrapedProfile(scraped: ScrapedProfileData): Promis
 
   // 5. Build final score
   const compositionScore = parsed?.compositionScore ?? Math.round((harmony + contrast) / 2);
-  const aestheticScoreValue = Math.round(harmony * 0.45 + compositionScore * 0.35 + contrast * 0.2);
+  const aestheticScoreValue = calculateHybridScore(harmony, compositionScore, contrast);
 
   return {
     username: `@${scraped.username.replace(/^@+/, "")}`,
@@ -930,9 +930,9 @@ export async function analyzeScrapedProfile(scraped: ScrapedProfileData): Promis
     },
     ethicsAudit: {
       weights: {
-        colorHarmony: 45,
+        colorHarmony: 40,
         composition: 35,
-        contrast: 20,
+        contrast: 25,
       },
       detectedBiases: [
         "Direct Data Scraper: ข้อมูลสถิติและรูปภาพดึงตรงจาก Instagram ไม่มีการสร้างข้อมูลเท็จ",
