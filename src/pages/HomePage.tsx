@@ -366,9 +366,9 @@ export default function HomePage({
             <div style={{ width: "42px", height: "42px", borderRadius: "50%", background: "var(--paper)", border: "1.5px solid var(--ink)", display: "grid", placeItems: "center", fontWeight: 800, fontSize: "16px", marginBottom: "16px" }}>
               01
             </div>
-            <h3 style={{ margin: "0 0 8px", fontSize: "20px" }}>แคปหน้าจอโปรไฟล์</h3>
+            <h3 style={{ margin: "0 0 8px", fontSize: "20px" }}>แคปหน้าจอ หรือใส่ชื่อโปรไฟล์</h3>
             <p style={{ margin: 0, color: "var(--muted)", fontSize: "14px", lineHeight: 1.6 }}>
-              ถ่ายภาพหน้าจอโปรไฟล์ IG ของคุณ 1 ถึง 3 ภาพ (รองรับทั้งมือถือ/แท็บเล็ต, คนมีรูปน้อย หรือบัญชีไม่มีโพสต์/Private)
+              ถ่ายภาพหน้าจอโปรไฟล์ IG ให้เห็นชื่อบัญชีและรูปโพสต์ หรือกรอกชื่อ @handle (รองรับทั้งมือถือ แท็บเล็ต บัญชี Private หรือคนที่มีรูปน้อย)
             </p>
           </div>
 
@@ -376,9 +376,9 @@ export default function HomePage({
             <div style={{ width: "42px", height: "42px", borderRadius: "50%", background: "var(--acid)", border: "1.5px solid var(--ink)", display: "grid", placeItems: "center", fontWeight: 800, fontSize: "16px", marginBottom: "16px" }}>
               02
             </div>
-            <h3 style={{ margin: "0 0 8px", fontSize: "20px" }}>AI สกัดโทนสีและ Vibe</h3>
+            <h3 style={{ margin: "0 0 8px", fontSize: "20px" }}>AI สกัด Color DNA & วิเคราะห์ Vibe</h3>
             <p style={{ margin: 0, color: "var(--muted)", fontSize: "14px", lineHeight: 1.6 }}>
-              โมเดลตรวจจับวัตถุตัดเฉพาะรูปโพสต์จริงรายใบ และสกัด Color DNA จากพิกเซลจริง พร้อมให้ AI คิดฉายา Persona ในไม่กี่วินาที
+              ระบบตัดเฉพาะรูปโพสต์จริงรายใบเพื่อสกัดชุดสี Color DNA จากพิกเซล ประเมินคะแนน Aesthetic ฟีด และให้ AI คิดฉายา Persona ในไม่กี่วินาที
             </p>
           </div>
 
@@ -386,9 +386,9 @@ export default function HomePage({
             <div style={{ width: "42px", height: "42px", borderRadius: "50%", background: "var(--purple)", color: "white", border: "1.5px solid var(--ink)", display: "grid", placeItems: "center", fontWeight: 800, fontSize: "16px", marginBottom: "16px" }}>
               03
             </div>
-            <h3 style={{ margin: "0 0 8px", fontSize: "20px" }}>รับการ์ดแชร์ลง Story</h3>
+            <h3 style={{ margin: "0 0 8px", fontSize: "20px" }}>เปิดดู Wrapped & แชร์ลง IG Story</h3>
             <p style={{ margin: 0, color: "var(--muted)", fontSize: "14px", lineHeight: 1.6 }}>
-              ดาวน์โหลดการ์ดอัตราส่วน 9:16 ที่ปรับแต่งได้เพื่อแชร์ลง Instagram Story หรือกดคัดลอก Bio Remix
+              สัมผัสประสบการณ์แบบ Spotify Story Player เลื่อนดูทีละหน้า หรือบันทึกการ์ด 9:16 สุดชิค ปรับแต่งรูปและข้อความได้อิสระก่อนแชร์อวดเพื่อน
             </p>
           </div>
         </div>
