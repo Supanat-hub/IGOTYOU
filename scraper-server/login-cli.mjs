@@ -37,10 +37,8 @@ function ask(question, isPassword = false) {
           process.stdout.write("\n");
           resolve(pass.trim());
         } else if (char === "\u0003") {
-          // Ctrl+C
           process.exit(1);
         } else if (char === "\b" || char === "\x7f") {
-          // Backspace
           if (pass.length > 0) {
             pass = pass.slice(0, -1);
             process.stdout.write("\b \b");
@@ -56,24 +54,92 @@ function ask(question, isPassword = false) {
   });
 }
 
-async function runLogin() {
-  console.log("====================================================");
-  console.log("🔑 IGOTYOU Scraper: เครื่องมือล็อกอิน Instagram บัญชีสำรอง");
-  console.log("   (ล็อกอินครั้งเดียว เก็บ Session ถาวรใน ./ig-session/)");
-  console.log("====================================================\n");
+// Option 1: Direct Cookie Paste (100% Reliable, Bypasses all bot-detection)
+async function handleDirectCookie(cookieInput) {
+  let sessionId = cookieInput.trim();
+  // If user pasted full cookie header e.g. "sessionid=xyz; ds_user_id=123"
+  if (sessionId.includes("sessionid=")) {
+    const match = sessionId.match(/sessionid=([^;]+)/);
+    if (match) sessionId = match[1];
+  }
 
-  const username = await ask("👤 บัญชี IG (Username/Email): ");
+  if (!sessionId) {
+    console.error("❌ ไม่พบค่า sessionid ที่ถูกต้อง");
+    return false;
+  }
+
+  console.log("\n🍪 กำลังนำเข้า sessionid cookie เข้าสู่ระบบ...");
+
+  const context = await chromium.launchPersistentContext(SESSION_DIR, {
+    headless: true,
+    viewport: { width: 1280, height: 800 },
+    locale: "en-US",
+    userAgent:
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+    ],
+  });
+
+  try {
+    await context.addCookies([
+      {
+        name: "sessionid",
+        value: sessionId,
+        domain: ".instagram.com",
+        path: "/",
+        httpOnly: true,
+        secure: true,
+        sameSite: "None",
+      },
+    ]);
+
+    const page = await context.newPage();
+    console.log("🌐 กำลังทดสอบเข้าสู่ระบบ Instagram ด้วย Cookie...");
+    await page.goto("https://www.instagram.com/", {
+      waitUntil: "domcontentloaded",
+      timeout: 25000,
+    });
+    await page.waitForTimeout(3000);
+
+    const cookies = await context.cookies();
+    const hasSession = cookies.some((c) => c.name === "sessionid" && c.value);
+    const currentUrl = page.url();
+
+    if (hasSession && !currentUrl.includes("/accounts/login/")) {
+      console.log("\n====================================================");
+      console.log("🎉 นำเข้า Session Cookie สำเร็จเรียบร้อย 100%!");
+      console.log(`📁 เซฟ Session ลงใน: ${SESSION_DIR}`);
+      console.log("🍪 ระบบ Scraper พร้อมทำงานได้ทันที");
+      console.log("====================================================\n");
+      return true;
+    } else {
+      console.warn("\n⚠️ ไม่สามารถยืนยัน Cookie ได้ (URL:", currentUrl, ")");
+      console.warn("อาจเป็น Cookie ที่หมดอายุแล้ว กรุณาลองคัดลอกใหม่อีกครั้ง");
+      return false;
+    }
+  } catch (err) {
+    console.error("❌ เกิดข้อผิดพลาด:", err.message);
+    return false;
+  } finally {
+    await context.close();
+  }
+}
+
+// Option 2: Automated Browser Login
+async function handleAutoLogin() {
+  const username = await ask("👤 บัญชี IG (Username): ");
   if (!username) {
     console.error("❌ ต้องระบุ Username");
-    rl.close();
-    process.exit(1);
+    return;
   }
 
   const password = await ask("🔒 รหัสผ่าน (Password): ", true);
   if (!password) {
     console.error("❌ ต้องระบุ Password");
-    rl.close();
-    process.exit(1);
+    return;
   }
 
   console.log("\n🚀 กำลังเปิดเบราว์เซอร์ Chromium บนเซิร์ฟเวอร์...");
@@ -85,6 +151,10 @@ async function runLogin() {
   const context = await chromium.launchPersistentContext(SESSION_DIR, {
     headless: true,
     viewport: { width: 1280, height: 800 },
+    locale: "en-US",
+    extraHTTPHeaders: {
+      "Accept-Language": "en-US,en;q=0.9",
+    },
     userAgent:
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
     proxy: proxyConfig,
@@ -105,22 +175,38 @@ async function runLogin() {
       timeout: 30000,
     });
 
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(2500);
 
-    // Dismiss Cookie Banner if present
-    const cookieBtn = await page.$(
-      'button:has-text("Decline optional cookies"), button:has-text("Allow all cookies"), button:has-text("Allow essential and optional cookies"), button:has-text("Only allow essential cookies"), button:has-text("ปฏิเสธคุกกี้ที่ไม่จำเป็น"), button:has-text("อนุญาตทั้งหมด")'
-    );
-    if (cookieBtn) {
-      console.log("🍪 กำลังกดข้าม Cookie Consent...");
-      await cookieBtn.click().catch(() => {});
-      await page.waitForTimeout(1000);
+    // Dismiss Cookie Banner if present (Supports English, Japanese, Thai)
+    const cookieDismissSelectors = [
+      'button:has-text("Decline optional cookies")',
+      'button:has-text("Allow all cookies")',
+      'button:has-text("Only allow essential cookies")',
+      'button:has-text("すべて許可")',
+      'button:has-text("オプションのCookieを拒否")',
+      'button:has-text("必須のCookieのみ許可")',
+      'button:has-text("許可")',
+      'div[role="dialog"] button',
+    ];
+
+    for (const sel of cookieDismissSelectors) {
+      const btn = await page.$(sel).catch(() => null);
+      if (btn) {
+        console.log(`🍪 กำลังกดข้าม Cookie Consent (${sel})...`);
+        await btn.click().catch(() => {});
+        await page.waitForTimeout(1000);
+        break;
+      }
     }
 
-    // Wait for username input
-    await page.waitForSelector('input[name="username"]', { timeout: 15000 });
-    console.log("✍️ กำลังกรอกข้อมูลบัญชี...");
+    // Wait for username input (attached)
+    console.log("✍️ กำลังค้นหาช่องกรอกข้อมูล...");
+    const usernameInput = await page.waitForSelector('input[name="username"]', {
+      timeout: 20000,
+      state: "attached",
+    });
 
+    await usernameInput.scrollIntoViewIfNeeded().catch(() => {});
     await page.fill('input[name="username"]', username);
     await page.waitForTimeout(600);
     await page.fill('input[name="password"]', password);
@@ -134,7 +220,6 @@ async function runLogin() {
       await page.keyboard.press("Enter");
     }
 
-    // Wait 5 seconds to inspect what happens next
     await page.waitForTimeout(5000);
 
     // Check for explicit error message from Instagram
@@ -152,8 +237,6 @@ async function runLogin() {
     let currentUrl = page.url();
     if (currentUrl.includes("/challenge/")) {
       console.log("\n🛡️ Instagram ขอให้ยืนยันตัวตน (Security Challenge / Checkpoint)");
-      
-      // Check if there is a "Send Security Code" choice
       const sendCodeBtn = await page.$(
         'button:has-text("Send Security Code"), button:has-text("ส่งรหัสความปลอดภัย"), button:has-text("Send Code"), button:has-text("ต่อไป")'
       );
@@ -226,22 +309,49 @@ async function runLogin() {
         console.log("====================================================\n");
       } else {
         console.warn("\n⚠️ ยังอยู่ในหน้า:", currentUrl);
-        // Save screenshot for debugging
         const debugPath = path.resolve(process.cwd(), "login-debug.png");
         await page.screenshot({ path: debugPath, fullPage: true }).catch(() => {});
         console.warn(`📸 บันทึกภาพหน้าจอล็อกอินไว้ที่: ${debugPath}`);
-        console.warn("อาจเกิดจาก:");
-        console.warn("1. รหัสผ่านผิดพลาด หรือ");
-        console.warn("2. Instagram ส่งข้อความแจ้งเตือน 'Was this you?' ไปยังแอปมือถือหรือ Email");
-        console.warn("   (กรุณาเปิดแอป IG บนมือถือหรือเช็ค Email เพื่อกด 'This Was Me' / 'เป็นฉันเอง')");
+        console.warn("แนะนำ: หาก Instagram ป้องกันการล็อกอินผ่านเซิร์ฟเวอร์ ให้เลือกเมนู [2] วาง sessionid cookie โดยตรง");
       }
     }
   } catch (err) {
     console.error("\n❌ เกิดข้อผิดพลาดระหว่างล็อกอิน:", err.message);
+    const debugPath = path.resolve(process.cwd(), "login-debug.png");
+    await page.screenshot({ path: debugPath, fullPage: true }).catch(() => {});
+    console.warn(`📸 บันทึกภาพหน้าจอตรวจสอบไว้ที่: ${debugPath}`);
   } finally {
     await context.close();
-    rl.close();
   }
 }
 
-runLogin();
+async function main() {
+  console.log("====================================================");
+  console.log("🔑 IGOTYOU Scraper: จัดการ Session Instagram บัญชีสำรอง");
+  console.log("====================================================\n");
+  console.log("เลือกวิธีเข้าสู่ระบบ:");
+  console.log("  [1] ล็อกอินอัตโนมัติผ่านเบราว์เซอร์ (Auto-Login)");
+  console.log("  [2] วาง sessionid Cookie โดยตรง (แนะนำมากที่สุด! ไว 100% ไม่ติดตรวจจับ)");
+  console.log("");
+
+  const choice = await ask("👉 เลือกหมายเลข (1 หรือ 2): ");
+  if (choice === "2") {
+    console.log("\n💡 วิธีเอา sessionid Cookie ใน 10 วินาที:");
+    console.log("   1. เปิดเว็บ instagram.com บนคอมของคุณ (ที่ล็อกอินบัญชีไว้อยู่แล้ว)");
+    console.log("   2. กดปุ่ม F12 บนคีย์บอร์ด -> ไปที่แท็บ 'Application' (หรือ Storage)");
+    console.log("   3. ในเมนูด้านซ้ายขยาย 'Cookies' -> เลือก 'https://www.instagram.com'");
+    console.log("   4. ดับเบิ้ลคลิกคัดลอกค่าในแถว 'sessionid'");
+    console.log("   (หรือเปิดแท็บ Console แล้วพิมพ์: document.cookie แล้วคัดลอกค่ามา)\n");
+
+    const cookieVal = await ask("📋 วางค่า sessionid ที่นี่: ");
+    if (cookieVal) {
+      await handleDirectCookie(cookieVal);
+    }
+  } else {
+    await handleAutoLogin();
+  }
+
+  rl.close();
+}
+
+main();

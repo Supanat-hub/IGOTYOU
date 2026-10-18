@@ -97,9 +97,13 @@ async function scrapeInstagramProfile(targetUsername) {
 
   const context = await chromium.launchPersistentContext(SESSION_DIR, {
     headless: true,
-    viewport: { width: 430, height: 932 },
+    viewport: { width: 1280, height: 800 },
+    locale: "en-US",
+    extraHTTPHeaders: {
+      "Accept-Language": "en-US,en;q=0.9",
+    },
     userAgent:
-      "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1",
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
     proxy: proxyConfig,
     args: [
       "--no-sandbox",
