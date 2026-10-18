@@ -50,25 +50,31 @@ sudo apt-get install -y \
     libgbm1 libasound2t64 libpango-1.0-0 libcairo2
 
 # 6. Install Cloudflare WARP (SOCKS5 Proxy เพื่อซ่อน Data Center IP)
-echo "🛡️ [6/7] กำลังติดตั้ง Cloudflare WARP..."
-curl -fsSL https://pkg.cloudflareclient.com/pubkey.gpg | sudo gpg --yes --dearmor --output /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg
-echo "deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/cloudflare-client.list
-sudo apt-get update -y
-sudo apt-get install -y cloudflare-warp
-
-# Configure WARP to Proxy mode (port 40000)
-echo "⚙️ ตั้งค่า WARP ในโหมด SOCKS5 Proxy (127.0.0.1:40000)..."
-warp-cli --accept-tos registration new || true
-warp-cli --accept-tos mode proxy
-warp-cli --accept-tos proxy port 40000
-warp-cli --accept-tos connect || true
+echo "🛡️ [6/7] กำลังติดตั้ง Cloudflare WARP (ถ้าสถาปัตยกรรมรองรับ)..."
+ARCH=$(uname -m)
+if [ "$ARCH" = "x86_64" ]; then
+    curl -fsSL https://pkg.cloudflareclient.com/pubkey.gpg | sudo gpg --yes --dearmor --output /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg || true
+    echo "deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/cloudflare-client.list || true
+    sudo apt-get update -y || true
+    sudo apt-get install -y cloudflare-warp || true
+    warp-cli --accept-tos registration new || true
+    warp-cli --accept-tos mode proxy || true
+    warp-cli --accept-tos proxy port 40000 || true
+    warp-cli --accept-tos connect || true
+else
+    echo "ℹ️ สถาปัตยกรรม CPU คือ $ARCH (ARM64) จะใช้ Direct Scraping โดยไม่ผ่าน WARP SOCKS5"
+fi
 
 # 7. Install Cloudflare Tunnel (cloudflared)
 echo "🚇 [7/7] กำลังติดตั้ง Cloudflare Tunnel (cloudflared)..."
 if ! command -v cloudflared &> /dev/null; then
-    curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cloudflared.deb
-    sudo dpkg -i cloudflared.deb
-    rm cloudflared.deb
+    if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
+        curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64.deb -o cloudflared.deb
+    else
+        curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cloudflared.deb
+    fi
+    sudo dpkg -i cloudflared.deb || sudo apt-get install -f -y
+    rm -f cloudflared.deb
 fi
 
 # Install npm packages in scraper-server
