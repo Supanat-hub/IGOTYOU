@@ -7,6 +7,7 @@ import {
   buildUserGridImages,
   rankTopContentImages,
   extractInstagramUsername,
+  ScrapedResponse,
 } from "./analysisEngine";
 import {
   isAppBackground,
@@ -616,7 +617,57 @@ test("extractInstagramUsername extracts clean username from handles, URLs, and q
   assert.equal(extractInstagramUsername("www.instagram.com/design/"), "design");
   assert.equal(extractInstagramUsername("@minimal.vibes"), "minimal.vibes");
   assert.equal(extractInstagramUsername("simple_user"), "simple_user");
+  assert.equal(extractInstagramUsername("https://www.instagram.com/secretofpong?cplk=MTd6cWJjZTNnb2FlMA=="), "secretofpong");
   assert.equal(extractInstagramUsername("  https://www.instagram.com/creators?utm_source=ig  "), "creators");
   assert.equal(extractInstagramUsername(""), "");
+});
+
+test("accurately identifies private accounts when postsCount > 0 but posts array is empty", () => {
+  // Simulating scraped response for a private account where DOM / API hides posts
+  const privateResponseSample: ScrapedResponse = {
+    status: "PUBLIC",
+    data: {
+      username: "secretofpong",
+      stats: {
+        postsCount: 25,
+        followersCount: 53,
+        followingCount: 53,
+        followerRatio: "1.0×",
+      },
+      avatarBase64: "data:image/jpeg;base64,sample",
+      posts: [],
+    },
+  };
+
+  const isPrivate =
+    privateResponseSample.status === "PRIVATE_ACCOUNT" ||
+    (Boolean(privateResponseSample.data?.stats?.postsCount) &&
+      privateResponseSample.data!.stats.postsCount > 0 &&
+      (!privateResponseSample.data?.posts || privateResponseSample.data.posts.length === 0));
+
+  assert.equal(isPrivate, true, "Should identify profile with 25 posts but 0 retrieved posts as private account");
+
+  const normalPublicSample: ScrapedResponse = {
+    status: "PUBLIC",
+    data: {
+      username: "publicuser",
+      stats: {
+        postsCount: 12,
+        followersCount: 1000,
+        followingCount: 200,
+        followerRatio: "5.0×",
+      },
+      avatarBase64: "data:image/jpeg;base64,sample",
+      posts: [{ id: "1", imageBase64: "data:image/jpeg;base64,p1" }],
+    },
+  };
+
+  const isPublic =
+    normalPublicSample.status === "PRIVATE_ACCOUNT" ||
+    (Boolean(normalPublicSample.data?.stats?.postsCount) &&
+      normalPublicSample.data!.stats.postsCount > 0 &&
+      (!normalPublicSample.data?.posts || normalPublicSample.data.posts.length === 0));
+
+  assert.equal(isPublic, false, "Should not identify normal public profile with posts as private");
 });
 

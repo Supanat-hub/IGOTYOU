@@ -140,6 +140,21 @@ export default async function handler(req: any, res: any) {
     clearTimeout(timeout);
 
     const data = await response.json().catch(() => null);
+
+    // Normalize: If scraper returned PUBLIC but postsCount > 0 and 0 posts exist, account is private
+    if (
+      data &&
+      data.status === "PUBLIC" &&
+      data.data?.stats?.postsCount > 0 &&
+      (!data.data?.posts || data.data.posts.length === 0)
+    ) {
+      data.status = "PRIVATE_ACCOUNT";
+      data.message = "🔒 บัญชีนี้ตั้งค่าเป็นส่วนตัว (Private Account) ทำให้ระบบไม่สามารถเข้าถึงรูปภาพได้";
+      if (data.data) {
+        data.data.isPrivate = true;
+      }
+    }
+
     res.statusCode = response.status;
     res.end(JSON.stringify(data || { error: "INVALID_RESPONSE", message: "ข้อมูลตอบกลับไม่ถูกต้อง" }));
   } catch (err: any) {

@@ -159,6 +159,20 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
 
     const responseData = await response.json().catch(() => null);
 
+    // Normalize: If scraper returned PUBLIC but postsCount > 0 and 0 posts exist, account is private
+    if (
+      responseData &&
+      responseData.status === "PUBLIC" &&
+      responseData.data?.stats?.postsCount > 0 &&
+      (!responseData.data?.posts || responseData.data.posts.length === 0)
+    ) {
+      responseData.status = "PRIVATE_ACCOUNT";
+      responseData.message = "🔒 บัญชีนี้ตั้งค่าเป็นส่วนตัว (Private Account) ทำให้ระบบไม่สามารถเข้าถึงรูปภาพได้";
+      if (responseData.data) {
+        responseData.data.isPrivate = true;
+      }
+    }
+
     return new Response(
       JSON.stringify(
         responseData || {

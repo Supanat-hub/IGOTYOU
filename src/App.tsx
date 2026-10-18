@@ -161,11 +161,21 @@ export default function App() {
         });
         return;
       }
-      if (res.status === "PRIVATE_ACCOUNT") {
+      const isPrivate =
+        res.status === "PRIVATE_ACCOUNT" ||
+        res.isPrivate === true ||
+        Boolean(res.data?.isPrivate) ||
+        (Boolean(res.data?.stats?.postsCount) &&
+          res.data!.stats.postsCount > 0 &&
+          (!res.data?.posts || res.data.posts.length === 0));
+
+      if (isPrivate) {
         setIsScrapingLoading(false);
         setIsScrapingMode(false);
         setScraperAlert({
-          message: "🔒 บัญชีนี้ตั้งค่าเป็นส่วนตัว (Private Account) ทำให้ระบบไม่สามารถเข้าถึงรูปภาพได้ แนะนำให้แคปภาพหน้าจอโปรไฟล์ของคุณ แล้วสลับไปใช้วิธี 'อัปโหลดภาพ' แทน",
+          message:
+            res.message ||
+            "🔒 บัญชีนี้ตั้งค่าเป็นส่วนตัว (Private Account) ทำให้ระบบไม่สามารถเข้าถึงรูปภาพได้ แนะนำให้แคปภาพหน้าจอโปรไฟล์ของคุณ แล้วสลับไปใช้วิธี 'อัปโหลดภาพ' แทน",
           allowFallback: true,
         });
         return;

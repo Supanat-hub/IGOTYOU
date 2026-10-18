@@ -18,6 +18,7 @@ export interface ScrapedProfileData {
   category?: string;
   externalUrl?: string;
   isVerified?: boolean;
+  isPrivate?: boolean;
   stats: {
     postsCount: number;
     followersCount: number;
@@ -775,6 +776,18 @@ export async function fetchScrapedProfile(username: string): Promise<ScrapedResp
       return { status: "NOT_FOUND", message: `ไม่พบบัญชี @${clean} ใน Instagram`, username: clean };
     }
     throw new Error(errorMsg);
+  }
+
+  // Normalize: If the profile has >0 posts according to stats, but 0 posts are returned, it is private
+  if (
+    json &&
+    json.status === "PUBLIC" &&
+    json.data?.stats?.postsCount > 0 &&
+    (!json.data?.posts || json.data.posts.length === 0)
+  ) {
+    json.status = "PRIVATE_ACCOUNT";
+    json.isPrivate = true;
+    json.message = "🔒 บัญชีนี้ตั้งค่าเป็นส่วนตัว (Private Account) ทำให้ระบบไม่สามารถเข้าถึงรูปภาพได้";
   }
 
   return json;

@@ -208,16 +208,18 @@ async function scrapeInstagramProfile(targetUsername) {
 
     // 2. Check for Private Account indicator
     const isPrivateDOM = await page.evaluate(() => {
-      const text = document.body?.innerText || "";
+      const text = (document.body?.innerText || "").toLowerCase();
       return (
-        text.includes("This Account is Private") ||
-        text.includes("This account is private") ||
-        text.includes("บัญชีนี้เป็นส่วนตัว")
+        text.includes("account is private") ||
+        text.includes("บัญชีนี้เป็นส่วนตัว") ||
+        text.includes("follow to see their photos") ||
+        text.includes("ติดตามเพื่อดูรูปภาพ") ||
+        !!document.querySelector("svg[aria-label*='Private' i], svg[aria-label*='ส่วนตัว' i]")
       );
     });
 
     const isPrivate =
-      capturedProfileJson?.is_private ?? isPrivateDOM;
+      capturedProfileJson?.is_private === true || isPrivateDOM;
 
     if (isPrivate) {
       // Extract whatever header stats are visible
@@ -378,6 +380,23 @@ async function scrapeInstagramProfile(targetUsername) {
         isVideo: p.isVideo,
         timestamp: 0,
       }));
+    }
+
+    // If account has posts registered, but no posts are visible/extractable, it is a private profile
+    if (finalPostsCount > 0 && targetPosts.length === 0) {
+      console.log(`[Scraper] Account @${cleanUsername} has ${finalPostsCount} posts but 0 visible. Flagging as PRIVATE_ACCOUNT.`);
+      return {
+        status: "PRIVATE_ACCOUNT",
+        message: "บัญชีนี้ตั้งค่าเป็นส่วนตัว (Private Account) ทำให้ระบบไม่สามารถเข้าถึงรูปภาพได้",
+        username: cleanUsername,
+        isPrivate: true,
+        stats: {
+          followersCount: finalFollowersCount,
+          followingCount: finalFollowingCount,
+          postsCount: finalPostsCount,
+          followerRatio,
+        },
+      };
     }
 
     // Download & optimize images using Playwright context to bypass CORS/hotlink protection
