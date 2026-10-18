@@ -34,6 +34,7 @@ interface HomePageProps {
   isScrapingLoading?: boolean;
   scraperAlert?: { message: string; allowFallback: boolean } | null;
   onClearScraperAlert?: () => void;
+  onLoadDemo?: () => void;
 }
 
 const MARQUEE_ITEMS = [
@@ -61,6 +62,7 @@ export default function HomePage({
   isScrapingLoading = false,
   scraperAlert = null,
   onClearScraperAlert,
+  onLoadDemo,
 }: HomePageProps) {
   const fileInput = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<"username" | "upload">("username");
@@ -131,15 +133,15 @@ export default function HomePage({
             )}
           </div>
 
-          {/* Test Mode Tab Switcher */}
+          {/* Test Mode Smooth Segmented Tab Switcher */}
           {isTestMode && (
-            <div className="flex border-b border-black/10 dark:border-white/10 mb-4 gap-2">
+            <div className="relative flex p-1 bg-black/[0.04] dark:bg-white/[0.06] rounded-xl mb-4 border border-black/5 dark:border-white/5 select-none">
               <button
                 type="button"
-                className={`pb-2.5 px-3 font-bold text-xs sm:text-sm transition-all border-b-2 flex items-center gap-1.5 cursor-pointer ${
+                className={`flex-1 py-2 px-3 font-bold text-xs sm:text-sm rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer ${
                   activeTab === "username"
-                    ? "border-purple text-purple"
-                    : "border-transparent text-muted hover:text-ink"
+                    ? "bg-white text-ink shadow-[0_2px_8px_rgba(0,0,0,0.08)] scale-[1.01]"
+                    : "text-muted hover:text-ink hover:bg-black/[0.02]"
                 }`}
                 onClick={() => {
                   setActiveTab("username");
@@ -147,14 +149,14 @@ export default function HomePage({
                 }}
               >
                 <InstagramIcon className="w-3.5 h-3.5" />
-                <span>ชื่อบัญชี / ลิงก์ IG</span>
+                <span>ชื่อบัญชี / Url</span>
               </button>
               <button
                 type="button"
-                className={`pb-2.5 px-3 font-bold text-xs sm:text-sm transition-all border-b-2 flex items-center gap-1.5 cursor-pointer ${
+                className={`flex-1 py-2 px-3 font-bold text-xs sm:text-sm rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer ${
                   activeTab === "upload"
-                    ? "border-purple text-purple"
-                    : "border-transparent text-muted hover:text-ink"
+                    ? "bg-white text-ink shadow-[0_2px_8px_rgba(0,0,0,0.08)] scale-[1.01]"
+                    : "text-muted hover:text-ink hover:bg-black/[0.02]"
                 }`}
                 onClick={() => {
                   setActiveTab("upload");
@@ -162,7 +164,7 @@ export default function HomePage({
                 }}
               >
                 <Upload className="w-3.5 h-3.5" />
-                <span>อัปโหลดภาพหน้าจอ</span>
+                <span>อัปโหลดภาพ</span>
               </button>
             </div>
           )}
@@ -208,7 +210,7 @@ export default function HomePage({
                         onClearScraperAlert?.();
                       }}
                     >
-                      สลับไปใช้วิธีอัปโหลดภาพหน้าจอแทน
+                      สลับไปใช้วิธีอัปโหลดภาพแทน
                     </button>
                   )}
                 </div>
@@ -312,6 +314,19 @@ export default function HomePage({
                 )}
               </button>
             </>
+          )}
+
+          {onLoadDemo && (
+            <div className="flex items-center justify-center mt-3 pt-3 border-t border-black/10 dark:border-white/10">
+              <button
+                type="button"
+                onClick={onLoadDemo}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-purple hover:underline cursor-pointer transition-opacity hover:opacity-85"
+              >
+                <Sparkles className="w-3.5 h-3.5 fill-purple text-purple" />
+                <span>ทดลองดูตัวอย่างผลลัพธ์ (Demo Preview) ทันที ✦</span>
+              </button>
+            </div>
           )}
 
           <p className="consent text-[11px] text-muted text-center mt-3 leading-relaxed">

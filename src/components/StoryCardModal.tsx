@@ -508,6 +508,7 @@ export default function StoryCardModal({
       role="dialog"
       aria-modal="true"
       aria-label="บันทึกการ์ด IG Story (9:16)"
+      className="modal-backdrop-animate"
       style={{
         position: "fixed",
         inset: 0,
@@ -526,6 +527,7 @@ export default function StoryCardModal({
       onClick={onClose}
     >
       <div
+        className="modal-dialog-animate"
         style={{
           display: "flex",
           flexDirection: isDesktop ? "row" : "column",

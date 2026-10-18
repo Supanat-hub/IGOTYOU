@@ -54,23 +54,39 @@ export default function App() {
   // Sync hash routing with browser history and redirect unanalyzed #wrapped to home
   useEffect(() => {
     const handleHashChange = () => {
-      const hash = window.location.hash.toLowerCase();
-      if (hash.includes("beta")) {
-        setShowBetaBanner(true);
-      }
-      if (hash === "#wrapped") {
-        if (!hasResult && !isAnalyzing && !hasResultRef.current && !isAnalyzingRef.current) {
-          window.location.hash = "";
-          setCurrentRoute("home");
-        } else {
-          setCurrentRoute("result");
+      const updateState = () => {
+        const hash = window.location.hash.toLowerCase();
+        if (hash.includes("beta")) {
+          setShowBetaBanner(true);
         }
-      } else if (hash === "#how-it-works") {
-        setCurrentRoute("how-it-works");
+        if (hash === "#demo") {
+          setResult(PRESETS.cafe);
+          setHasResult(true);
+          hasResultRef.current = true;
+          setCurrentRoute("result");
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          return;
+        }
+        if (hash === "#wrapped") {
+          if (!hasResult && !isAnalyzing && !hasResultRef.current && !isAnalyzingRef.current) {
+            window.location.hash = "";
+            setCurrentRoute("home");
+          } else {
+            setCurrentRoute("result");
+          }
+        } else if (hash === "#how-it-works") {
+          setCurrentRoute("how-it-works");
+        } else {
+          setCurrentRoute("home");
+        }
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      };
+
+      if (typeof document !== "undefined" && "startViewTransition" in document) {
+        document.startViewTransition(() => updateState());
       } else {
-        setCurrentRoute("home");
+        updateState();
       }
-      window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
     window.addEventListener("hashchange", handleHashChange);
@@ -80,6 +96,13 @@ export default function App() {
   // Initial check on mount
   useEffect(() => {
     const hash = window.location.hash.toLowerCase();
+    if (hash === "#demo") {
+      setResult(PRESETS.cafe);
+      setHasResult(true);
+      hasResultRef.current = true;
+      setCurrentRoute("result");
+      return;
+    }
     if (hash === "#wrapped" && !hasResult && !isAnalyzing && !hasResultRef.current && !isAnalyzingRef.current) {
       window.location.hash = "";
       setCurrentRoute("home");
@@ -87,11 +110,36 @@ export default function App() {
   }, [hasResult, isAnalyzing]);
 
   const navigateTo = (route: Route) => {
-    setCurrentRoute(route);
-    if (route === "result") window.location.hash = "wrapped";
-    else if (route === "how-it-works") window.location.hash = "how-it-works";
-    else window.location.hash = "";
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    const updateDOM = () => {
+      setCurrentRoute(route);
+      if (route === "result") window.location.hash = "wrapped";
+      else if (route === "how-it-works") window.location.hash = "how-it-works";
+      else window.location.hash = "";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+
+    if (typeof document !== "undefined" && "startViewTransition" in document) {
+      document.startViewTransition(() => updateDOM());
+    } else {
+      updateDOM();
+    }
+  };
+
+  const handleLoadDemo = () => {
+    const updateDOM = () => {
+      setResult(PRESETS.cafe);
+      setHasResult(true);
+      hasResultRef.current = true;
+      setCurrentRoute("result");
+      window.location.hash = "wrapped";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+
+    if (typeof document !== "undefined" && "startViewTransition" in document) {
+      document.startViewTransition(() => updateDOM());
+    } else {
+      updateDOM();
+    }
   };
 
   const handleAnalyze = async () => {
@@ -262,6 +310,7 @@ export default function App() {
           isScrapingLoading={isScrapingLoading}
           scraperAlert={scraperAlert}
           onClearScraperAlert={() => setScraperAlert(null)}
+          onLoadDemo={handleLoadDemo}
         />
       )}
 
