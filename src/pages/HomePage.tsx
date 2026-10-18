@@ -217,7 +217,7 @@ export default function HomePage({
                         onClearScraperAlert?.();
                       }}
                     >
-                      <span>👉 สลับไปใช้วิธีอัปโหลดภาพแทน (รองรับบัญชี Private 100%)</span>
+                      <span>สลับไปใช้วิธีอัปโหลดภาพแทน</span>
                     </button>
                   )}
                 </div>

@@ -175,7 +175,7 @@ export default function App() {
         setScraperAlert({
           message:
             res.message ||
-            "🔒 บัญชีนี้ตั้งค่าเป็นส่วนตัว (Private Account) ทำให้ระบบไม่สามารถเข้าถึงรูปภาพได้ แนะนำให้แคปภาพหน้าจอโปรไฟล์ของคุณ แล้วสลับไปใช้วิธี 'อัปโหลดภาพ' แทน",
+            "บัญชีนี้ตั้งค่าเป็นส่วนตัว (Private Account) ไม่สามารถเข้าถึงรูปภาพได้ สลับไปใช้วิธี 'อัปโหลดภาพ' แทน",
           allowFallback: true,
         });
         return;
