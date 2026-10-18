@@ -76,7 +76,7 @@ async function runLogin() {
     process.exit(1);
   }
 
-  console.log("\n🚀 กำลังเปิดเบราว์เซอร์ Headless Chromium บนเซิร์ฟเวอร์...");
+  console.log("\n🚀 กำลังเปิดเบราว์เซอร์ Chromium บนเซิร์ฟเวอร์...");
 
   const proxyConfig = process.env.WARP_PROXY
     ? { server: process.env.WARP_PROXY }
@@ -84,9 +84,9 @@ async function runLogin() {
 
   const context = await chromium.launchPersistentContext(SESSION_DIR, {
     headless: true,
-    viewport: { width: 430, height: 932 },
+    viewport: { width: 1280, height: 800 },
     userAgent:
-      "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1",
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
     proxy: proxyConfig,
     args: [
       "--no-sandbox",
@@ -104,6 +104,18 @@ async function runLogin() {
       waitUntil: "domcontentloaded",
       timeout: 30000,
     });
+
+    await page.waitForTimeout(2000);
+
+    // Dismiss Cookie Banner if present
+    const cookieBtn = await page.$(
+      'button:has-text("Decline optional cookies"), button:has-text("Allow all cookies"), button:has-text("Allow essential and optional cookies"), button:has-text("Only allow essential cookies"), button:has-text("ปฏิเสธคุกกี้ที่ไม่จำเป็น"), button:has-text("อนุญาตทั้งหมด")'
+    );
+    if (cookieBtn) {
+      console.log("🍪 กำลังกดข้าม Cookie Consent...");
+      await cookieBtn.click().catch(() => {});
+      await page.waitForTimeout(1000);
+    }
 
     // Wait for username input
     await page.waitForSelector('input[name="username"]', { timeout: 15000 });
@@ -125,18 +137,45 @@ async function runLogin() {
     // Wait 5 seconds to inspect what happens next
     await page.waitForTimeout(5000);
 
-    // Check if 2FA verification is requested
+    // Check for explicit error message from Instagram
+    const alertMsg = await page
+      .$eval(
+        '#slfErrorAlert, [role="alert"], div[aria-label="Alert"]',
+        (el) => el.textContent.trim()
+      )
+      .catch(() => null);
+    if (alertMsg) {
+      console.log(`\n🚨 Instagram แจ้งข้อความ: "${alertMsg}"`);
+    }
+
+    // Check if challenge / checkpoint page
+    let currentUrl = page.url();
+    if (currentUrl.includes("/challenge/")) {
+      console.log("\n🛡️ Instagram ขอให้ยืนยันตัวตน (Security Challenge / Checkpoint)");
+      
+      // Check if there is a "Send Security Code" choice
+      const sendCodeBtn = await page.$(
+        'button:has-text("Send Security Code"), button:has-text("ส่งรหัสความปลอดภัย"), button:has-text("Send Code"), button:has-text("ต่อไป")'
+      );
+      if (sendCodeBtn) {
+        console.log("📨 กำลังกดขอรับรหัสยืนยันความปลอดภัย...");
+        await sendCodeBtn.click().catch(() => {});
+        await page.waitForTimeout(3000);
+      }
+    }
+
+    // Check if 2FA or Security Code verification input is requested
     const twoFactorInput = await page.$(
-      'input[name="verificationCode"], input[aria-label*="Security Code"], input[placeholder*="Security Code"]'
+      'input[name="verificationCode"], input[name="security_code"], input[aria-label*="Security Code"], input[placeholder*="Security Code"], input[type="tel"]'
     );
     if (twoFactorInput) {
-      console.log("\n🛡️ Instagram ตรวจพบการเปิดระบบ 2FA / รหัสยืนยันความปลอดภัย");
-      const code = await ask("🔢 กรุณากรอกรหัส 2FA (6 หลัก): ");
+      console.log("\n🛡️ Instagram ต้องการรหัสยืนยันความปลอดภัย 6 หลัก (จาก SMS/Email/2FA)");
+      const code = await ask("🔢 กรุณากรอกรหัสยืนยัน (6 หลัก): ");
       await twoFactorInput.fill(code);
       await page.waitForTimeout(500);
 
       const confirmBtn = await page.$(
-        'button:has-text("Confirm"), button:has-text("Submit"), button[type="button"]'
+        'button:has-text("Confirm"), button:has-text("Submit"), button[type="button"], button[type="submit"]'
       );
       if (confirmBtn) {
         await confirmBtn.click();
@@ -148,20 +187,20 @@ async function runLogin() {
 
     // Check for "Save Your Login Info" prompt
     const saveInfoBtn = await page.$(
-      'button:has-text("Save Info"), button:has-text("Save info"), button:has-text("บันทึกข้อมูล")'
+      'button:has-text("Save Info"), button:has-text("Save info"), button:has-text("บันทึกข้อมูล"), button:has-text("Save information")'
     );
     if (saveInfoBtn) {
       console.log("💾 กดบันทึกข้อมูลการเข้าสู่ระบบ (Save Login Info)...");
-      await saveInfoBtn.click();
+      await saveInfoBtn.click().catch(() => {});
       await page.waitForTimeout(3000);
     }
 
     // Check for "Turn on Notifications" prompt
     const notNowBtn = await page.$(
-      'button:has-text("Not Now"), button:has-text("ไม่ใช่ตอนนี้")'
+      'button:has-text("Not Now"), button:has-text("ไม่ใช่ตอนนี้"), button:has-text("Not now")'
     );
     if (notNowBtn) {
-      await notNowBtn.click();
+      await notNowBtn.click().catch(() => {});
       await page.waitForTimeout(2000);
     }
 
@@ -176,8 +215,7 @@ async function runLogin() {
       console.log("🍪 พบ sessionid Token เรียบร้อยแล้ว (จะต่ออายุอัตโนมัติ)");
       console.log("====================================================\n");
     } else {
-      // Check current URL or page title
-      const currentUrl = page.url();
+      currentUrl = page.url();
       if (
         !currentUrl.includes("/accounts/login/") &&
         !currentUrl.includes("challenge")
@@ -187,9 +225,15 @@ async function runLogin() {
         console.log(`📁 เซฟ Session ลงใน: ${SESSION_DIR}`);
         console.log("====================================================\n");
       } else {
-        console.warn("\n⚠️ คำเตือน: ยังอยู่ในหน้า", currentUrl);
-        console.warn("อาจเกิดจากรหัสผ่านผิด หรือ Instagram ขอให้กดยืนยันตัวตนในแอปมือถือ");
-        console.warn("กรุณาเปิดแอป IG บนมือถือเพื่อกด 'This was me' หรือลองล็อกอินใหม่อีกครั้ง");
+        console.warn("\n⚠️ ยังอยู่ในหน้า:", currentUrl);
+        // Save screenshot for debugging
+        const debugPath = path.resolve(process.cwd(), "login-debug.png");
+        await page.screenshot({ path: debugPath, fullPage: true }).catch(() => {});
+        console.warn(`📸 บันทึกภาพหน้าจอล็อกอินไว้ที่: ${debugPath}`);
+        console.warn("อาจเกิดจาก:");
+        console.warn("1. รหัสผ่านผิดพลาด หรือ");
+        console.warn("2. Instagram ส่งข้อความแจ้งเตือน 'Was this you?' ไปยังแอปมือถือหรือ Email");
+        console.warn("   (กรุณาเปิดแอป IG บนมือถือหรือเช็ค Email เพื่อกด 'This Was Me' / 'เป็นฉันเอง')");
       }
     }
   } catch (err) {
