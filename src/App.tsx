@@ -12,17 +12,11 @@ import { PRESETS, AnalysisResult, analyzeProfile, fetchScrapedProfile, analyzeSc
 type Route = "home" | "result" | "how-it-works";
 
 export default function App() {
-  const [isTestMode, setIsTestMode] = useState<boolean>(() => {
+  const [isTestMode, setIsTestMode] = useState<boolean>(true);
+  const [showBetaBanner, setShowBetaBanner] = useState<boolean>(() => {
     const hash = window.location.hash.toLowerCase();
     const search = window.location.search.toLowerCase();
-    const path = window.location.pathname.toLowerCase();
-    return (
-      hash.includes("test-scraper") ||
-      hash.includes("beta") ||
-      search.includes("test=1") ||
-      search.includes("beta=1") ||
-      path.includes("test-scraper")
-    );
+    return hash.includes("beta") || search.includes("beta");
   });
 
   const [currentRoute, setCurrentRoute] = useState<Route>(() => {
@@ -61,12 +55,12 @@ export default function App() {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.toLowerCase();
-      if (hash.includes("test-scraper") || hash.includes("beta")) {
-        setIsTestMode(true);
+      if (hash.includes("beta")) {
+        setShowBetaBanner(true);
       }
       if (hash === "#wrapped") {
         if (!hasResult && !isAnalyzing && !hasResultRef.current && !isAnalyzingRef.current) {
-          window.location.hash = isTestMode ? "test-scraper" : "";
+          window.location.hash = "";
           setCurrentRoute("home");
         } else {
           setCurrentRoute("result");
@@ -81,25 +75,22 @@ export default function App() {
 
     window.addEventListener("hashchange", handleHashChange);
     return () => window.removeEventListener("hashchange", handleHashChange);
-  }, [hasResult, isAnalyzing, isTestMode]);
+  }, [hasResult, isAnalyzing]);
 
   // Initial check on mount
   useEffect(() => {
     const hash = window.location.hash.toLowerCase();
-    if (hash.includes("test-scraper") || hash.includes("beta")) {
-      setIsTestMode(true);
-    }
     if (hash === "#wrapped" && !hasResult && !isAnalyzing && !hasResultRef.current && !isAnalyzingRef.current) {
-      window.location.hash = isTestMode ? "test-scraper" : "";
+      window.location.hash = "";
       setCurrentRoute("home");
     }
-  }, [hasResult, isAnalyzing, isTestMode]);
+  }, [hasResult, isAnalyzing]);
 
   const navigateTo = (route: Route) => {
     setCurrentRoute(route);
     if (route === "result") window.location.hash = "wrapped";
     else if (route === "how-it-works") window.location.hash = "how-it-works";
-    else window.location.hash = isTestMode ? "test-scraper" : "";
+    else window.location.hash = "";
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -194,7 +185,7 @@ export default function App() {
       <InAppBrowserModal />
 
       {/* Beta Test Environment Indicator Bar */}
-      {isTestMode && (
+      {showBetaBanner && (
         <div className="bg-purple text-white px-3 sm:px-4 py-2 text-xs font-bold border-b border-black/20 shadow-sm sticky top-0 z-[100]">
           <div className="shell flex items-center justify-between gap-2">
             <span className="flex items-center gap-1.5 truncate">
@@ -206,12 +197,12 @@ export default function App() {
             </span>
             <button
               onClick={() => {
-                setIsTestMode(false);
+                setShowBetaBanner(false);
                 window.location.hash = "";
               }}
               className="text-[11px] underline hover:text-acid cursor-pointer shrink-0 font-medium transition-colors"
             >
-              สลับกลับโหมดปกติ
+              ซ่อนแถบแจ้งเตือน
             </button>
           </div>
         </div>

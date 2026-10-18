@@ -2,3 +2,16 @@ node_modules/
 ig-session/
 .env
 *.log
+*.png
+*.jpg
+*.jpeg
+*.pem
+*.key
+*-debug.*
+otp-*.*
+codeentry-*.*
+step4-*.*
+auto-debug-*.*
+test-*.*
+check-*.*
+inspect-*.*

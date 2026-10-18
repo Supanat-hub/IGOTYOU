@@ -32,7 +32,7 @@ export default function HomePage({
   files,
   isDragging,
   isAnalyzing,
-  isTestMode = false,
+  isTestMode = true,
   onFilesChange,
   onDragStateChange,
   onAnalyze,

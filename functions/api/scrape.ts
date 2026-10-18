@@ -5,10 +5,15 @@ interface Env {
   SCRAPER_API_SECRET?: string;
 }
 
-// In-memory rate limiter per IP: max 10 requests per minute
+// In-memory rate limiter per IP: max 10 requests per minute with active cleanup
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 function checkRateLimit(ip: string, limit = 10, windowMs = 60000): boolean {
   const now = Date.now();
+  if (rateLimitMap.size > 500) {
+    for (const [key, val] of rateLimitMap.entries()) {
+      if (now > val.resetTime) rateLimitMap.delete(key);
+    }
+  }
   const record = rateLimitMap.get(ip);
   if (!record || now > record.resetTime) {
     rateLimitMap.set(ip, { count: 1, resetTime: now + windowMs });
@@ -21,26 +26,51 @@ function checkRateLimit(ip: string, limit = 10, windowMs = 60000): boolean {
   return true;
 }
 
-export const onRequestOptions = async () => {
+function getCorsOrigin(request: Request): string {
+  const origin = request.headers.get("origin") || "";
+  if (!origin) return "";
+  if (
+    origin === "https://plazedez.online" ||
+    origin === "https://www.plazedez.online" ||
+    origin.endsWith(".pages.dev") ||
+    origin.startsWith("http://localhost:") ||
+    origin.startsWith("http://127.0.0.1:")
+  ) {
+    return origin;
+  }
+  return "";
+}
+
+export const onRequestOptions = async (context: { request: Request }) => {
+  const allowOrigin = getCorsOrigin(context.request);
+  const headers: Record<string, string> = {
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+  };
+  if (allowOrigin) {
+    headers["Access-Control-Allow-Origin"] = allowOrigin;
+    headers["Vary"] = "Origin";
+  }
   return new Response(null, {
     status: 204,
-    headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
-    },
+    headers,
   });
 };
 
 export const onRequestPost = async (context: { request: Request; env: Env }) => {
   const { request, env } = context;
 
-  const securityHeaders = {
+  const allowOrigin = getCorsOrigin(request);
+  const securityHeaders: Record<string, string> = {
     "Content-Type": "application/json",
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "SAMEORIGIN",
     "Referrer-Policy": "strict-origin-when-cross-origin",
   };
+  if (allowOrigin) {
+    securityHeaders["Access-Control-Allow-Origin"] = allowOrigin;
+    securityHeaders["Vary"] = "Origin";
+  }
 
   const clientIp = request.headers.get("cf-connecting-ip") || "127.0.0.1";
   if (!checkRateLimit(clientIp)) {
@@ -82,7 +112,17 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
   const scraperUrl =
     env.SCRAPER_ENDPOINT_URL ||
     "https://ig-scraper.plazedez.online";
-  const scraperSecret = env.SCRAPER_API_SECRET || "igotyou_secret_dev_2026";
+  const scraperSecret = env.SCRAPER_API_SECRET || "";
+
+  if (!scraperSecret) {
+    return new Response(
+      JSON.stringify({
+        error: "CONFIGURATION_ERROR",
+        message: "ระบบ Scraper ยังไม่ได้ตั้งค่าความปลอดภัย (SCRAPER_API_SECRET) กรุณาสลับไปใช้วิธีอัปโหลดภาพหน้าจอ",
+      }),
+      { status: 500, headers: securityHeaders }
+    );
+  }
 
   if (!scraperUrl) {
     return new Response(

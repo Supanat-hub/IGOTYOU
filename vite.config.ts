@@ -23,7 +23,7 @@ function checkRateLimit(ip: string, limit = 12, windowMs = 60000): boolean {
 function geminiAnalyzeProxyPlugin(
   apiKey: string,
   scraperEndpointUrl = "https://ig-scraper.plazedez.online",
-  scraperApiSecret = "igotyou_secret_dev_2026"
+  scraperApiSecret = ""
 ): Plugin {
   const handler = async (req: any, res: any) => {
     // Standard security headers
@@ -53,7 +53,7 @@ function geminiAnalyzeProxyPlugin(
           const scraperSecret =
             scraperApiSecret ||
             process.env.SCRAPER_API_SECRET ||
-            "igotyou_secret_dev_2026";
+            "";
 
           const targetUrl = scraperUrl.endsWith("/api/scrape")
             ? scraperUrl
@@ -442,11 +442,11 @@ export default defineConfig(({ mode }) => {
   const scraperUrl =
     env.SCRAPER_ENDPOINT_URL ||
     process.env.SCRAPER_ENDPOINT_URL ||
-    "https://analysis-sleeve-manager-consideration.trycloudflare.com";
+    "https://ig-scraper.plazedez.online";
   const scraperSecret =
     env.SCRAPER_API_SECRET ||
     process.env.SCRAPER_API_SECRET ||
-    "igotyou_secret_dev_2026";
+    "";
 
   return {
     plugins: [

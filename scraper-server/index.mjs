@@ -6,6 +6,7 @@ import fs from "node:fs";
 import { LRUCache } from "lru-cache";
 import { chromium } from "playwright";
 import sharp from "sharp";
+import crypto from "node:crypto";
 
 dotenv.config();
 
@@ -26,8 +27,50 @@ const cache = new LRUCache({
 });
 
 const app = express();
-app.use(cors());
+
+// Security: Restrict CORS to trusted origins
+const allowedOrigins = [
+  "https://plazedez.online",
+  "https://ig-scraper.plazedez.online",
+  /^https:\/\/[a-z0-9-]+\.pages\.dev$/,
+  /^https:\/\/[a-z0-9-]+\.vercel\.app$/,
+  /^http:\/\/localhost(:\d+)?$/,
+];
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      const isAllowed = allowedOrigins.some((allowed) =>
+        typeof allowed === "string" ? allowed === origin : allowed.test(origin)
+      );
+      if (isAllowed) return callback(null, true);
+      return callback(new Error("CORS policy violation"), false);
+    },
+  })
+);
 app.use(express.json({ limit: "1mb" }));
+
+// Helper: Validate image URLs to protect against SSRF
+function isSafeImageUrl(rawUrl) {
+  if (!rawUrl || typeof rawUrl !== "string") return false;
+  try {
+    const parsed = new URL(rawUrl);
+    if (parsed.protocol !== "https:") return false;
+    const hostname = parsed.hostname.toLowerCase();
+    // Allow legitimate Instagram and Facebook CDN domains
+    if (
+      hostname.endsWith(".cdninstagram.com") ||
+      hostname.endsWith(".fbcdn.net") ||
+      hostname.endsWith(".instagram.com") ||
+      hostname === "instagram.com"
+    ) {
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
 
 // Helper: parse human formatted numbers (e.g. "12.4K", "1.2M", "1,450" -> 12400)
 function parseStatNumber(raw) {
@@ -61,12 +104,18 @@ async function optimizeImageToBase64(buffer, maxWidth = 400) {
   }
 }
 
-// Concurrency Queue: Execute one scraping task at a time
+// Concurrency Queue: Execute one scraping task at a time (bounded max length)
+const MAX_QUEUE_LENGTH = 6;
 let isScrapingBusy = false;
 const queue = [];
 
 function enqueueScrape(task) {
   return new Promise((resolve, reject) => {
+    if (queue.length >= MAX_QUEUE_LENGTH) {
+      const err = new Error("คิวการดึงข้อมูลเต็มชั่วคราว กรุณารอสักครู่แล้วลองใหม่อีกครั้ง");
+      err.code = "QUEUE_FULL";
+      return reject(err);
+    }
     queue.push({ task, resolve, reject });
     processQueue();
   });
@@ -335,7 +384,7 @@ async function scrapeInstagramProfile(targetUsername) {
     console.log(`[Scraper] Downloading & optimizing avatar + ${targetPosts.length} posts for @${cleanUsername}...`);
 
     let avatarBase64 = "";
-    if (finalAvatarUrl) {
+    if (finalAvatarUrl && isSafeImageUrl(finalAvatarUrl)) {
       try {
         const avatarRes = await page.request.get(finalAvatarUrl);
         if (avatarRes.ok()) {
@@ -349,7 +398,7 @@ async function scrapeInstagramProfile(targetUsername) {
 
     const processedPosts = [];
     for (const post of targetPosts) {
-      if (!post.imageUrl) continue;
+      if (!post.imageUrl || !isSafeImageUrl(post.imageUrl)) continue;
       try {
         const postRes = await page.request.get(post.imageUrl);
         if (postRes.ok()) {
@@ -394,12 +443,19 @@ async function scrapeInstagramProfile(targetUsername) {
   }
 }
 
-// Security Middleware: Validate SCRAPER_API_SECRET
+// Security Middleware: Validate SCRAPER_API_SECRET with constant-time comparison
 function requireAuth(req, res, next) {
-  if (!SCRAPER_API_SECRET) return next();
-  const authHeader = req.headers["x-scraper-secret"] || req.query.secret;
-  if (!authHeader || authHeader !== SCRAPER_API_SECRET) {
-    return res.status(401).json({ error: "Unauthorized: Invalid or missing x-scraper-secret" });
+  if (!SCRAPER_API_SECRET) {
+    return res.status(500).json({ error: "Server misconfiguration: SCRAPER_API_SECRET is required" });
+  }
+  const authHeader = req.headers["x-scraper-secret"];
+  if (!authHeader || typeof authHeader !== "string") {
+    return res.status(401).json({ error: "Unauthorized: Missing x-scraper-secret header" });
+  }
+  const expectedBuf = Buffer.from(SCRAPER_API_SECRET);
+  const actualBuf = Buffer.from(authHeader);
+  if (expectedBuf.length !== actualBuf.length || !crypto.timingSafeEqual(expectedBuf, actualBuf)) {
+    return res.status(401).json({ error: "Unauthorized: Invalid x-scraper-secret header" });
   }
   next();
 }
@@ -415,9 +471,9 @@ app.get("/health", (req, res) => {
   });
 });
 
-// Main Scrape Endpoint (Supports both POST and GET)
-app.all("/api/scrape", requireAuth, async (req, res) => {
-  const username = req.body?.username || req.query?.username;
+// Main Scrape Endpoint (Strictly POST with JSON body)
+app.post("/api/scrape", requireAuth, async (req, res) => {
+  const username = req.body?.username;
   if (!username || typeof username !== "string") {
     return res.status(400).json({ error: "กรุณาระบุ username ที่ต้องการดึงข้อมูล" });
   }
@@ -449,6 +505,12 @@ app.all("/api/scrape", requireAuth, async (req, res) => {
 
     return res.json(result);
   } catch (err) {
+    if (err.code === "QUEUE_FULL") {
+      return res.status(429).json({
+        error: "QUEUE_FULL",
+        message: err.message,
+      });
+    }
     console.error(`[Scraper Error] Failed for @${cleanUsername}:`, err);
     return res.status(500).json({
       error: "เกิดข้อผิดพลาดในการดึงข้อมูลโปรไฟล์",
@@ -457,10 +519,11 @@ app.all("/api/scrape", requireAuth, async (req, res) => {
   }
 });
 
-app.listen(PORT, "0.0.0.0", () => {
+// Bind exclusively to 127.0.0.1 for loopback Cloudflare Tunnel security
+app.listen(PORT, "127.0.0.1", () => {
   console.log("====================================================");
-  console.log(`🚀 IGOTYOU Scraper Server running on port ${PORT}`);
-  console.log(`🔒 Authentication: ${SCRAPER_API_SECRET ? "Enabled" : "Disabled"}`);
+  console.log(`🚀 IGOTYOU Scraper Server running on 127.0.0.1:${PORT}`);
+  console.log(`🔒 Authentication: Enforced (Constant-Time Token Check)`);
   console.log(`🌐 WARP Proxy: ${WARP_PROXY || "None"}`);
   console.log(`📁 Session directory: ${SESSION_DIR}`);
   console.log("====================================================");

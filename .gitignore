@@ -32,3 +32,9 @@ dist-ssr
 .agents/
 scratch/
 *.tsbuildinfo
+
+# Secrets & Sessions
+**/ig-session/
+*.pem
+*.key
+*-debug.png
