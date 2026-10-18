@@ -22,7 +22,7 @@ function checkRateLimit(ip: string, limit = 12, windowMs = 60000): boolean {
 
 function geminiAnalyzeProxyPlugin(
   apiKey: string,
-  scraperEndpointUrl = "https://analysis-sleeve-manager-consideration.trycloudflare.com",
+  scraperEndpointUrl = "https://ig-scraper.plazedez.online",
   scraperApiSecret = "igotyou_secret_dev_2026"
 ): Plugin {
   const handler = async (req: any, res: any) => {
@@ -49,7 +49,7 @@ function geminiAnalyzeProxyPlugin(
           const scraperUrl =
             scraperEndpointUrl ||
             process.env.SCRAPER_ENDPOINT_URL ||
-            "https://analysis-sleeve-manager-consideration.trycloudflare.com";
+            "https://ig-scraper.plazedez.online";
           const scraperSecret =
             scraperApiSecret ||
             process.env.SCRAPER_API_SECRET ||

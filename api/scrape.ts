@@ -38,7 +38,7 @@ export default async function handler(req: any, res: any) {
 
   const scraperUrl =
     process.env.SCRAPER_ENDPOINT_URL ||
-    "https://analysis-sleeve-manager-consideration.trycloudflare.com";
+    "https://ig-scraper.plazedez.online";
   const scraperSecret =
     process.env.SCRAPER_API_SECRET || "igotyou_secret_dev_2026";
 
