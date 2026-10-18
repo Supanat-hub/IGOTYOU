@@ -224,13 +224,19 @@ async function handleAutoLogin() {
     await page.waitForTimeout(600);
 
     console.log("📤 กำลังส่งคำขอล็อกอิน...");
-    const submitBtn = await page.$(
-      'button[type="submit"], input[type="submit"], button:has-text("Log in"), button:has-text("เข้าสู่ระบบ")'
+    const loginBtn = await page.$(
+      'div[role="button"][aria-label*="Log In" i], div[role="button"]:has-text("Log in"), div[role="button"]:has-text("Log In"), button[type="submit"]'
     );
-    if (submitBtn) {
-      await submitBtn.click();
+    if (loginBtn) {
+      try {
+        await loginBtn.click({ timeout: 5000 });
+      } catch {
+        console.log("⌨️ ส่งคำขอด้วยการกดปุ่ม Enter...");
+        await passwordInput.press("Enter");
+      }
     } else {
-      await page.keyboard.press("Enter");
+      console.log("⌨️ ส่งคำขอด้วยการกดปุ่ม Enter...");
+      await passwordInput.press("Enter");
     }
 
     await page.waitForTimeout(5000);
