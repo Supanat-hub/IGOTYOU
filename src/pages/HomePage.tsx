@@ -352,7 +352,7 @@ export default function HomePage({
 
       {/* 3 Step Feature Highlights */}
       <section className="shell" style={{ paddingBlock: "80px 100px" }}>
-        <div style={{ textAlign: "center", marginBottom: "48px" }}>
+        <div style={{ textAlign: "center", marginBottom: "48px" }} className="scroll-reveal-item">
           <span style={{ font: "700 11px/1.2 Manrope, sans-serif", letterSpacing: "0.14em", color: "var(--purple)", textTransform: "uppercase" }}>
             HOW IT WORKS
           </span>
@@ -362,7 +362,7 @@ export default function HomePage({
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "20px" }}>
-          <div style={{ background: "var(--white)", border: "2px solid var(--ink)", borderRadius: "20px", padding: "28px", boxShadow: "6px 6px 0 var(--ink)" }}>
+          <div className="scroll-reveal-item scroll-reveal-stagger-1" style={{ background: "var(--white)", border: "2px solid var(--ink)", borderRadius: "20px", padding: "28px", boxShadow: "6px 6px 0 var(--ink)" }}>
             <div style={{ width: "42px", height: "42px", borderRadius: "50%", background: "var(--paper)", border: "1.5px solid var(--ink)", display: "grid", placeItems: "center", fontWeight: 800, fontSize: "16px", marginBottom: "16px" }}>
               01
             </div>
@@ -372,7 +372,7 @@ export default function HomePage({
             </p>
           </div>
 
-          <div style={{ background: "var(--white)", border: "2px solid var(--ink)", borderRadius: "20px", padding: "28px", boxShadow: "6px 6px 0 var(--ink)" }}>
+          <div className="scroll-reveal-item scroll-reveal-stagger-2" style={{ background: "var(--white)", border: "2px solid var(--ink)", borderRadius: "20px", padding: "28px", boxShadow: "6px 6px 0 var(--ink)" }}>
             <div style={{ width: "42px", height: "42px", borderRadius: "50%", background: "var(--acid)", border: "1.5px solid var(--ink)", display: "grid", placeItems: "center", fontWeight: 800, fontSize: "16px", marginBottom: "16px" }}>
               02
             </div>
@@ -382,7 +382,7 @@ export default function HomePage({
             </p>
           </div>
 
-          <div style={{ background: "var(--white)", border: "2px solid var(--ink)", borderRadius: "20px", padding: "28px", boxShadow: "6px 6px 0 var(--ink)" }}>
+          <div className="scroll-reveal-item scroll-reveal-stagger-3" style={{ background: "var(--white)", border: "2px solid var(--ink)", borderRadius: "20px", padding: "28px", boxShadow: "6px 6px 0 var(--ink)" }}>
             <div style={{ width: "42px", height: "42px", borderRadius: "50%", background: "var(--purple)", color: "white", border: "1.5px solid var(--ink)", display: "grid", placeItems: "center", fontWeight: 800, fontSize: "16px", marginBottom: "16px" }}>
               03
             </div>

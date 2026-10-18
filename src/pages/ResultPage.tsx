@@ -888,7 +888,7 @@ export default function ResultPage({
           </div>
 
           {/* Bottom CTA to Action or Back */}
-          <div className="mt-12 text-center flex justify-center gap-3 flex-wrap">
+          <div className="mt-12 text-center flex justify-center gap-3 flex-wrap scroll-reveal-item">
             <button
               onClick={onOpenStoryModal}
               className="bg-ink text-acid border-2 border-ink rounded-xl px-7 py-3.5 text-sm font-extrabold cursor-pointer shadow-[4px_4px_0_var(--ink)] inline-flex items-center gap-2 hover:bg-purple hover:text-white transition-all"

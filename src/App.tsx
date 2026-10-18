@@ -206,6 +206,8 @@ export default function App() {
 
   return (
     <main>
+      {/* Scroll-Driven Top Progress Bar */}
+      <div className="scroll-progress-bar" aria-hidden="true" />
       <InAppBrowserModal />
 
       {/* Beta Test Environment Indicator Bar */}

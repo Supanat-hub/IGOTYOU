@@ -35,7 +35,7 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
       {/* Main Pillars Grid */}
       <div className="grid gap-7 max-w-[900px]">
         {/* Pillar 1: Scoring Algorithm */}
-        <div className="bg-white border-2 border-ink rounded-[20px] p-5 sm:p-8 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)]">
+        <div className="bg-white border-2 border-ink rounded-[20px] p-5 sm:p-8 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
           <div className="flex items-center gap-3 mb-3.5">
             <span className="w-8 h-8 rounded-full bg-acid border-1.5 border-ink grid place-items-center font-extrabold text-sm text-ink">
               01
@@ -107,7 +107,7 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
         </div>
 
         {/* Pillar 2: AI Top Content Ranking & Card Customization */}
-        <div className="bg-white border-2 border-ink rounded-[20px] p-5 sm:p-8 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)]">
+        <div className="bg-white border-2 border-ink rounded-[20px] p-5 sm:p-8 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
           <div className="flex items-center gap-3 mb-3.5">
             <span className="w-8 h-8 rounded-full bg-green text-white border-1.5 border-ink grid place-items-center font-extrabold text-sm">
               02
@@ -144,7 +144,7 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
         </div>
 
         {/* Pillar 3: Aesthetic Diversity & Non-Bias */}
-        <div className="bg-white border-2 border-ink rounded-[20px] p-5 sm:p-8 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)]">
+        <div className="bg-white border-2 border-ink rounded-[20px] p-5 sm:p-8 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
           <div className="flex items-center gap-3 mb-3.5">
             <span className="w-8 h-8 rounded-full bg-purple text-white border-1.5 border-ink grid place-items-center font-extrabold text-sm">
               03
@@ -162,7 +162,7 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
         </div>
 
         {/* Pillar 4: Privacy First */}
-        <div className="bg-white border-2 border-ink rounded-[20px] p-5 sm:p-8 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)]">
+        <div className="bg-white border-2 border-ink rounded-[20px] p-5 sm:p-8 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
           <div className="flex items-center gap-3 mb-3.5">
             <span className="w-8 h-8 rounded-full bg-orange text-white border-1.5 border-ink grid place-items-center font-extrabold text-sm">
               04
@@ -187,7 +187,7 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
       </div>
 
       {/* Bottom CTA */}
-      <div className="mt-12 text-left">
+      <div className="mt-12 text-left scroll-reveal-item">
         <button
           onClick={onBackToHome}
           className="primary-button inline-flex items-center justify-center gap-2 w-auto px-8 cursor-pointer"
