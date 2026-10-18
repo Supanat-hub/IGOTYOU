@@ -264,32 +264,35 @@ async function handleAutoLogin() {
       currentUrl.includes("two_factor")
     ) {
       console.log("\n🛡️ Instagram ขอให้ยืนยันตัวตนด้วยรหัสความปลอดภัย (OTP)");
-      console.log("   (ระบบได้ส่งรหัส 6 หลักไปยัง Email หรือ SMS หรือแอป IG ของคุณแล้ว)");
+      console.log("   (ระบบได้ส่งรหัส 6 หลักไปยัง Email ของคุณเรียบร้อยแล้ว)");
 
-      // Look for code input
+      // Look for code input (the single input on this page)
       const codeInput = await page
         .waitForSelector(
-          'input[inputmode="numeric"], input[name*="code" i], input[placeholder*="code" i], input[type="tel"], input[type="text"]',
+          'input[type="text"], input[name="email"], input',
           { timeout: 15000 }
         )
         .catch(() => null);
 
       if (codeInput) {
-        const code = await ask("\n🔢 กรุณากรอกรหัส OTP / Security Code (6 หลัก): ");
-        await codeInput.fill(code);
+        const code = await ask("\n🔢 กรุณากรอกรหัส OTP (6 หลักจาก Email): ");
+        await codeInput.fill(code.trim());
         await page.waitForTimeout(600);
 
-        const confirmBtn = await page.$(
-          'div[role="button"][aria-label*="Confirm" i], div[role="button"]:has-text("Confirm"), div[role="button"]:has-text("ยืนยัน"), button:has-text("Confirm"), button:has-text("Submit"), button[type="submit"]'
+        console.log("📤 กำลังกดปุ่ม Continue ส่งรหัส OTP...");
+        const continueBtn = await page.$(
+          'div[role="button"]:has-text("Continue"), div[role="button"]:has-text("ยืนยัน"), button:has-text("Continue")'
         );
-        if (confirmBtn) {
-          await confirmBtn.click().catch(() => {});
+        if (continueBtn) {
+          await continueBtn.click().catch(async () => {
+            await codeInput.press("Enter");
+          });
         } else {
           await codeInput.press("Enter");
         }
 
-        console.log("⏳ กำลังยืนยันรหัสความปลอดภัย...");
-        await page.waitForTimeout(7000);
+        console.log("⏳ กำลังตรวจสอบรหัส OTP และบันทึก Session...");
+        await page.waitForTimeout(8000);
       } else {
         console.warn("⚠️ ไม่พบช่องกรอกรหัส กรุณาเปิดแอป IG บนมือถือเพื่อกดยืนยัน 'This Was Me'");
       }
