@@ -93,40 +93,40 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mt-5 sm:mt-6 max-w-full">
           <div className="bg-white border-1.5 border-ink rounded-xl p-2.5 sm:p-3 text-center shadow-[3px_3px_0_var(--ink)] min-w-0">
             <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 text-green mx-auto mb-1 shrink-0" />
-            <div className="font-bold text-[11px] sm:text-xs text-ink truncate">Zero Retention</div>
-            <div className="text-[9px] sm:text-[10px] text-muted truncate">ไม่บันทึกภาพลงฐานข้อมูล</div>
+            <div className="font-bold text-[11px] sm:text-xs text-ink break-words leading-tight">Zero Retention</div>
+            <div className="text-[9px] sm:text-[10px] text-muted break-words leading-tight mt-0.5">ไม่บันทึกภาพลงฐานข้อมูล</div>
           </div>
           <div className="bg-white border-1.5 border-ink rounded-xl p-2.5 sm:p-3 text-center shadow-[3px_3px_0_var(--ink)] min-w-0">
             <EyeOff className="w-4 h-4 sm:w-5 sm:h-5 text-purple mx-auto mb-1 shrink-0" />
-            <div className="font-bold text-[11px] sm:text-xs text-ink truncate">No Biometrics</div>
-            <div className="text-[9px] sm:text-[10px] text-muted truncate">ไม่ประเมินใบหน้าบุคคล</div>
+            <div className="font-bold text-[11px] sm:text-xs text-ink break-words leading-tight">No Biometrics</div>
+            <div className="text-[9px] sm:text-[10px] text-muted break-words leading-tight mt-0.5">ไม่ประเมินใบหน้าบุคคล</div>
           </div>
           <div className="bg-white border-1.5 border-ink rounded-xl p-2.5 sm:p-3 text-center shadow-[3px_3px_0_var(--ink)] min-w-0">
             <Cpu className="w-4 h-4 sm:w-5 sm:h-5 text-orange mx-auto mb-1 shrink-0" />
-            <div className="font-bold text-[11px] sm:text-xs text-ink truncate">Client-Side First</div>
-            <div className="text-[9px] sm:text-[10px] text-muted truncate">สกัดสีบนเบราว์เซอร์คุณ</div>
+            <div className="font-bold text-[11px] sm:text-xs text-ink break-words leading-tight">Client-Side First</div>
+            <div className="text-[9px] sm:text-[10px] text-muted break-words leading-tight mt-0.5">สกัดสีบนเบราว์เซอร์คุณ</div>
           </div>
           <div className="bg-white border-1.5 border-ink rounded-xl p-2.5 sm:p-3 text-center shadow-[3px_3px_0_var(--ink)] min-w-0">
             <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-acid-text mx-auto mb-1 shrink-0" />
-            <div className="font-bold text-[11px] sm:text-xs text-ink truncate">No Login Needed</div>
-            <div className="text-[9px] sm:text-[10px] text-muted truncate">ไม่ต้องกรอกรหัสผ่าน</div>
+            <div className="font-bold text-[11px] sm:text-xs text-ink break-words leading-tight">No Login Needed</div>
+            <div className="text-[9px] sm:text-[10px] text-muted break-words leading-tight mt-0.5">ไม่ต้องกรอกรหัสผ่าน</div>
           </div>
         </div>
       </div>
 
       {/* Main Container */}
-      <div className="grid gap-6 sm:gap-8 max-w-[920px]">
+      <div className="flex flex-col gap-6 sm:gap-8 max-w-[920px] w-full min-w-0">
         {/* Section 1: Dual Ingestion Architecture */}
         <div className="bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
           <div className="flex items-center gap-2.5 sm:gap-3 mb-3">
             <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-acid border-1.5 border-ink grid place-items-center font-extrabold text-xs sm:text-sm text-ink shrink-0">
               01
             </span>
-            <div className="min-w-0">
-              <span className="text-[10px] sm:text-[11px] font-bold tracking-wider uppercase text-purple block font-['Manrope'] truncate">
+            <div className="min-w-0 flex-1">
+              <span className="text-[10px] sm:text-[11px] font-bold tracking-wider uppercase text-purple block font-['Manrope'] break-words leading-snug">
                 DUAL INGESTION ARCHITECTURE
               </span>
-              <h2 className="m-0 text-lg sm:text-xl font-bold text-ink truncate">สถาปัตยกรรม 2 รูปแบบในการรับข้อมูล</h2>
+              <h2 className="m-0 text-lg sm:text-xl font-bold text-ink break-words leading-snug">สถาปัตยกรรม 2 รูปแบบในการรับข้อมูล</h2>
             </div>
           </div>
           <p className="text-muted text-xs sm:text-sm leading-relaxed mb-5 break-words">
@@ -196,11 +196,11 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
             <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-green text-white border-1.5 border-ink grid place-items-center font-extrabold text-xs sm:text-sm shrink-0">
               02
             </span>
-            <div className="min-w-0">
-              <span className="text-[10px] sm:text-[11px] font-bold tracking-wider uppercase text-green block font-['Manrope'] truncate">
+            <div className="min-w-0 flex-1">
+              <span className="text-[10px] sm:text-[11px] font-bold tracking-wider uppercase text-green block font-['Manrope'] break-words leading-snug">
                 SCIENTIFIC EVALUATION METRICS
               </span>
-              <h2 className="m-0 text-lg sm:text-xl font-bold text-ink truncate">ระบบประเมินคะแนน Aesthetic อย่างไร?</h2>
+              <h2 className="m-0 text-lg sm:text-xl font-bold text-ink break-words leading-snug">ระบบประเมินคะแนน Aesthetic อย่างไร?</h2>
             </div>
           </div>
           <p className="text-muted text-xs sm:text-sm leading-relaxed mb-4 break-words">
@@ -275,11 +275,11 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
             <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-purple text-white border-1.5 border-ink grid place-items-center font-extrabold text-xs sm:text-sm shrink-0">
               03
             </span>
-            <div className="min-w-0">
-              <span className="text-[10px] sm:text-[11px] font-bold tracking-wider uppercase text-purple block font-['Manrope'] truncate">
+            <div className="min-w-0 flex-1">
+              <span className="text-[10px] sm:text-[11px] font-bold tracking-wider uppercase text-purple block font-['Manrope'] break-words leading-snug">
                 HUMAN-IN-THE-LOOP & USER AGENCY
               </span>
-              <h2 className="m-0 text-lg sm:text-xl font-bold text-ink truncate">การคัดเลือกรูป TOP CONTENT & สิทธิการควบคุมของผู้ใช้</h2>
+              <h2 className="m-0 text-lg sm:text-xl font-bold text-ink break-words leading-snug">การคัดเลือกรูป TOP CONTENT & สิทธิการควบคุมของผู้ใช้</h2>
             </div>
           </div>
           <div className="grid gap-4 text-xs sm:text-sm leading-relaxed text-muted w-full min-w-0">
@@ -317,11 +317,11 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
             <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-orange text-white border-1.5 border-ink grid place-items-center font-extrabold text-xs sm:text-sm shrink-0">
               04
             </span>
-            <div className="min-w-0">
-              <span className="text-[10px] sm:text-[11px] font-bold tracking-wider uppercase text-orange block font-['Manrope'] truncate">
+            <div className="min-w-0 flex-1">
+              <span className="text-[10px] sm:text-[11px] font-bold tracking-wider uppercase text-orange block font-['Manrope'] break-words leading-snug">
                 ETHICAL AI & RESPONSIBLE COMPUTING
               </span>
-              <h2 className="m-0 text-lg sm:text-xl font-bold text-ink truncate">จริยธรรม AI & การลดอคติเชิงอัลกอริทึม (Fairness)</h2>
+              <h2 className="m-0 text-lg sm:text-xl font-bold text-ink break-words leading-snug">จริยธรรม AI & การลดอคติเชิงอัลกอริทึม (Fairness)</h2>
             </div>
           </div>
 
@@ -364,11 +364,11 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
             <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-acid border-1.5 border-ink grid place-items-center font-extrabold text-xs sm:text-sm text-ink shrink-0">
               05
             </span>
-            <div className="min-w-0">
-              <span className="text-[10px] sm:text-[11px] font-bold tracking-wider uppercase text-purple block font-['Manrope'] truncate">
+            <div className="min-w-0 flex-1">
+              <span className="text-[10px] sm:text-[11px] font-bold tracking-wider uppercase text-purple block font-['Manrope'] break-words leading-snug">
                 DATA PRIVACY & SECURITY LIFECYCLE
               </span>
-              <h2 className="m-0 text-lg sm:text-xl font-bold text-ink truncate">ตารางวงจรชีวิตข้อมูลตามหลักสากล (GDPR / PDPA)</h2>
+              <h2 className="m-0 text-lg sm:text-xl font-bold text-ink break-words leading-snug">ตารางวงจรชีวิตข้อมูลตามหลักสากล (GDPR / PDPA)</h2>
             </div>
           </div>
           <p className="text-muted text-xs sm:text-sm leading-relaxed mb-4 break-words">
@@ -472,11 +472,11 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
             <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-green text-white border-1.5 border-ink grid place-items-center font-extrabold text-xs sm:text-sm shrink-0">
               06
             </span>
-            <div className="min-w-0">
-              <span className="text-[10px] sm:text-[11px] font-bold tracking-wider uppercase text-green block font-['Manrope'] truncate">
+            <div className="min-w-0 flex-1">
+              <span className="text-[10px] sm:text-[11px] font-bold tracking-wider uppercase text-green block font-['Manrope'] break-words leading-snug">
                 FREQUENTLY ASKED QUESTIONS
               </span>
-              <h2 className="m-0 text-lg sm:text-xl font-bold text-ink truncate">คำถามที่พบบ่อย (FAQ)</h2>
+              <h2 className="m-0 text-lg sm:text-xl font-bold text-ink break-words leading-snug">คำถามที่พบบ่อย (FAQ)</h2>
             </div>
           </div>
           <p className="text-muted text-xs sm:text-sm leading-relaxed mb-4 break-words">
