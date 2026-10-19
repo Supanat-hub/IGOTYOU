@@ -63,7 +63,7 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
   return (
     <section className="shell" style={{ paddingBlock: "40px 80px" }}>
       {/* Back button */}
-      <div className="mb-6 sm:mb-7">
+      <div className="mb-6 sm:mb-7 max-w-[1100px] w-full mx-auto">
         <button
           onClick={onBackToHome}
           className="bg-white border-1.5 border-ink rounded-full px-4 py-2 text-xs font-bold cursor-pointer inline-flex items-center gap-1.5 hover:bg-paper transition-all hover:-translate-y-0.5 shadow-sm"
@@ -74,7 +74,7 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
       </div>
 
       {/* Header & Trust Manifesto */}
-      <div className="max-w-[840px] w-full min-w-0 mb-10 sm:mb-12">
+      <div className="max-w-[1100px] w-full min-w-0 mb-10 sm:mb-12 mx-auto">
         <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 rounded-full bg-purple/10 border border-purple/30 mb-3 max-w-full">
           <Sparkles className="w-3.5 h-3.5 text-purple shrink-0" />
           <span className="font-['Manrope'] font-bold text-[10px] sm:text-xs tracking-normal sm:tracking-wider text-purple uppercase break-words">
@@ -115,9 +115,9 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
       </div>
 
       {/* Main Container */}
-      <div className="flex flex-col gap-6 sm:gap-8 max-w-[920px] w-full min-w-0">
+      <div className="flex flex-col gap-6 sm:gap-8 max-w-[1100px] w-full min-w-0 mx-auto">
         {/* Section 1: Dual Ingestion Architecture */}
-        <div className="bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
+        <div className="bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item w-full lg:w-[84%] lg:self-start">
           <div className="flex items-center gap-2.5 sm:gap-3 mb-3">
             <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-acid border-1.5 border-ink grid place-items-center font-extrabold text-xs sm:text-sm text-ink shrink-0">
               01
@@ -191,7 +191,7 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
         </div>
 
         {/* Section 2: Scientific Scoring Metrics */}
-        <div className="bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
+        <div className="bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item w-full lg:w-[84%] lg:self-end">
           <div className="flex items-center gap-2.5 sm:gap-3 mb-3">
             <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-green text-white border-1.5 border-ink grid place-items-center font-extrabold text-xs sm:text-sm shrink-0">
               02
@@ -270,7 +270,7 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
         </div>
 
         {/* Section 3: TOP CONTENT & Human-in-the-Loop */}
-        <div className="bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
+        <div className="bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item w-full lg:w-[84%] lg:self-start">
           <div className="flex items-center gap-2.5 sm:gap-3 mb-3">
             <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-purple text-white border-1.5 border-ink grid place-items-center font-extrabold text-xs sm:text-sm shrink-0">
               03
@@ -312,7 +312,7 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
         </div>
 
         {/* Section 4: Ethical AI & Non-Biometric Assessment */}
-        <div className="bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
+        <div className="bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item w-full lg:w-[84%] lg:self-end">
           <div className="flex items-center gap-2.5 sm:gap-3 mb-3">
             <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-orange text-white border-1.5 border-ink grid place-items-center font-extrabold text-xs sm:text-sm shrink-0">
               04
@@ -359,7 +359,7 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
         </div>
 
         {/* Section 5: Data Privacy Lifecycle Matrix */}
-        <div className="bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
+        <div className="bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item w-full lg:w-full lg:self-center">
           <div className="flex items-center gap-2.5 sm:gap-3 mb-3">
             <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-acid border-1.5 border-ink grid place-items-center font-extrabold text-xs sm:text-sm text-ink shrink-0">
               05
@@ -467,7 +467,7 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
         </div>
 
         {/* Section 6: Interactive FAQ Accordion */}
-        <div className="bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
+        <div className="bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item w-full lg:w-[84%] lg:self-start">
           <div className="flex items-center gap-2.5 sm:gap-3 mb-3">
             <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-green text-white border-1.5 border-ink grid place-items-center font-extrabold text-xs sm:text-sm shrink-0">
               06
@@ -518,7 +518,7 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
         </div>
 
         {/* Section 7: Legal Disclaimer & Fair Use */}
-        <div className="bg-paper border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-6 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
+        <div className="bg-paper border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-6 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item w-full lg:w-full lg:self-center">
           <div className="flex items-start gap-2.5 sm:gap-3">
             <AlertCircle className="w-5 h-5 text-purple shrink-0 mt-0.5" />
             <div className="space-y-2 text-xs text-muted leading-relaxed min-w-0">
@@ -537,7 +537,7 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
       </div>
 
       {/* Pro Tips Box */}
-      <div className="mt-6 sm:mt-8 max-w-[920px] bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-6 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
+      <div className="mt-6 sm:mt-8 max-w-[1100px] w-full mx-auto bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-6 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
         <div className="flex items-center gap-2 mb-2 font-extrabold text-ink text-sm sm:text-base">
           <Camera className="w-4 h-4 sm:w-5 sm:h-5 text-purple shrink-0" />
           <span>ทริกการใช้งานเพื่อให้ได้ผลลัพธ์แม่นยำที่สุด</span>
@@ -549,7 +549,7 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
       </div>
 
       {/* Bottom CTA */}
-      <div className="mt-8 sm:mt-10 text-left scroll-reveal-item">
+      <div className="mt-8 sm:mt-10 max-w-[1100px] w-full mx-auto text-left scroll-reveal-item">
         <button
           onClick={onBackToHome}
           className="primary-button inline-flex items-center justify-center gap-2 w-auto px-6 sm:px-8 cursor-pointer hover:-translate-y-0.5 transition-all text-xs sm:text-sm"
