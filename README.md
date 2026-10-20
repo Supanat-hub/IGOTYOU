@@ -8,6 +8,7 @@
 [![TypeScript 5.7](https://img.shields.io/badge/TypeScript-5.7-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Vite 6](https://img.shields.io/badge/Vite-6.0-646cff?logo=vite&logoColor=white)](https://vitejs.dev/)
 [![ONNX Runtime Web](https://img.shields.io/badge/ONNX_Runtime_Web-1.20-005ced?logo=onnx&logoColor=white)](https://onnxruntime.ai/)
+[![Cloudflare Workers](https://img.shields.io/badge/Cloudflare_Workers-F38020?logo=cloudflare&logoColor=white)](https://workers.cloudflare.com/)
 [![Tests Passing](https://img.shields.io/badge/Unit_Tests-25%2F25_passed-2ea44f)](https://github.com/PONGTHAKORN2007/IGOTYOU)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -24,7 +25,6 @@
 - [การติดตั้งและรันในเครื่อง (Local Development)](#-การติดตั้งและรันในเครื่อง-local-development)
 - [โครงสร้างโค้ด (Project Structure)](#-โครงสร้างโค้ด-project-structure)
 - [การทดสอบระบบ (Automated Tests)](#-การทดสอบระบบ-automated-tests)
-- [เกี่ยวกับวิชาและลิขสิทธิ์ (Academic Context & License)](#-เกี่ยวกับวิชาและลิขสิทธิ์-academic-context--license)
 
 ---
 
@@ -44,18 +44,19 @@ flowchart TD
     
     %% Pathway A: Public Scraper
     Choice -->|วิธีที่ 1: บัญชีสาธารณะ| Public["พิมพ์ชื่อ @username"]
-    Public --> ScraperServer["Azure VM Scraper Service<br>(ig-scraper.plazedez.online)"]
-    ScraperServer -->|JSON สถิติจริง + รูปภาพ HD| Proxy["Vercel Serverless Proxy<br>(/api/analyze)"]
+    Public --> CFScrape["Cloudflare Worker Proxy<br>(/api/scrape)"]
+    CFScrape --> ScraperServer["Azure VM Scraper Service<br>(ig-scraper.plazedez.online)"]
+    ScraperServer -->|JSON สถิติจริง + รูปภาพ HD| CFProxy["Cloudflare Worker Proxy<br>(/api/analyze)"]
     
     %% Pathway B: Screenshot Upload
     Choice -->|วิธีที่ 2: บัญชีส่วนตัว / ทุกบัญชี| Screenshot["อัปโหลดภาพแคปหน้าจอ IG"]
     Screenshot --> YOLO["On-Device YOLOv11-Nano (ONNX Web)<br>ตรวจจับกรอบ post_tile & avatar บนเบราว์เซอร์"]
     YOLO --> Canvas["HTML5 Canvas Smart Crop<br>สกัดพิกเซลรูปภาพ & Color Quantization"]
     Canvas --> Downscale["Client-side Downscaler (1024px)"]
-    Downscale --> Proxy
+    Downscale --> CFProxy
     
     %% Cloud Inference & Rendering
-    Proxy --> Gemini["Google Gemini Multimodal API<br>(Enterprise Zero-Retention Agreement)"]
+    CFProxy --> Gemini["Google Gemini Multimodal API<br>(Enterprise Zero-Retention Agreement)"]
     Gemini --> Hybrid["รวมคะแนน Hybrid Aesthetic Score<br>(40% Color Harmony + 35% Composition + 25% Contrast)"]
     Canvas -->|Auto Fallback เมื่อ Gemini ขัดข้อง| Degraded["Honest Degraded Mode (Canvas 100%)"]
     
@@ -159,7 +160,7 @@ flowchart TD
 
 ```text
 IGOTYOU/
-├── api/                        # Vercel Serverless Functions
+├── api/                        # Serverless Functions (Secondary / Vercel fallback)
 │   ├── analyze.ts              # Stateless Gemini Multimodal Proxy
 │   └── scrape.ts               # Proxy ส่งต่อไปยัง Scraper Service
 ├── colab/                      # Google Colab Machine Learning
@@ -180,12 +181,14 @@ IGOTYOU/
 │   ├── App.tsx                 # คอมโพเนนต์หลักและระบบ Routing
 │   ├── index.css               # สไตล์สากลและ Tailwind CSS v4 Theme
 │   └── main.tsx                # จุดเริ่มต้นของแอปพลิเคชัน React
+├── worker/                     # Cloudflare Workers Edge Function (Production Active)
+│   └── index.ts                # Production Edge Entrypoint (/api/analyze & /api/scrape)
 ├── index.html                  # HTML Shell
 ├── package.json                # Dependencies และคำสั่งสคริปต์
 ├── tsconfig.json               # การตั้งค่า TypeScript
-├── vercel.json                 # การตั้งค่า Vercel Routing & Security Headers
+├── vercel.json                 # การตั้งค่า Vercel Routing & Security Headers (Legacy fallback)
 ├── vite.config.ts              # การตั้งค่า Vite Build Tooling
-└── wrangler.jsonc              # การตั้งค่า Cloudflare Workers Deployment
+└── wrangler.jsonc              # การตั้งค่า Cloudflare Workers Deployment (Production)
 ```
 
 ---
