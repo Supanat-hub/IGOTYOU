@@ -184,7 +184,7 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
               </div>
               <div className="pt-3 border-t border-ink/15 text-[11px] text-muted flex items-center gap-1.5">
                 <Lock className="w-3.5 h-3.5 text-purple shrink-0" />
-                <span>ข้อมูลและรูปภาพอยู่บนเครื่องของคุณ 100%</span>
+                <span>สกัดสีและตัดภาพบนเครื่อง · ไร้การบันทึกลงฐานข้อมูล</span>
               </div>
             </div>
           </div>
