@@ -26,38 +26,39 @@ export default function TermsPage({
 }: TermsPageProps) {
   return (
     <section className="shell" style={{ paddingBlock: "50px 90px" }}>
-      {/* Back button */}
-      <div className="mb-7">
-        <button
-          onClick={onBackToHome}
-          className="bg-white border-1.5 border-ink rounded-full px-4 py-2 text-xs font-bold cursor-pointer inline-flex items-center gap-1.5 hover:bg-paper transition-all hover:-translate-y-0.5 shadow-sm"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span>กลับหน้าแรก</span>
-        </button>
-      </div>
-
-      {/* Header */}
-      <div className="max-w-[840px] w-full min-w-0 mb-10 sm:mb-12">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple/10 border border-purple/30 mb-3.5 max-w-full">
-          <FileText className="w-3.5 h-3.5 text-purple shrink-0" />
-          <span className="font-['Manrope'] font-bold text-[10px] sm:text-xs tracking-normal sm:tracking-wider text-purple uppercase break-words">
-            LEGAL & COMPLIANCE AGREEMENT
-          </span>
+      <div className="max-w-[960px] w-full mx-auto">
+        {/* Back button */}
+        <div className="mb-7">
+          <button
+            onClick={onBackToHome}
+            className="bg-white border-1.5 border-ink rounded-full px-4 py-2 text-xs font-bold cursor-pointer inline-flex items-center gap-1.5 hover:bg-paper transition-all hover:-translate-y-0.5 shadow-sm"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>กลับหน้าแรก</span>
+          </button>
         </div>
-        <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight leading-tight my-3 text-ink break-words">
-          ข้อกำหนดและเงื่อนไขการใช้งาน<br className="hidden sm:inline" /> (Terms of Use)
-        </h1>
-        <p className="text-xs sm:text-sm text-muted font-['Manrope'] mb-2 font-semibold">
-          มีผลบังคับใช้ตั้งแต่วันที่ 1 มกราคม 2025 • ปรับปรุงล่าสุด: ตุลาคม 2025
-        </p>
-        <p className="text-sm sm:text-base text-muted leading-relaxed m-0 break-words">
-          กรุณาอ่านข้อกำหนดและเงื่อนไขการใช้งานฉบับนี้ ("ข้อกำหนด") โดยละเอียดก่อนเข้าใช้งานเว็บไซต์ IGOTYOU การเข้าถึงหรือใช้งานบริการนี้ถือว่าคุณได้อ่าน เข้าใจ และตกลงที่จะผูกพันตามข้อกำหนดทั้งหมดนี้ หากคุณไม่เห็นด้วยกับข้อกำหนดใดๆ กรุณายุติการใช้งานบริการนี้ทันที
-        </p>
-      </div>
 
-      {/* Quick Summary Cards for 1-minute read */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 mb-8 sm:mb-10 max-w-[920px]">
+        {/* Header */}
+        <div className="w-full min-w-0 mb-10 sm:mb-12">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple/10 border border-purple/30 mb-3.5 max-w-full">
+            <FileText className="w-3.5 h-3.5 text-purple shrink-0" />
+            <span className="font-['Manrope'] font-bold text-[10px] sm:text-xs tracking-normal sm:tracking-wider text-purple uppercase break-words">
+              LEGAL & COMPLIANCE AGREEMENT
+            </span>
+          </div>
+          <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight leading-tight my-3 text-ink break-words">
+            ข้อกำหนดและเงื่อนไขการใช้งาน<br className="hidden sm:inline" /> (Terms of Use)
+          </h1>
+          <p className="text-xs sm:text-sm text-muted font-['Manrope'] mb-2 font-semibold">
+            มีผลบังคับใช้ตั้งแต่วันที่ 1 มกราคม 2026 • ปรับปรุงล่าสุด: ตุลาคม 2026
+          </p>
+          <p className="text-sm sm:text-base text-muted leading-relaxed m-0 break-words">
+            กรุณาอ่านข้อกำหนดและเงื่อนไขการใช้งานฉบับนี้ ("ข้อกำหนด") โดยละเอียดก่อนเข้าใช้งานเว็บไซต์ IGOTYOU การเข้าถึงหรือใช้งานบริการนี้ถือว่าคุณได้อ่าน เข้าใจ และตกลงที่จะผูกพันตามข้อกำหนดทั้งหมดนี้ หากคุณไม่เห็นด้วยกับข้อกำหนดใดๆ กรุณายุติการใช้งานบริการนี้ทันที
+          </p>
+        </div>
+
+        {/* Quick Summary Cards for 1-minute read */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 mb-8 sm:mb-10 w-full">
         <div className="bg-white border-2 border-ink rounded-2xl p-4 shadow-[4px_4px_0_var(--ink)]">
           <Sparkles className="w-5 h-5 text-purple mb-2 shrink-0" />
           <div className="font-extrabold text-sm text-ink mb-1">เพื่อความบันเทิงและศิลปะ</div>
@@ -92,7 +93,7 @@ export default function TermsPage({
       </div>
 
       {/* Main Legal Clauses */}
-      <div className="grid gap-6 sm:gap-7 max-w-[920px]">
+      <div className="grid gap-6 sm:gap-7 w-full">
         {/* Clause 1 */}
         <div className="bg-white border-2 border-ink rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item">
           <div className="flex items-center gap-3 mb-3">
@@ -280,7 +281,7 @@ export default function TermsPage({
       </div>
 
       {/* Helpful Links Box */}
-      <div className="mt-8 max-w-[920px] bg-paper border-2 border-ink rounded-[22px] p-4 sm:p-6 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="mt-8 w-full bg-paper border-2 border-ink rounded-[22px] p-4 sm:p-6 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="min-w-0">
           <div className="font-extrabold text-ink text-sm flex items-center gap-2 mb-1">
             <HelpCircle className="w-4 h-4 text-purple shrink-0" />
@@ -308,6 +309,7 @@ export default function TermsPage({
           <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
         </button>
       </div>
-    </section>
-  );
+    </div>
+  </section>
+);
 }
