@@ -117,7 +117,7 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
       {/* Main Container */}
       <div className="flex flex-col gap-6 sm:gap-8 max-w-[1100px] w-full min-w-0 mx-auto">
         {/* Section 1: Dual Ingestion Architecture */}
-        <div className="bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item w-full">
+        <div className="bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item w-full lg:w-[84%] lg:self-start">
           <div className="flex items-center gap-2.5 sm:gap-3 mb-3">
             <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-acid border-1.5 border-ink grid place-items-center font-extrabold text-xs sm:text-sm text-ink shrink-0">
               01
@@ -191,7 +191,7 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
         </div>
 
         {/* Section 2: Scientific Scoring Metrics */}
-        <div className="bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item w-full">
+        <div className="bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item w-full lg:w-[84%] lg:self-end">
           <div className="flex items-center gap-2.5 sm:gap-3 mb-3">
             <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-green text-white border-1.5 border-ink grid place-items-center font-extrabold text-xs sm:text-sm shrink-0">
               02
@@ -270,7 +270,7 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
         </div>
 
         {/* Section 3: TOP CONTENT & Human-in-the-Loop */}
-        <div className="bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item w-full">
+        <div className="bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item w-full lg:w-[84%] lg:self-start">
           <div className="flex items-center gap-2.5 sm:gap-3 mb-3">
             <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-purple text-white border-1.5 border-ink grid place-items-center font-extrabold text-xs sm:text-sm shrink-0">
               03
@@ -312,7 +312,7 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
         </div>
 
         {/* Section 4: Ethical AI & Non-Biometric Assessment */}
-        <div className="bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item w-full">
+        <div className="bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item w-full lg:w-[84%] lg:self-end">
           <div className="flex items-center gap-2.5 sm:gap-3 mb-3">
             <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-orange text-white border-1.5 border-ink grid place-items-center font-extrabold text-xs sm:text-sm shrink-0">
               04
@@ -359,7 +359,7 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
         </div>
 
         {/* Section 5: Data Privacy Lifecycle Matrix */}
-        <div className="bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item w-full">
+        <div className="bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item w-full lg:w-[84%] lg:self-start">
           <div className="flex items-center gap-2.5 sm:gap-3 mb-3">
             <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-acid border-1.5 border-ink grid place-items-center font-extrabold text-xs sm:text-sm text-ink shrink-0">
               05
@@ -467,7 +467,7 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
         </div>
 
         {/* Section 6: Interactive FAQ Accordion */}
-        <div className="bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item w-full">
+        <div className="bg-white border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-7 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item w-full lg:w-[84%] lg:self-end">
           <div className="flex items-center gap-2.5 sm:gap-3 mb-3">
             <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-green text-white border-1.5 border-ink grid place-items-center font-extrabold text-xs sm:text-sm shrink-0">
               06
@@ -518,7 +518,7 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
         </div>
 
         {/* Section 7: Legal Disclaimer & Fair Use */}
-        <div className="bg-paper border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-6 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item w-full">
+        <div className="bg-paper border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-6 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item w-full lg:w-[84%] lg:self-start">
           <div className="flex items-start gap-2.5 sm:gap-3">
             <AlertCircle className="w-5 h-5 text-purple shrink-0 mt-0.5" />
             <div className="space-y-2 text-xs text-muted leading-relaxed min-w-0">
