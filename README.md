@@ -9,7 +9,7 @@
 [![Vite 6](https://img.shields.io/badge/Vite-6.0-646cff?logo=vite&logoColor=white)](https://vitejs.dev/)
 [![ONNX Runtime Web](https://img.shields.io/badge/ONNX_Runtime_Web-1.20-005ced?logo=onnx&logoColor=white)](https://onnxruntime.ai/)
 [![Cloudflare Workers](https://img.shields.io/badge/Cloudflare_Workers-F38020?logo=cloudflare&logoColor=white)](https://workers.cloudflare.com/)
-[![Tests Passing](https://img.shields.io/badge/Unit_Tests-25%2F25_passed-2ea44f)](https://github.com/PONGTHAKORN2007/IGOTYOU)
+[![Tests Passing](https://img.shields.io/badge/Unit_Tests-26%2F26_passed-2ea44f)](https://github.com/PONGTHAKORN2007/IGOTYOU)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 🌐 **Live Website:** [https://igotu.plazedez.online](https://igotu.plazedez.online)
@@ -20,6 +20,7 @@
 - [ภาพรวมของโปรเจกต์ (Overview)](#-ภาพรวมของโปรเจกต์-overview)
 - [สถาปัตยกรรมระบบ (System Architecture)](#-สถาปัตยกรรมระบบ-system-architecture)
 - [ฟีเจอร์เด่น (Core Features)](#-ฟีเจอร์เด่น-core-features)
+- [อัลกอริทึมและสูตรการคำนวณคะแนน (Scoring Algorithm)](#-อัลกอริทึมและสูตรการคำนวณคะแนน-scoring-algorithm--mathematical-model)
 - [โมเดล Machine Learning (Custom YOLOv11)](#-โมเดล-machine-learning-custom-yolov11)
 - [จริยธรรมในปัญญาประดิษฐ์ (Ethics in AI)](#-จริยธรรมในปัญญาประดิษฐ์-ethics-in-ai)
 - [การติดตั้งและรันในเครื่อง (Local Development)](#-การติดตั้งและรันในเครื่อง-local-development)
@@ -84,6 +85,67 @@ flowchart TD
    * เรนเดอร์การ์ดสรุปผลงานระดับไฮเอนด์ สไตล์ Neo-Brutalist ดีไซน์คมชัด พร้อมส่งออกเป็นภาพ PNG คุณภาพสูง หรือเปิดดูแบบ Story Carousel
 7. **Honest Degraded Fallback Mode:**
    * หากบริการ AI ภายนอกขัดข้อง ระบบจะตัดเข้าสู่โหมดประมวลผลบนเครื่องผ่าน Canvas + YOLO ทันที โดยไม่สร้างข้อมูลเท็จหลอกผู้ใช้
+
+---
+
+## 📐 อัลกอริทึมและสูตรการคำนวณคะแนน (Scoring Algorithm & Mathematical Model)
+
+IGOTYOU ยึดมั่นในหลักการ **Explainable AI (XAI)** และ **Transparency** ตามกรอบมาตรฐานสากล NIST AI RMF 1.0 ระบบจึงไม่ใช้โมเดลกล่องดำ (Black-Box) ในการประเมินคะแนน แต่คำนวณจากคุณสมบัติทางศิลปะและวิทยาศาสตร์ของภาพถ่ายจริง (Visual Curation Metrics) ด้วยระบบ **Hybrid Evaluation Model**:
+
+### 1. สูตรคำนวณคะแนนรวม (Hybrid Aesthetic Score Formula)
+
+คะแนนเต็ม 100 ถูกจำกัดช่วงความจริง (Clamped) ที่ **25 ถึง 98 คะแนน** เพื่อสะท้อนความเป็นจริง ไม่มีการอวย 100% หรือกดคะแนนติดลบ:
+
+$$\text{Aesthetic Score} = \text{clamp}\Big(25,\; 98,\; \text{round}\big(0.40 \times \text{Harmony} + 0.35 \times \text{Composition} + 0.25 \times \text{Contrast}\big)\Big)$$
+
+| มิติการประเมิน | สัดส่วนน้ำหนัก | สถานที่ประมวลผล | วิธีการคำนวณทางคณิตศาสตร์ |
+| :--- | :---: | :---: | :--- |
+| **1. Color Harmony & Palette Cohesion** | **40%** | Client Browser Canvas | วัดระยะห่างองศาคู่สีบนวงล้อสี HSL ($\text{AvgHueDiff}$) พร้อมระบบ Cultural Saturation Fairness |
+| **2. Composition & Visual Rhythm** | **35%** | Gemini Vision / Fallback | ประเมินจังหวะการจัดวางกริด 3×3 (สมดุลระหว่าง Portrait, Landscape, และ Details) |
+| **3. Contrast & Dynamic Range** | **25%** | Client Browser Canvas | วัดค่าส่วนเบี่ยงเบนมาตรฐานของความสว่างพิกเซลจริง ($\sigma_{\text{Luminance}}$) |
+
+---
+
+### 2. รายละเอียดการคำนวณระดับพิกเซล (Mathematical Breakdown)
+
+#### ก. Color Harmony (40%) — ความกลมกลืนของชุดสี
+1. สกัดชุดสีเด่น 4 สี (Color DNA) จากรูปถ่ายจริงด้วยเทคนิค Weighted Color Quantization (RGB Histogram Binning)
+2. แปลงค่าสีจาก RGB เป็นระบบ **HSL** ($H \in [0, 360^\circ], S \in [0, 1], L \in [0, 1]$)
+3. คำนวณระยะห่างองศาบนวงล้อสีระหว่างคู่สีทุกคู่ (Circular Hue Distance):
+   $$\Delta H_{ij} = \min(|H_i - H_j|,\; 360^\circ - |H_i - H_j|)$$
+4. หาค่าเฉลี่ยความต่างองศาสี ($\text{AvgHueDiff}$):
+   * $\text{AvgHueDiff} < 45^\circ$ (กลุ่มสีใกล้เคียง / Analogous เช่น โทนอุ่น เอิร์ธโทน): **82–96 คะแนน**
+   * $45^\circ \le \text{AvgHueDiff} < 85^\circ$ (สีหลากหลายแต่เกาะกลุ่มสมดุล): **68–84 คะแนน**
+   * $85^\circ \le \text{AvgHueDiff} < 125^\circ$ (สีเริ่มฉีกแนว): **48–67 คะแนน**
+   * $\text{AvgHueDiff} \ge 125^\circ$ (สีคู่ตรงข้ามหรือกระจัดกระจาย): **25–55 คะแนน**
+   * *Cultural Saturation Fairness:* หากภาพมีความอิ่มตัวสีสูงแต่คู่สีสอดคล้อง (เช่น สตรีทฟู้ด ตลาดกลางคืน คาเฟ่สดใส) จะได้รับการชดเชยคะแนน ไม่ถูกตัดคะแนนแบบโมเดลมินิมอลตะวันตก
+
+#### ข. Contrast & Dynamic Range (25%) — มิติความลึกของแสงเงา
+1. คำนวณค่าความสว่างของแต่ละพิกเซล (Luminance Standard):
+   $$L = 0.299R + 0.587G + 0.114B$$
+2. หาค่าเฉลี่ย ($\mu$) และส่วนเบี่ยงเบนมาตรฐาน ($\sigma$) ของความสว่างทั้งหมด:
+   $$\sigma = \sqrt{\frac{1}{N}\sum_{i=1}^{N}(L_i - \mu)^2}$$
+3. แปลงเป็นคะแนน Contrast Score:
+   $$\text{Contrast Score} = \text{clamp}(30,\; 95,\; \text{round}(25 + \sigma \times 0.9))$$
+   * ภาพที่มีมิติ แสงเงาคมชัด และ Dynamic Range สมบูรณ์ $\rightarrow$ ได้คะแนนสูง (80–95)
+   * ภาพที่แบนราบ มืดทึบ หรือขาวโพลนจนสูญเสียรายละเอียด $\rightarrow$ ได้คะแนนต่ำลง
+
+#### ค. Composition & Grid Rhythm (35%) — จังหวะการจัดวางกริด
+* ประเมินการจัดวางองค์ประกอบภาพบนตารางกริด 3×3 ตรวจสอบความสมดุลระหว่างภาพบุคคล (Portrait), ภาพทิวทัศน์ (Landscape) และภาพเจาะรายละเอียด (Details)
+* ในโหมดออนไลน์ ประเมินผ่าน Gemini Vision Multimodal
+* ในโหมดออฟไลน์ (Honest Degraded Mode) คำนวณจากค่าเฉลี่ย $(\text{Harmony} + \text{Contrast}) / 2$ ตรงไปตรงมา
+
+---
+
+### 3. เกณฑ์การตัดสิน (Verdict Tiers)
+
+| ช่วงคะแนน | คำตัดสิน (Thai Verdict) | ระดับการจัดฟีด (Tier) |
+| :---: | :--- | :--- |
+| **90 – 98** | 🌟 *"คุมโทนระดับมาสเตอร์ สวยสะกดตา!"* | Master Curation |
+| **78 – 89** | ✨ *"คุมโทนสวยงาม มีรสนิยม!"* | Curated Taste |
+| **64 – 77** | 🎨 *"โทนภาพดูดี เริ่มมีเอกลักษณ์"* | Emerging Aesthetic |
+| **48 – 63** | ☕ *"ฟีดตามใจฉัน สไตล์ไลฟ์สไตล์ทั่วไป"* | Casual Everyday |
+| **< 48** | ⚡ *"สีและแสงค่อนข้างตีกัน ยังขาดการคุมโทน"* | Chaotic / Clashing |
 
 ---
 
@@ -201,6 +263,6 @@ IGOTYOU/
 npm test
 ```
 
-ผลการทดสอบ: **25/25 Tests Passed (100% Pass Rate)** 🟢
+ผลการทดสอบ: **26/26 Tests Passed (100% Pass Rate)** 🟢
 
 ---
