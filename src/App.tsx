@@ -54,12 +54,51 @@ export default function App() {
   const [isStoryPlayerOpen, setIsStoryPlayerOpen] = useState(false);
   const isNavigatingRef = useRef(false);
 
-  // Sync hash routing with browser history and redirect unanalyzed #wrapped to home
+  // Helper to detect secret demo path/hash/query
+  const getDemoPresetFromURL = (): AnalysisResult | null => {
+    if (typeof window === "undefined") return null;
+    const path = window.location.pathname.toLowerCase();
+    const hash = window.location.hash.toLowerCase();
+    const search = window.location.search.toLowerCase();
+
+    const isDemo =
+      path.startsWith("/demo") ||
+      hash.startsWith("#demo") ||
+      search.includes("demo");
+
+    if (!isDemo) return null;
+
+    if (path.includes("outdoor") || hash.includes("outdoor") || search.includes("outdoor")) {
+      return PRESETS.outdoor;
+    }
+    if (
+      path.includes("creative") ||
+      path.includes("neon") ||
+      hash.includes("creative") ||
+      hash.includes("neon") ||
+      search.includes("creative")
+    ) {
+      return PRESETS.creative;
+    }
+    return PRESETS.cafe;
+  };
+
+  // Sync hash and path routing with browser history and redirect unanalyzed #wrapped to home
   useEffect(() => {
-    const handleHashChange = () => {
+    const handleLocationChange = () => {
       if (isNavigatingRef.current) return;
 
       const updateState = () => {
+        const demo = getDemoPresetFromURL();
+        if (demo) {
+          setResult(demo);
+          setHasResult(true);
+          hasResultRef.current = true;
+          setCurrentRoute("result");
+          window.scrollTo(0, 0);
+          return;
+        }
+
         const hash = window.location.hash.toLowerCase();
         if (hash.includes("beta")) {
           setShowBetaBanner(true);
@@ -88,12 +127,25 @@ export default function App() {
       }
     };
 
-    window.addEventListener("hashchange", handleHashChange);
-    return () => window.removeEventListener("hashchange", handleHashChange);
+    window.addEventListener("hashchange", handleLocationChange);
+    window.addEventListener("popstate", handleLocationChange);
+    return () => {
+      window.removeEventListener("hashchange", handleLocationChange);
+      window.removeEventListener("popstate", handleLocationChange);
+    };
   }, [hasResult, isAnalyzing]);
 
   // Initial check on mount
   useEffect(() => {
+    const demo = getDemoPresetFromURL();
+    if (demo) {
+      setResult(demo);
+      setHasResult(true);
+      hasResultRef.current = true;
+      setCurrentRoute("result");
+      return;
+    }
+
     const hash = window.location.hash.toLowerCase();
     if (hash === "#wrapped" && !hasResult && !isAnalyzing && !hasResultRef.current && !isAnalyzingRef.current) {
       window.location.hash = "";
@@ -105,10 +157,18 @@ export default function App() {
     isNavigatingRef.current = true;
     const updateDOM = () => {
       setCurrentRoute(route);
-      if (route === "result") window.location.hash = "wrapped";
-      else if (route === "how-it-works") window.location.hash = "how-it-works";
-      else if (route === "terms") window.location.hash = "terms";
-      else window.location.hash = "";
+      if (route === "result") {
+        window.location.hash = "wrapped";
+      } else if (route === "how-it-works") {
+        window.location.hash = "how-it-works";
+      } else if (route === "terms") {
+        window.location.hash = "terms";
+      } else {
+        window.location.hash = "";
+        if (window.location.pathname.startsWith("/demo")) {
+          window.history.pushState(null, "", "/");
+        }
+      }
       window.scrollTo(0, 0);
     };
 
@@ -386,7 +446,6 @@ export default function App() {
           isScrapingLoading={isScrapingLoading}
           scraperAlert={scraperAlert}
           onClearScraperAlert={() => setScraperAlert(null)}
-          onSelectPreset={handleSelectPreset}
         />
       )}
 

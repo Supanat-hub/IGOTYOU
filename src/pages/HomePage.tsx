@@ -35,7 +35,6 @@ interface HomePageProps {
   isScrapingLoading?: boolean;
   scraperAlert?: { message: string; allowFallback: boolean } | null;
   onClearScraperAlert?: () => void;
-  onSelectPreset?: (presetKey: string) => void;
 }
 
 const MARQUEE_ITEMS = [
@@ -64,7 +63,6 @@ export default function HomePage({
   isScrapingLoading = false,
   scraperAlert = null,
   onClearScraperAlert,
-  onSelectPreset,
 }: HomePageProps) {
   const fileInput = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<"username" | "upload">("username");
@@ -323,20 +321,6 @@ export default function HomePage({
                     <ArrowRight className="w-5 h-5" />
                   </>
                 )}
-              </button>
-            </div>
-          )}
-
-          {onSelectPreset && (
-            <div className="mt-3.5 pt-3 border-t border-black/5 dark:border-white/5 flex items-center justify-center">
-              <button
-                type="button"
-                onClick={() => onSelectPreset("cafe")}
-                className="group inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-black/[0.03] dark:bg-white/[0.05] hover:bg-purple/10 text-muted hover:text-purple text-xs font-bold transition-all cursor-pointer border border-black/5 dark:border-white/5 shadow-2xs"
-                title="เปิดดูผลลัพธ์ทันทีโดยไม่ต้องรอประมวลผล (เหมาะสำหรับพรีเซนต์งาน)"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-purple transition-transform group-hover:scale-110" />
-                <span>หรือดูตัวอย่าง Live Demo (@minimal.vibes)</span>
               </button>
             </div>
           )}
