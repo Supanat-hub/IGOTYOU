@@ -518,7 +518,7 @@ export default function HowItWorksPage({ onBackToHome }: HowItWorksPageProps) {
         </div>
 
         {/* Section 7: Legal Disclaimer & Fair Use */}
-        <div className="bg-paper border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-6 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item w-full lg:w-[84%] lg:self-start">
+        <div className="bg-paper border-2 border-ink rounded-[20px] sm:rounded-[22px] p-4 sm:p-6 shadow-[5px_5px_0_var(--ink)] sm:shadow-[8px_8px_0_var(--ink)] scroll-reveal-item w-full">
           <div className="flex items-start gap-2.5 sm:gap-3">
             <AlertCircle className="w-5 h-5 text-purple shrink-0 mt-0.5" />
             <div className="space-y-2 text-xs text-muted leading-relaxed min-w-0">
