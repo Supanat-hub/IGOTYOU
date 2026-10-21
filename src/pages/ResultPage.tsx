@@ -13,6 +13,10 @@ import {
   Play,
   AlertTriangle,
   ImagePlus,
+  WifiOff,
+  CloudOff,
+  Clock,
+  Info,
 } from "lucide-react";
 import { AnalysisResult } from "../utils/analysisEngine";
 
@@ -452,25 +456,86 @@ export default function ResultPage({
         <>
           {/* Degraded State Notice if AI analysis is offline */}
           {result.isAiDegraded && (
-            <div className="bg-[#fff9e6] border-2 border-ink rounded-2xl p-4 md:p-5 mb-7 flex justify-between items-center flex-wrap gap-4 shadow-[4px_4px_0_var(--ink)]">
-              <div className="max-w-[620px]">
-                <div className="flex items-center gap-2 font-extrabold text-sm text-ink">
-                  <span className="text-orange text-base">●</span>
-                  <span>โหมดวิเคราะห์พิกเซลภาพถ่าย (AI ข้อความออฟไลน์)</span>
+            <div className="bg-[#fffdf2] border-2 border-ink rounded-2xl p-4 md:p-6 mb-7 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-[4px_4px_0_var(--ink)]">
+              <div className="max-w-[650px] space-y-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {result.degradedInfo?.category === "NETWORK_ISSUE" ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black border border-ink bg-[#fee2e2] text-[#991b1b]">
+                      <WifiOff className="w-3.5 h-3.5" />
+                      <span>{result.degradedInfo.badge}</span>
+                    </span>
+                  ) : result.degradedInfo?.category === "RATE_LIMIT" ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black border border-ink bg-[#ffedd5] text-[#9a3412]">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>{result.degradedInfo.badge}</span>
+                    </span>
+                  ) : result.degradedInfo?.category === "GEMINI_TIMEOUT" ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black border border-ink bg-[#f3e8ff] text-[#6b21a8]">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>{result.degradedInfo.badge}</span>
+                    </span>
+                  ) : result.degradedInfo?.category === "GEMINI_OUTAGE" ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black border border-ink bg-[#e2e8f0] text-[#334155]">
+                      <CloudOff className="w-3.5 h-3.5" />
+                      <span>{result.degradedInfo.badge}</span>
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black border border-ink bg-amber-100 text-amber-900">
+                      <span className="w-2 h-2 rounded-full bg-amber-500" />
+                      <span>{result.degradedInfo?.badge || "โหมดพิกเซลในเครื่อง"}</span>
+                    </span>
+                  )}
+
+                  <span className="font-extrabold text-sm md:text-base text-ink">
+                    {result.degradedInfo?.title || "โหมดวิเคราะห์พิกเซลภาพถ่าย (AI ข้อความออฟไลน์)"}
+                  </span>
                 </div>
-                <p className="m-0 mt-1 text-xs md:text-sm text-muted leading-relaxed">
-                  ระบบวัดค่า Color DNA และตัดรูปภาพจากโปรไฟล์จริงของคุณเรียบร้อยแล้ว {result.degradedReason ? `(เหตุผล: ${result.degradedReason})` : "เนื่องจากต่อ Gemini AI ไม่สำเร็จ"} หากต้องการให้ AI สรุปฉายาและตัวเลขใหม่อัตโนมัติ สามารถกดลองอีกครั้ง หรือแก้ไขข้อมูลบนการ์ดได้ทันที
+
+                <p className="m-0 text-xs md:text-sm text-ink/80 leading-relaxed">
+                  ระบบวัดค่า Color DNA และตัดรูปภาพจากโปรไฟล์จริงของคุณเรียบร้อยแล้ว (คะแนนความกลมกลืนทางสถิติถูกต้อง 100%)
                 </p>
+
+                {result.degradedInfo ? (
+                  <div
+                    className={`p-3 rounded-xl border text-xs font-medium flex items-start gap-2.5 leading-relaxed ${
+                      result.degradedInfo.canSwitchNetwork
+                        ? "bg-[#eff6ff] border-[#bfdbfe] text-[#1e40af]"
+                        : "bg-[#fefce8] border-[#fef08a] text-[#854d0e]"
+                    }`}
+                  >
+                    <span className="text-base leading-none shrink-0 select-none">
+                      {result.degradedInfo.canSwitchNetwork ? "💡" : "ℹ️"}
+                    </span>
+                    <div className="space-y-1">
+                      <div>
+                        <strong className="font-bold">คำแนะนำ: </strong>
+                        {result.degradedInfo.actionHint}
+                      </div>
+                      {result.degradedReason && (
+                        <div className="text-[11px] opacity-75 font-mono">
+                          ข้อความระบบ: {result.degradedReason}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="m-0 text-xs text-muted">
+                    {result.degradedReason ? `(เหตุผล: ${result.degradedReason})` : "เนื่องจากต่อ Gemini AI ไม่สำเร็จ"} หากต้องการให้ AI สรุปฉายาและตัวเลขใหม่อัตโนมัติ สามารถกดลองอีกครั้งได้ทันที
+                  </p>
+                )}
               </div>
+
               {onRetry && (
-                <button
-                  onClick={handleRetryClick}
-                  disabled={isAnalyzing || isRetryingLocal}
-                  className="bg-ink text-acid border-2 border-ink rounded-full px-4 py-2 text-xs font-extrabold cursor-pointer inline-flex items-center gap-1.5 hover:bg-purple hover:text-white transition-colors shadow-[2px_2px_0_var(--ink)] disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${isAnalyzing || isRetryingLocal ? "animate-spin" : ""}`} />
-                  <span>{isAnalyzing || isRetryingLocal ? "กำลังวิเคราะห์..." : "ลองวิเคราะห์ AI อีกครั้ง"}</span>
-                </button>
+                <div className="shrink-0 w-full md:w-auto">
+                  <button
+                    onClick={handleRetryClick}
+                    disabled={isAnalyzing || isRetryingLocal}
+                    className="w-full md:w-auto bg-ink text-acid border-2 border-ink rounded-full px-5 py-2.5 text-xs font-extrabold cursor-pointer inline-flex items-center justify-center gap-2 hover:bg-purple hover:text-white transition-colors shadow-[2px_2px_0_var(--ink)] disabled:opacity-60 disabled:cursor-not-allowed active:translate-x-0.5 active:translate-y-0.5"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isAnalyzing || isRetryingLocal ? "animate-spin" : ""}`} />
+                    <span>{isAnalyzing || isRetryingLocal ? "กำลังวิเคราะห์..." : "ลองวิเคราะห์ AI อีกครั้ง"}</span>
+                  </button>
+                </div>
               )}
             </div>
           )}

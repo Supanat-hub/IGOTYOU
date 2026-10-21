@@ -7,6 +7,7 @@ import {
   buildUserGridImages,
   rankTopContentImages,
   extractInstagramUsername,
+  classifyDegradedError,
   ScrapedResponse,
 } from "./analysisEngine";
 import {
@@ -669,5 +670,30 @@ test("accurately identifies private accounts when postsCount > 0 but posts array
       (!normalPublicSample.data?.posts || normalPublicSample.data.posts.length === 0));
 
   assert.equal(isPublic, false, "Should not identify normal public profile with posts as private");
+});
+
+test("classifyDegradedError categorizes network issues, rate limits, timeouts and server outages accurately", () => {
+  // Test 1: Campus Wi-Fi / Failed to fetch
+  const networkErr = classifyDegradedError("Failed to fetch", undefined, true);
+  assert.equal(networkErr.category, "NETWORK_ISSUE");
+  assert.equal(networkErr.canSwitchNetwork, true);
+  assert.ok(networkErr.badge.includes("Wi-Fi"));
+  assert.ok(networkErr.actionHint.includes("เน็ตมือถือ"));
+
+  // Test 2: Rate limit 429
+  const rateLimitErr = classifyDegradedError("คุณส่งคำขอถี่เกินไป เพื่อความปลอดภัย กรุณารอสักครู่แล้วลองใหม่อีกครั้ง", 429);
+  assert.equal(rateLimitErr.category, "RATE_LIMIT");
+  assert.equal(rateLimitErr.canSwitchNetwork, true);
+  assert.ok(rateLimitErr.badge.includes("429"));
+
+  // Test 3: Gemini 15s Timeout
+  const timeoutErr = classifyDegradedError("Google Gemini ตอบสนองช้าเกิน 15 วินาที (Timeout) เนื่องจากคิวประมวลผลหนาแน่น", 504);
+  assert.equal(timeoutErr.category, "GEMINI_TIMEOUT");
+  assert.equal(timeoutErr.canSwitchNetwork, false);
+
+  // Test 4: Gemini Outage 502
+  const outageErr = classifyDegradedError("Server responded with 502", 502);
+  assert.equal(outageErr.category, "GEMINI_OUTAGE");
+  assert.equal(outageErr.canSwitchNetwork, false);
 });
 

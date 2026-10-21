@@ -43,10 +43,20 @@ export interface ScrapedResponse {
   };
 }
 
+export interface DegradedInfo {
+  category: "NETWORK_ISSUE" | "RATE_LIMIT" | "GEMINI_TIMEOUT" | "GEMINI_OUTAGE" | "OTHER";
+  title: string;
+  badge: string;
+  reason: string;
+  actionHint: string;
+  canSwitchNetwork: boolean;
+}
+
 export interface AnalysisResult {
   username: string;
   isAiDegraded?: boolean;
   degradedReason?: string;
+  degradedInfo?: DegradedInfo;
   isValidProfile?: boolean;
   invalidReason?: string;
   isPresetDemo?: boolean;
@@ -418,18 +428,124 @@ export function buildUserGridImages(
 async function callAnalyzeProxy(
   images: { mimeType: string; data: string }[]
 ): Promise<any> {
-  const res = await fetch("/api/analyze", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ images }),
-  });
+  try {
+    const res = await fetch("/api/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ images }),
+    });
 
-  if (!res.ok) {
-    const errData = await res.json().catch(() => ({}));
-    throw new Error(errData.error || `Server proxy returned ${res.status}`);
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      const err: any = new Error(errData.error || `Server proxy returned ${res.status}`);
+      err.status = res.status;
+      throw err;
+    }
+
+    return await res.json();
+  } catch (err: any) {
+    if (err.name === "TypeError" && /fetch|network|load failed/i.test(err.message || "")) {
+      err.isNetworkFailure = true;
+    }
+    throw err;
+  }
+}
+
+/**
+ * Classifies AI failure reasons to guide the user (e.g. university Wi-Fi blocked vs Gemini outage)
+ */
+export function classifyDegradedError(
+  rawError: string,
+  status?: number,
+  isNetworkError?: boolean
+): DegradedInfo {
+  const err = (rawError || "").toLowerCase();
+
+  // 1. Browser Network Failure (University Wi-Fi Firewall, Captive Portal, Offline, DNS/CORS failure)
+  if (
+    isNetworkError ||
+    err.includes("failed to fetch") ||
+    err.includes("networkerror") ||
+    err.includes("load failed") ||
+    err.includes("connection refused") ||
+    (typeof window !== "undefined" && typeof navigator !== "undefined" && navigator.onLine === false)
+  ) {
+    return {
+      category: "NETWORK_ISSUE",
+      title: "เครือข่ายอินเทอร์เน็ตมีปัญหา / Wi-Fi มอบล็อก",
+      badge: "📶 เครือข่าย Wi-Fi / เน็ตมอ",
+      reason: "เบราว์เซอร์ส่งคำขอไปยังเซิร์ฟเวอร์ไม่สำเร็จ (Failed to fetch)",
+      actionHint: "เกิดจาก Wi-Fi มหาวิทยาลัยมี Firewall บล็อกคำขอ หรือสัญญาณเน็ตหลุด/หน้าล็อกอินหมดอายุ แนะนำให้สลับไปใช้เน็ตมือถือ (4G/5G) แล้วกดลองอีกครั้ง",
+      canSwitchNetwork: true,
+    };
   }
 
-  return await res.json();
+  // 2. Rate limit (either Cloudflare Worker per IP or Gemini 429)
+  if (
+    status === 429 ||
+    err.includes("429") ||
+    err.includes("ถี่เกินไป") ||
+    err.includes("rate limit") ||
+    err.includes("quota")
+  ) {
+    return {
+      category: "RATE_LIMIT",
+      title: "ส่งคำขอถี่เกินไป / IP ร่วมติด Rate Limit",
+      badge: "⏱️ ติด Rate Limit (429)",
+      reason: "มีการส่งคำขอถี่เกินไปจาก IP นี้ในระยะเวลาสั้น",
+      actionHint: "มักเกิดจาก Wi-Fi มอที่แชร์ IP เดียวกัน หรือทดสอบติดๆ กัน แนะนำให้สลับใช้เน็ตมือถือ หรือรอ 1 นาทีแล้วกดลองใหม่",
+      canSwitchNetwork: true,
+    };
+  }
+
+  // 3. Timeout (Gemini took > 15s)
+  if (
+    status === 504 ||
+    err.includes("timeout") ||
+    err.includes("abort") ||
+    err.includes("504") ||
+    err.includes("ตอบช้า") ||
+    err.includes("15 วินาที")
+  ) {
+    return {
+      category: "GEMINI_TIMEOUT",
+      title: "Google Gemini ประมวลผลล่าช้า (Timeout 15s)",
+      badge: "⏳ Gemini Timeout",
+      reason: "Google AI ใช้เวลาประมวลผลนานเกิน 15 วินาทีเนื่องจากคิวหนาแน่น",
+      actionHint: "ปัญหาเกิดจากฝั่งเซิร์ฟเวอร์ AI ช่วงที่มีคนใช้งานเยอะ ไม่ได้เกิดจากเน็ตของคุณ สามารถกดลองใหม่อีกครั้งได้เลย",
+      canSwitchNetwork: false,
+    };
+  }
+
+  // 4. Gemini Outage / Server 502/503
+  if (
+    status === 502 ||
+    status === 503 ||
+    status === 500 ||
+    err.includes("502") ||
+    err.includes("503") ||
+    err.includes("bad gateway") ||
+    err.includes("overloaded")
+  ) {
+    return {
+      category: "GEMINI_OUTAGE",
+      title: "เซิร์ฟเวอร์ Google Gemini ขัดข้องชั่วคราว",
+      badge: "☁️ Gemini ขัดข้องชั่วคราว",
+      reason: "เซิร์ฟเวอร์ Google ตอบกลับด้วยรหัสขัดข้อง (502/503)",
+      actionHint: "ฝั่ง Gemini API ขัดข้องชั่วคราว ไม่ได้เกี่ยวกับเน็ตของคุณ รอนิ่งสัก 1-2 นาทีแล้วกดลองใหม่",
+      canSwitchNetwork: false,
+    };
+  }
+
+  // Default fallback
+  return {
+    category: "OTHER",
+    title: "AI ออฟไลน์ชั่วคราว",
+    badge: "⚙️ โหมดพิกเซลในเครื่อง",
+    reason: rawError || "ไม่สามารถเชื่อมต่อ Gemini ได้",
+    actionHint: "หากเปิดผ่าน Wi-Fi มหาวิทยาลัย ลองสลับไปใช้เน็ตมือถือ 4G/5G เพื่อทดสอบอีกครั้ง",
+    canSwitchNetwork: true,
+  };
 }
 
 /**
@@ -526,6 +642,8 @@ export async function analyzeProfile(files: File[], presetKey?: string): Promise
   }
 
   let lastAnalysisError = "";
+  let lastAnalysisStatus: number | undefined;
+  let isNetworkFailure = false;
   if (files && files.length > 0) {
     try {
       // 1. Client-side downscaling for fast upload
@@ -633,6 +751,8 @@ export async function analyzeProfile(files: File[], presetKey?: string): Promise
     } catch (e: any) {
       console.warn("AI analysis service unavailable, activating honest degraded mode:", e);
       lastAnalysisError = e?.message || "";
+      lastAnalysisStatus = e?.status;
+      isNetworkFailure = Boolean(e?.isNetworkFailure) || (typeof navigator !== "undefined" && !navigator.onLine);
     }
   }
 
@@ -688,6 +808,7 @@ export async function analyzeProfile(files: File[], presetKey?: string): Promise
     username: "@my.profile",
     isAiDegraded: true,
     degradedReason: lastAnalysisError,
+    degradedInfo: classifyDegradedError(lastAnalysisError, lastAnalysisStatus, isNetworkFailure),
     isValidProfile: true,
     persona: {
       title: offlinePersona.title,
@@ -827,6 +948,8 @@ export async function analyzeScrapedProfile(scraped: ScrapedProfileData): Promis
 
   let parsed: any = null;
   let lastError = "";
+  let lastStatus: number | undefined;
+  let isNetworkFailure = false;
 
   if (geminiImages.length > 0) {
     try {
@@ -850,9 +973,11 @@ export async function analyzeScrapedProfile(scraped: ScrapedProfileData): Promis
         parsed = await res.json();
       } else {
         const errJson = await res.json().catch(() => null);
+        lastStatus = res.status;
         lastError = errJson?.error || `Server responded with ${res.status}`;
       }
     } catch (e: any) {
+      isNetworkFailure = (e.name === "TypeError" && /fetch|network|load failed/i.test(e.message || "")) || (typeof navigator !== "undefined" && !navigator.onLine);
       lastError = e.message || "Failed to call Gemini analyze API";
     }
   }
@@ -894,6 +1019,7 @@ export async function analyzeScrapedProfile(scraped: ScrapedProfileData): Promis
     isValidProfile: true,
     isAiDegraded: !parsed,
     degradedReason: lastError,
+    degradedInfo: !parsed ? classifyDegradedError(lastError, lastStatus, isNetworkFailure) : undefined,
     persona: {
       title: parsed?.persona?.title || "ตัวตึงคุมโทน · โดดเด่นเกินต้าน",
       description: parsed?.persona?.description || "ฉายาประจำโปรไฟล์ของคุณคือ",

@@ -291,7 +291,11 @@ Return ONLY valid JSON matching this exact structure:
       }
     } catch (err: any) {
       console.warn(`[Worker API] Model ${model} failed: ${err.message}`);
-      lastError = `การเชื่อมต่อไปยังโมเดลเกิดข้อผิดพลาด (${err.message})`;
+      if (err.name === "AbortError" || err.message?.includes("abort")) {
+        lastError = "Google Gemini ตอบสนองช้าเกิน 15 วินาที (Timeout) เนื่องจากคิวประมวลผลหนาแน่น";
+      } else {
+        lastError = `การเชื่อมต่อไปยังโมเดลเกิดข้อผิดพลาด (${err.message})`;
+      }
     }
   }
 
