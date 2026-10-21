@@ -525,7 +525,9 @@ export function classifyDegradedError(
     err.includes("502") ||
     err.includes("503") ||
     err.includes("bad gateway") ||
-    err.includes("overloaded")
+    err.includes("overloaded") ||
+    err.includes("serviceunavailable") ||
+    err.includes("service unavailable")
   ) {
     return {
       category: "GEMINI_OUTAGE",
