@@ -290,6 +290,14 @@ export default function App() {
     navigateTo("home");
   };
 
+  const handleSelectPreset = (presetKey: string) => {
+    const selected = PRESETS[presetKey] || PRESETS.cafe;
+    setResult(selected);
+    setHasResult(true);
+    hasResultRef.current = true;
+    navigateTo("result");
+  };
+
   return (
     <main>
       {/* Scroll-Driven Top Progress Bar */}
@@ -378,6 +386,7 @@ export default function App() {
           isScrapingLoading={isScrapingLoading}
           scraperAlert={scraperAlert}
           onClearScraperAlert={() => setScraperAlert(null)}
+          onSelectPreset={handleSelectPreset}
         />
       )}
 

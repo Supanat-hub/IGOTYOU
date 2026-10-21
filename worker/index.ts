@@ -230,9 +230,10 @@ Return ONLY valid JSON matching this exact structure:
     : screenshotPrompt;
 
   const candidateModels = [
-    "gemini-3.5-flash-lite",
-    "gemini-3.8-flash",
     "gemini-flash-latest",
+    "gemini-3.5-flash-lite",
+    "gemini-flash-lite-latest",
+    "gemini-3.8-flash",
   ];
 
   let successData: any = null;
@@ -273,8 +274,17 @@ Return ONLY valid JSON matching this exact structure:
         const data: any = await response.json();
         const jsonText = data.candidates?.[0]?.content?.parts?.[0]?.text;
         if (jsonText) {
-          successData = JSON.parse(jsonText);
-          break;
+          const cleanedText = jsonText
+            .replace(/^```json\s*/i, "")
+            .replace(/^```\s*/i, "")
+            .replace(/```$/i, "")
+            .trim();
+          try {
+            successData = JSON.parse(cleanedText);
+            break;
+          } catch (pe) {
+            console.warn(`[Worker API] JSON parse error for model ${model}:`, pe);
+          }
         }
       } else {
         const status = response.status;
@@ -283,6 +293,8 @@ Return ONLY valid JSON matching this exact structure:
         console.warn(`[Worker API] Model ${model} returned ${status}: ${errMsg.slice(0, 150)}`);
         if (status === 429) {
           lastError = "โควตา Gemini API เต็มชั่วคราว (Quota 429) กรุณารอสักครู่แล้วลองใหม่อีกครั้ง";
+        } else if (status === 503) {
+          lastError = "เซิร์ฟเวอร์ Google Gemini กำลังรับโหลดสูงชั่วคราว (503 Service Unavailable)";
         } else if (status === 403) {
           lastError = "API Key ไม่ถูกต้องหรือไม่มีสิทธิ์ใช้งาน (403 Forbidden)";
         } else {

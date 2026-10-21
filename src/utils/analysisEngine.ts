@@ -935,10 +935,10 @@ export async function analyzeScrapedProfile(scraped: ScrapedProfileData): Promis
   const harmony = extraction.metrics.harmonyScore;
   const contrast = extraction.metrics.contrastScore;
 
-  // 3. Prepare payload for Gemini API
+  // 3. Prepare payload for Gemini API (send up to 6 high-res photos to prevent 503 high-demand timeouts while preserving full aesthetic context)
   const rawImagesForGemini =
     postImages.length > 0
-      ? postImages.slice(0, 12)
+      ? postImages.slice(0, 6)
       : scraped.avatarBase64
       ? [scraped.avatarBase64]
       : [];
