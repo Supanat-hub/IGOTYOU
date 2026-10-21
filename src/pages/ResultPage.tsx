@@ -23,7 +23,7 @@ interface ResultPageProps {
   onOpenStoryModal: () => void;
   onOpenStoryPlayer?: () => void;
   onOpenHowItWorks: () => void;
-  onRetry?: () => void;
+  onRetry?: () => void | Promise<void>;
   onCancel?: () => void;
   isAnalyzing?: boolean;
   isScraping?: boolean;
@@ -235,7 +235,18 @@ export default function ResultPage({
 }: ResultPageProps) {
   const [copied, setCopied] = useState(false);
   const [copiedHex, setCopiedHex] = useState<string | null>(null);
+  const [isRetryingLocal, setIsRetryingLocal] = useState(false);
   const gridPhotoInputRef = useRef<HTMLInputElement>(null);
+
+  const handleRetryClick = async () => {
+    if (!onRetry || isRetryingLocal || isAnalyzing) return;
+    setIsRetryingLocal(true);
+    try {
+      await onRetry();
+    } finally {
+      setIsRetryingLocal(false);
+    }
+  };
 
   const selectedCardImages = (
     result.topContent.cardImages && result.topContent.cardImages.length > 0
@@ -453,12 +464,12 @@ export default function ResultPage({
               </div>
               {onRetry && (
                 <button
-                  onClick={onRetry}
-                  disabled={isAnalyzing}
-                  className="bg-ink text-acid border-2 border-ink rounded-full px-4 py-2 text-xs font-extrabold cursor-pointer inline-flex items-center gap-1.5 hover:bg-purple hover:text-white transition-colors shadow-[2px_2px_0_var(--ink)]"
+                  onClick={handleRetryClick}
+                  disabled={isAnalyzing || isRetryingLocal}
+                  className="bg-ink text-acid border-2 border-ink rounded-full px-4 py-2 text-xs font-extrabold cursor-pointer inline-flex items-center gap-1.5 hover:bg-purple hover:text-white transition-colors shadow-[2px_2px_0_var(--ink)] disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  <RefreshCw className={`w-3.5 h-3.5 ${isAnalyzing ? "animate-spin" : ""}`} />
-                  <span>{isAnalyzing ? "กำลังวิเคราะห์..." : "ลองวิเคราะห์ AI อีกครั้ง"}</span>
+                  <RefreshCw className={`w-3.5 h-3.5 ${isAnalyzing || isRetryingLocal ? "animate-spin" : ""}`} />
+                  <span>{isAnalyzing || isRetryingLocal ? "กำลังวิเคราะห์..." : "ลองวิเคราะห์ AI อีกครั้ง"}</span>
                 </button>
               )}
             </div>

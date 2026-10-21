@@ -8,7 +8,7 @@ import TermsPage from "./pages/TermsPage";
 import StoryCardModal from "./components/StoryCardModal";
 import StoryPlayerModal from "./components/StoryPlayerModal";
 import InAppBrowserModal from "./components/InAppBrowserModal";
-import { PRESETS, AnalysisResult, analyzeProfile, fetchScrapedProfile, analyzeScrapedProfile } from "./utils/analysisEngine";
+import { PRESETS, AnalysisResult, analyzeProfile, fetchScrapedProfile, analyzeScrapedProfile, ScrapedProfileData } from "./utils/analysisEngine";
 
 type Route = "home" | "result" | "how-it-works" | "terms";
 
@@ -124,6 +124,8 @@ export default function App() {
   };
 
   const [isScrapingMode, setIsScrapingMode] = useState(false);
+  const [lastScrapedData, setLastScrapedData] = useState<ScrapedProfileData | null>(null);
+  const [lastUsername, setLastUsername] = useState<string>("");
 
   const handleAnalyze = async () => {
     if (!files.length) return;
@@ -150,6 +152,7 @@ export default function App() {
   };
 
   const handleAnalyzeScraped = async (username: string) => {
+    setLastUsername(username);
     setScraperAlert(null);
     setErrorMessage(null);
     setIsScrapingLoading(true);
@@ -186,6 +189,7 @@ export default function App() {
         return;
       }
       if (res.status === "PUBLIC" && res.data) {
+        setLastScrapedData(res.data);
         setIsScrapingLoading(false);
         isAnalyzingRef.current = true;
         setIsAnalyzing(true);
@@ -212,6 +216,70 @@ export default function App() {
       isAnalyzingRef.current = false;
       setIsAnalyzing(false);
     }
+  };
+
+  const handleRetry = async () => {
+    if (isAnalyzingRef.current) return;
+    setErrorMessage(null);
+
+    // 1. Scraped Mode with stored profile data (fastest: directly re-calls Gemini without re-scraping)
+    if (isScrapingMode && lastScrapedData) {
+      isAnalyzingRef.current = true;
+      try {
+        const analyzed = await analyzeScrapedProfile(lastScrapedData);
+        hasResultRef.current = analyzed.isValidProfile !== false;
+        setResult({ ...analyzed, isPresetDemo: false });
+        setHasResult(analyzed.isValidProfile !== false);
+        if (analyzed.isAiDegraded) {
+          setErrorMessage(
+            analyzed.degradedReason
+              ? `ยังไม่สามารถเชื่อมต่อ Gemini AI ได้ (${analyzed.degradedReason}) ระบบยังคงแสดงผลด้วยข้อมูลพิกเซลในเครื่อง`
+              : "ยังไม่สามารถเชื่อมต่อ Gemini AI ได้ในขณะนี้ กรุณารอสักครู่แล้วลองใหม่อีกครั้ง"
+          );
+        }
+      } catch (err: any) {
+        console.error("Retry Scraped Error:", err);
+        setErrorMessage(err.message || "เกิดข้อผิดพลาดในการวิเคราะห์โปรไฟล์ กรุณาลองใหม่อีกครั้ง");
+      } finally {
+        isAnalyzingRef.current = false;
+      }
+      return;
+    }
+
+    // 2. Scraped Mode fallback: if profile data wasn't saved, re-run scrape with lastUsername or result.username
+    const fallbackUsername = lastUsername || (result.username ? result.username.replace(/^@+/, "") : "");
+    if (isScrapingMode && fallbackUsername && fallbackUsername !== "unknown" && fallbackUsername !== "minimal.vibes") {
+      await handleAnalyzeScraped(fallbackUsername);
+      return;
+    }
+
+    // 3. Screenshot upload mode with files
+    if (files && files.length > 0) {
+      isAnalyzingRef.current = true;
+      try {
+        const data = await analyzeProfile(files);
+        hasResultRef.current = data.isValidProfile !== false;
+        setResult({ ...data, isPresetDemo: false });
+        setHasResult(data.isValidProfile !== false);
+        if (data.isAiDegraded) {
+          setErrorMessage(
+            data.degradedReason
+              ? `ยังไม่สามารถเชื่อมต่อ Gemini AI ได้ (${data.degradedReason}) ระบบยังคงแสดงผลด้วยข้อมูลพิกเซลในเครื่อง`
+              : "ยังไม่สามารถเชื่อมต่อ Gemini AI ได้ในขณะนี้ กรุณารอสักครู่แล้วลองใหม่อีกครั้ง"
+          );
+        }
+      } catch (err: any) {
+        console.error("Retry Screenshot Error:", err);
+        setErrorMessage(err.message || "ไม่สามารถวิเคราะห์โปรไฟล์ได้ในขณะนี้ กรุณาตรวจสอบรูปภาพหรือลองใหม่อีกครั้ง");
+      } finally {
+        isAnalyzingRef.current = false;
+      }
+      return;
+    }
+
+    // 4. Fallback if no images or username exist
+    setErrorMessage("ไม่พบข้อมูลรูปภาพหรือบัญชีเดิม กรุณากลับไปหน้าแรกเพื่อลองใหม่อีกครั้ง");
+    navigateTo("home");
   };
 
   const handleCancelAnalysis = () => {
@@ -273,12 +341,15 @@ export default function App() {
               <button
                 onClick={() => {
                   setErrorMessage(null);
-                  if (files.length > 0) handleAnalyze();
-                  else navigateTo("home");
+                  handleRetry();
                 }}
                 className="mt-2.5 bg-ink text-acid hover:bg-purple hover:text-white px-3.5 py-1.5 rounded-full text-xs font-extrabold cursor-pointer transition-all inline-flex items-center gap-1.5 border border-ink shadow-[2px_2px_0_var(--ink)] active:translate-x-0.5 active:translate-y-0.5"
               >
-                <span>{files.length > 0 ? "ลองใหม่อีกครั้ง" : "กลับไปหน้าแรก"}</span>
+                <span>
+                  {files.length > 0 || (isScrapingMode && (lastScrapedData || lastUsername))
+                    ? "ลองใหม่อีกครั้ง"
+                    : "กลับไปหน้าแรก"}
+                </span>
               </button>
             </div>
           </div>
@@ -318,7 +389,7 @@ export default function App() {
           onOpenStoryModal={() => setIsStoryModalOpen(true)}
           onOpenStoryPlayer={() => setIsStoryPlayerOpen(true)}
           onOpenHowItWorks={() => navigateTo("how-it-works")}
-          onRetry={handleAnalyze}
+          onRetry={handleRetry}
           onCancel={handleCancelAnalysis}
           isAnalyzing={isAnalyzing}
           isScraping={isScrapingMode}
