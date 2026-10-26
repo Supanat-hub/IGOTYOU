@@ -888,7 +888,22 @@ export default function ResultPage({
                     />
                     <Pencil className="w-3.5 h-3.5 text-white/50 absolute right-2.5 top-3.5 pointer-events-none group-hover:text-acid transition-colors" />
                   </div>
-                  <p className="text-white/85 text-xs md:text-sm mt-1.5 leading-relaxed">{result.bioRemix.subtext}</p>
+                  <div className="relative group mt-1.5">
+                    <input
+                      type="text"
+                      value={result.bioRemix.subtext}
+                      onChange={(e) =>
+                        onUpdateResult({
+                          ...result,
+                          bioRemix: { ...result.bioRemix, subtext: e.target.value },
+                        })
+                      }
+                      aria-label="แก้ไขคำอธิบายไบโอ"
+                      className="w-full bg-transparent hover:bg-white/10 focus:bg-black/25 border border-transparent hover:border-white/20 focus:border-acid/60 rounded-lg px-2 py-1 -mx-2 text-white/85 text-xs md:text-sm leading-relaxed outline-none transition-all pr-7"
+                      title="คลิกเพื่อแก้ไขคำแซวเสริม"
+                    />
+                    <Pencil className="w-3 h-3 text-white/40 absolute right-1 top-2 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
                 </div>
 
                 <div className="shrink-0 w-full sm:w-auto flex sm:self-center">

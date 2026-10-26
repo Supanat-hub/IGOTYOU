@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, ChangeEvent } from "react";
-import { toCanvas } from "html-to-image";
 import { Download, Copy, Check, Sun, Moon, Sparkles, ImagePlus, RotateCcw } from "lucide-react";
 import { AnalysisResult } from "../utils/analysisEngine";
 import { detectInAppBrowser } from "./InAppBrowserModal";
@@ -28,6 +27,120 @@ function traceRoundedRect(
   ctx.arcTo(x, y + h, x, y, radius);
   ctx.arcTo(x, y, x + w, y, radius);
   ctx.closePath();
+}
+
+function drawNeoBox(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+  bgColor: string,
+  isNoir: boolean,
+  bRightBottom = 4,
+  noirBorderAlpha = 0.2
+) {
+  const bTopLeft = 2;
+  ctx.save();
+  traceRoundedRect(ctx, x, y, w, h, r);
+  ctx.fillStyle = isNoir ? "rgba(0, 0, 0, 0.65)" : "#171711";
+  ctx.fill();
+
+  const ix = x + bTopLeft;
+  const iy = y + bTopLeft;
+  const iw = Math.max(1, w - bTopLeft - bRightBottom);
+  const ih = Math.max(1, h - bTopLeft - bRightBottom);
+  const ir = Math.max(2, r - bTopLeft);
+
+  traceRoundedRect(ctx, ix, iy, iw, ih, ir);
+  ctx.fillStyle = bgColor;
+  ctx.fill();
+
+  if (isNoir) {
+    traceRoundedRect(
+      ctx,
+      x + 1,
+      y + 1,
+      Math.max(2, w - bRightBottom),
+      Math.max(2, h - bRightBottom),
+      Math.max(2, r - 1)
+    );
+    ctx.strokeStyle = `rgba(255, 255, 255, ${noirBorderAlpha})`;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function fitTextWithEllipsis(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number
+): string {
+  if (!text) return "";
+  if (ctx.measureText(text).width <= maxWidth) return text;
+  const ellipsis = "...";
+  let trimmed = text;
+  while (trimmed.length > 0 && ctx.measureText(trimmed + ellipsis).width > maxWidth) {
+    trimmed = trimmed.slice(0, -1);
+  }
+  return trimmed + ellipsis;
+}
+
+function wrapCanvasLines(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+  maxLines = 2
+): string[] {
+  if (!text) return [""];
+  if (ctx.measureText(text).width <= maxWidth) return [text];
+
+  const words = text.split(/\s+/);
+  const lines: string[] = [];
+  let currentLine = "";
+
+  for (const word of words) {
+    const candidate = currentLine ? `${currentLine} ${word}` : word;
+    if (ctx.measureText(candidate).width <= maxWidth) {
+      currentLine = candidate;
+    } else {
+      if (currentLine) {
+        lines.push(currentLine);
+        if (lines.length >= maxLines) {
+          lines[maxLines - 1] = fitTextWithEllipsis(
+            ctx,
+            `${lines[maxLines - 1]} ${word}`,
+            maxWidth
+          );
+          return lines;
+        }
+      }
+      if (ctx.measureText(word).width > maxWidth) {
+        let chunk = "";
+        for (const ch of Array.from(word)) {
+          if (ctx.measureText(chunk + ch).width <= maxWidth) {
+            chunk += ch;
+          } else {
+            lines.push(chunk);
+            if (lines.length >= maxLines) {
+              lines[maxLines - 1] = fitTextWithEllipsis(ctx, chunk + ch, maxWidth);
+              return lines;
+            }
+            chunk = ch;
+          }
+        }
+        currentLine = chunk;
+      } else {
+        currentLine = word;
+      }
+    }
+  }
+  if (currentLine) {
+    lines.push(currentLine);
+  }
+  return lines.slice(0, maxLines);
 }
 
 function loadImageElement(src: string): Promise<HTMLImageElement> {
@@ -109,9 +222,20 @@ export default function StoryCardModal({
       .trim();
   };
 
-  // Editable fields for user autonomy
+  // Editable fields for user autonomy (two-way synced with parent ResultPage)
   const [customTitle, setCustomTitle] = useState(() => formatSingleLine(data.persona.title));
   const [customHandle, setCustomHandle] = useState(data.username || "@my.profile");
+  const [customVerdict, setCustomVerdict] = useState(
+    data.aestheticScore.verdict || "คุมโทนเก่งมาก!"
+  );
+  const [customBioText, setCustomBioText] = useState(data.bioRemix.text || "");
+  const [customBioSubtext, setCustomBioSubtext] = useState(data.bioRemix.subtext || "");
+  const [customFollowerRatio, setCustomFollowerRatio] = useState(
+    data.stats.followerRatio || "1.0x"
+  );
+  const [customPostDensity, setCustomPostDensity] = useState(
+    data.stats.postDensity || "0"
+  );
 
   // Local fallback state in case parent doesn't pass onUpdateData
   const [localCardImages, setLocalCardImages] = useState<string[]>(() =>
@@ -128,8 +252,108 @@ export default function StoryCardModal({
 
   useEffect(() => {
     setCustomTitle(formatSingleLine(data.persona.title));
+  }, [data.persona.title]);
+
+  useEffect(() => {
     setCustomHandle(data.username || "@my.profile");
-  }, [data.persona.title, data.username]);
+  }, [data.username]);
+
+  useEffect(() => {
+    setCustomVerdict(data.aestheticScore.verdict || "คุมโทนเก่งมาก!");
+  }, [data.aestheticScore.verdict]);
+
+  useEffect(() => {
+    setCustomBioText(data.bioRemix.text || "");
+    setCustomBioSubtext(data.bioRemix.subtext || "");
+  }, [data.bioRemix.text, data.bioRemix.subtext]);
+
+  useEffect(() => {
+    setCustomFollowerRatio(data.stats.followerRatio || "1.0x");
+    setCustomPostDensity(data.stats.postDensity || "0");
+  }, [data.stats.followerRatio, data.stats.postDensity]);
+
+  const handleUpdateHandle = (val: string) => {
+    const clean = val.replace(/\r?\n/g, "");
+    setCustomHandle(clean);
+    onUpdateData?.({
+      ...data,
+      username: clean,
+    });
+  };
+
+  const handleUpdateTitle = (val: string, shouldTrim = false) => {
+    const clean = shouldTrim
+      ? formatSingleLine(val)
+      : val.replace(/\\n|\r?\n/g, " · ");
+    setCustomTitle(clean);
+    onUpdateData?.({
+      ...data,
+      persona: {
+        ...data.persona,
+        title: clean,
+      },
+    });
+  };
+
+  const handleUpdateVerdict = (val: string) => {
+    const clean = val.replace(/\r?\n/g, "");
+    setCustomVerdict(clean);
+    onUpdateData?.({
+      ...data,
+      aestheticScore: {
+        ...data.aestheticScore,
+        verdict: clean,
+      },
+    });
+  };
+
+  const handleUpdateBioText = (val: string) => {
+    const clean = val.replace(/\r?\n/g, "");
+    setCustomBioText(clean);
+    onUpdateData?.({
+      ...data,
+      bioRemix: {
+        ...data.bioRemix,
+        text: clean,
+      },
+    });
+  };
+
+  const handleUpdateBioSubtext = (val: string) => {
+    const clean = val.replace(/\r?\n/g, "");
+    setCustomBioSubtext(clean);
+    onUpdateData?.({
+      ...data,
+      bioRemix: {
+        ...data.bioRemix,
+        subtext: clean,
+      },
+    });
+  };
+
+  const handleUpdateFollowerRatio = (val: string) => {
+    const clean = val.replace(/\r?\n/g, "");
+    setCustomFollowerRatio(clean);
+    onUpdateData?.({
+      ...data,
+      stats: {
+        ...data.stats,
+        followerRatio: clean,
+      },
+    });
+  };
+
+  const handleUpdatePostDensity = (val: string) => {
+    const clean = val.replace(/\r?\n/g, "");
+    setCustomPostDensity(clean);
+    onUpdateData?.({
+      ...data,
+      stats: {
+        ...data.stats,
+        postDensity: clean,
+      },
+    });
+  };
 
   useEffect(() => {
     const nextCard = (
@@ -298,19 +522,52 @@ export default function StoryCardModal({
   };
 
   /**
-   * Renders the Story Card into a crisp 1080x1920 (or 900x1600) Blob:
-   * 1. Renders DOM typography & layout via html-to-image with cacheBust: false.
-   * 2. Directly composites the 3 real feed photos onto the Canvas 2D context
-   *    to completely bypass iOS WebKit's <foreignObject> black-image decode bug.
+   * Renders the Story Card into a crisp 1080x1920 (or 900x1600) PNG Blob using
+   * a pure Native HTML5 Canvas 2D vector & typography renderer:
+   * - Uses document.fonts (Manrope & IBM Plex Sans Thai) directly without SVG <foreignObject>
+   *   sandboxing or html-to-image getComputedStyle width-locking bugs.
+   * - Never wraps single-line labels or truncates @handle when horizontal space is available.
+   * - 100% immune to iOS WebKit <foreignObject> black-image bugs.
    */
   const renderCardBlob = async (pixelRatio = 3): Promise<Blob> => {
     const cardEl = cardRef.current;
     if (!cardEl) throw new Error("Card element not mounted");
 
-    // Measure photo slot positions in unscaled 360x640 card space before export
+    if (typeof document !== "undefined" && document.fonts?.ready) {
+      try {
+        await document.fonts.ready;
+      } catch {
+        // Proceed if font readiness promise fails
+      }
+    }
+
+    // Measure container section positions in unscaled 360x640 card space
     const cardRect = cardEl.getBoundingClientRect();
     const scaleX = cardRect.width / 360 || 1;
     const scaleY = cardRect.height / 640 || 1;
+
+    const getBox = (selector: string, fallback: { x: number; y: number; w: number; h: number }) => {
+      const el = cardEl.querySelector<HTMLElement>(selector);
+      if (!el) return fallback;
+      const r = el.getBoundingClientRect();
+      return {
+        x: (r.left - cardRect.left) / scaleX,
+        y: (r.top - cardRect.top) / scaleY,
+        w: r.width / scaleX,
+        h: r.height / scaleY,
+      };
+    };
+
+    const headerBox = getBox("[data-card-header]", { x: 21, y: 23, w: 318, h: 28 });
+    const personaBox = getBox("[data-card-persona]", { x: 21, y: 62, w: 318, h: 72 });
+    const titleBox = getBox("[data-card-title]", { x: 21, y: 80, w: 318, h: 28 });
+    const tagsBox = getBox("[data-card-tags]", { x: 21, y: 114, w: 318, h: 22 });
+    const aestheticBox = getBox("[data-card-aesthetic]", { x: 21, y: 298, w: 318, h: 118 });
+    const swatchesBox = getBox("[data-card-swatches]", { x: 36, y: 348, w: 288, h: 26 });
+    const bioBox = getBox("[data-card-bio]", { x: 21, y: 428, w: 318, h: 86 });
+    const statLeftBox = getBox("[data-card-stat-left]", { x: 21, y: 526, w: 155, h: 48 });
+    const statRightBox = getBox("[data-card-stat-right]", { x: 184, y: 526, w: 155, h: 48 });
+    const footerBox = getBox("[data-card-footer]", { x: 21, y: 586, w: 318, h: 24 });
 
     const slotEls = Array.from(
       cardEl.querySelectorAll<HTMLElement>("[data-story-photo-slot]")
@@ -330,14 +587,6 @@ export default function StoryCardModal({
       previewImages.map((src) => loadImageElement(src).catch(() => null))
     );
 
-    const baseCanvas = await toCanvas(cardEl, {
-      cacheBust: false,
-      pixelRatio,
-      width: 360,
-      height: 640,
-      backgroundColor: isNoir ? "#171711" : "#f4f0e6",
-    });
-
     const outW = 360 * pixelRatio;
     const outH = 640 * pixelRatio;
     const finalCanvas = document.createElement("canvas");
@@ -346,44 +595,137 @@ export default function StoryCardModal({
     const ctx = finalCanvas.getContext("2d");
     if (!ctx) throw new Error("Canvas 2D context unavailable");
 
-    // Fill clean background so outer corners never bleed black
-    ctx.fillStyle = isNoir ? "#171711" : "#f4f0e6";
-    ctx.fillRect(0, 0, outW, outH);
+    ctx.save();
+    ctx.scale(pixelRatio, pixelRatio);
 
-    // Draw base card layout & typography
-    ctx.drawImage(baseCanvas, 0, 0, outW, outH);
+    // 0. Fill outer background & clip to 360x640 rounded card
+    const bgMain = isNoir ? "#171711" : "#f4f0e6";
+    ctx.fillStyle = bgMain;
+    ctx.fillRect(0, 0, 360, 640);
 
-    // Directly paint each photo on the 2D canvas (100% immune to iOS foreignObject black-box bug)
+    ctx.save();
+    traceRoundedRect(ctx, 0, 0, 360, 640, 24);
+    ctx.clip();
+    ctx.fillStyle = bgMain;
+    ctx.fillRect(0, 0, 360, 640);
+
+    // 1. Top Header ("✦ IGOTYOU WRAPPED" + "2026 EDITION" pill)
+    const headerCy = headerBox.y + headerBox.h / 2;
+    ctx.beginPath();
+    ctx.arc(21 + 14, headerCy, 14, 0, Math.PI * 2);
+    ctx.fillStyle = isNoir ? "#d9ff43" : "#171711";
+    ctx.fill();
+
+    ctx.font = '800 14px "Manrope", sans-serif';
+    ctx.fillStyle = isNoir ? "#171711" : "#d9ff43";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("✦", 21 + 14, headerCy + 0.5);
+
+    ctx.font = '800 16px "Manrope", sans-serif';
+    ctx.fillStyle = isNoir ? "#fdfbf7" : "#171711";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillText("IGOTYOU WRAPPED", 21 + 28 + 8, headerCy + 0.5);
+
+    const editionText = "2026 EDITION";
+    ctx.font = '800 10px "Manrope", sans-serif';
+    const editionTw = ctx.measureText(editionText).width;
+    const editionW = Math.ceil(editionTw + 22);
+    const editionH = 24;
+    const editionX = 339 - editionW;
+    const editionY = headerCy - editionH / 2;
+    drawNeoBox(ctx, editionX, editionY, editionW, editionH, 99, "#d9ff43", false, 4);
+    ctx.font = '800 10px "Manrope", sans-serif';
+    ctx.fillStyle = "#171711";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(editionText, editionX + 2 + (editionW - 6) / 2, editionY + 2 + (editionH - 6) / 2 + 0.5);
+
+    // 2. Persona Hero Section ("PROFILE PERSONA", @handle, Title, #tags)
+    const personaRowY = personaBox.y + 11;
+    ctx.font = '800 10px "Manrope", sans-serif';
+    ctx.fillStyle = isNoir ? "#d9ff43" : "#7755d9";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText("PROFILE PERSONA", 21, personaRowY);
+
+    const handleDisplay = (customHandle || "@my.profile").trim();
+    ctx.font = '700 12px "Manrope", "IBM Plex Sans Thai", sans-serif';
+    ctx.fillStyle = isNoir ? "rgba(255, 255, 255, 0.72)" : "#6f6c62";
+    ctx.textAlign = "right";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText(fitTextWithEllipsis(ctx, handleDisplay, 195), 339, personaRowY);
+
+    const titleDisplay = formatSingleLine(customTitle) || "มีสไตล์เป็นของตัวเอง";
+    const titleFontSize =
+      titleDisplay.length > 26
+        ? 17
+        : titleDisplay.length > 20
+        ? 18
+        : titleDisplay.length > 15
+        ? 20
+        : 22;
+    ctx.font = `700 ${titleFontSize}px "IBM Plex Sans Thai", "Manrope", sans-serif`;
+    ctx.fillStyle = isNoir ? "#ffffff" : "#171711";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    const fittedTitle = fitTextWithEllipsis(ctx, titleDisplay, 318);
+    const titleCy = titleBox.y + titleBox.h / 2;
+    ctx.fillText(fittedTitle, 21, titleCy);
+    // Subtle synthetic extra-bold pass to match fontWeight: 800 on Thai glyphs
+    ctx.fillText(fittedTitle, 21.35, titleCy);
+
+    // #tags row
+    let tagX = 21;
+    const tagY = tagsBox.y;
+    const tagH = 20;
+    ctx.font = '700 10px "IBM Plex Sans Thai", "Manrope", sans-serif';
+    for (const rawTag of data.persona.tags) {
+      const tagLabel = `#${rawTag}`;
+      const tw = ctx.measureText(tagLabel).width;
+      const pillW = Math.ceil(tw + 17);
+      if (tagX + pillW > 339 && tagX > 21) break;
+
+      ctx.save();
+      traceRoundedRect(ctx, tagX, tagY, pillW, tagH, 99);
+      ctx.fillStyle = isNoir ? "#23231b" : "#fffdf8";
+      ctx.fill();
+      ctx.strokeStyle = isNoir ? "rgba(255, 255, 255, 0.22)" : "#171711";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.restore();
+
+      ctx.fillStyle = isNoir ? "#fdfbf7" : "#171711";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(tagLabel, tagX + pillW / 2, tagY + tagH / 2 + 0.5);
+      tagX += pillW + 5;
+    }
+
+    // 3. Mini Photo Strip (High-res photos in Neo-Brutalist frames)
     for (let i = 0; i < slotRects.length; i++) {
       const photoImg = decodedPhotos[i];
       const slot = slotRects[i];
       if (!photoImg || !slot) continue;
 
-      const sxBox = slot.x * pixelRatio;
-      const syBox = slot.y * pixelRatio;
-      const swBox = slot.w * pixelRatio;
-      const shBox = slot.h * pixelRatio;
-      const outerRadius = 10 * pixelRatio;
-
-      // 1. Draw Neo-Brutalist frame base (2px top/left, 4px right/bottom)
+      const outerRadius = 10;
       ctx.save();
-      traceRoundedRect(ctx, sxBox, syBox, swBox, shBox, outerRadius);
+      traceRoundedRect(ctx, slot.x, slot.y, slot.w, slot.h, outerRadius);
       ctx.fillStyle = isNoir ? "rgba(0, 0, 0, 0.65)" : "#171711";
       ctx.fill();
       ctx.restore();
 
-      const bTop = 2 * pixelRatio;
-      const bLeft = 2 * pixelRatio;
-      const bRight = 4 * pixelRatio;
-      const bBottom = 4 * pixelRatio;
+      const bTop = 2;
+      const bLeft = 2;
+      const bRight = 4;
+      const bBottom = 4;
+      const ix = slot.x + bLeft;
+      const iy = slot.y + bTop;
+      const iw = Math.max(1, slot.w - bLeft - bRight);
+      const ih = Math.max(1, slot.h - bTop - bBottom);
+      const innerRadius = 8;
 
-      const ix = sxBox + bLeft;
-      const iy = syBox + bTop;
-      const iw = Math.max(1, swBox - bLeft - bRight);
-      const ih = Math.max(1, shBox - bTop - bBottom);
-      const innerRadius = Math.max(2, 8 * pixelRatio);
-
-      // 2. Clip inner photo area and paint high-res photo with object-fit: cover
       ctx.save();
       traceRoundedRect(ctx, ix, iy, iw, ih, innerRadius);
       ctx.clip();
@@ -412,23 +754,234 @@ export default function StoryCardModal({
       }
       ctx.restore();
 
-      // 3. Crisp inner border for Dark Noir mode
       if (isNoir) {
         ctx.save();
-        traceRoundedRect(
-          ctx,
-          sxBox + pixelRatio,
-          syBox + pixelRatio,
-          swBox - 2 * pixelRatio,
-          shBox - 2 * pixelRatio,
-          outerRadius - pixelRatio
-        );
+        traceRoundedRect(ctx, slot.x + 1, slot.y + 1, slot.w - 2, slot.h - 2, outerRadius - 1);
         ctx.strokeStyle = "rgba(255, 255, 255, 0.25)";
-        ctx.lineWidth = 1.5 * pixelRatio;
+        ctx.lineWidth = 1.5;
         ctx.stroke();
         ctx.restore();
       }
     }
+
+    // 4. Aesthetic Score & Color DNA Showcase Panel
+    drawNeoBox(
+      ctx,
+      aestheticBox.x,
+      aestheticBox.y,
+      aestheticBox.w,
+      aestheticBox.h,
+      16,
+      isNoir ? "#202018" : "#fffdf8",
+      isNoir,
+      5,
+      0.18
+    );
+
+    const aesLeftX = aestheticBox.x + 15;
+    const aesTopY = aestheticBox.y + 13;
+
+    ctx.font = '800 9px "Manrope", sans-serif';
+    ctx.fillStyle = isNoir ? "#d9ff43" : "#7755d9";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText("AESTHETIC AUDIT", aesLeftX, aesTopY + 8);
+
+    // Score Pill on right of Aesthetic Row
+    const scoreStr = String(data.aestheticScore.score);
+    ctx.font = '800 17px "Manrope", sans-serif';
+    const scoreNumW = ctx.measureText(scoreStr).width;
+    ctx.font = '700 10px "Manrope", sans-serif';
+    const outOfW = ctx.measureText("/100").width;
+    const scorePillW = Math.ceil(scoreNumW + outOfW + 22);
+    const scorePillH = 26;
+    const scorePillX = aestheticBox.x + aestheticBox.w - 5 - 12 - scorePillW;
+    const scorePillY = aesTopY;
+    drawNeoBox(ctx, scorePillX, scorePillY, scorePillW, scorePillH, 99, "#d9ff43", false, 4);
+
+    const scoreInnerX = scorePillX + 2 + (scorePillW - 6 - (scoreNumW + 2 + outOfW)) / 2;
+    const scoreBaselineY = scorePillY + 2 + (scorePillH - 6) / 2 + 5;
+    ctx.font = '800 17px "Manrope", sans-serif';
+    ctx.fillStyle = "#171711";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText(scoreStr, scoreInnerX, scoreBaselineY);
+    ctx.font = '700 10px "Manrope", sans-serif';
+    ctx.fillText("/100", scoreInnerX + scoreNumW + 2, scoreBaselineY - 1);
+
+    // Verdict text (single line with generous width up to score pill)
+    const verdictDisplay = (customVerdict || data.aestheticScore.verdict || "คุมโทนเก่งมาก!").trim();
+    const maxVerdictW = Math.max(140, scorePillX - aesLeftX - 8);
+    ctx.font = '700 12px "IBM Plex Sans Thai", "Manrope", sans-serif';
+    ctx.fillStyle = isNoir ? "#fdfbf7" : "#171711";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    const fittedVerdict = fitTextWithEllipsis(ctx, verdictDisplay, maxVerdictW);
+    ctx.fillText(fittedVerdict, aesLeftX, aesTopY + 24);
+    ctx.fillText(fittedVerdict, aesLeftX + 0.25, aesTopY + 24);
+
+    // Color DNA Swatches Bar
+    const swatches = data.colorDNA.slice(0, 4);
+    if (swatches.length > 0) {
+      const swX = swatchesBox.x;
+      const swY = swatchesBox.y;
+      const swW = swatchesBox.w;
+      const swH = swatchesBox.h;
+      const colW = swW / swatches.length;
+
+      ctx.save();
+      traceRoundedRect(ctx, swX, swY, swW, swH, 8);
+      ctx.clip();
+      swatches.forEach((c, i) => {
+        ctx.fillStyle = c.hex;
+        ctx.fillRect(swX + i * colW, swY, Math.ceil(colW + 0.5), swH);
+      });
+      ctx.restore();
+
+      ctx.save();
+      traceRoundedRect(ctx, swX + 1, swY + 1, swW - 2, swH - 2, 7);
+      ctx.strokeStyle = isNoir ? "rgba(255, 255, 255, 0.25)" : "#171711";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.restore();
+
+      // Swatch names & HEX labels
+      swatches.forEach((c, i) => {
+        const cx = swX + i * colW + colW / 2;
+        ctx.font = '800 8.5px "Manrope", "IBM Plex Sans Thai", sans-serif';
+        ctx.fillStyle = isNoir ? "rgba(255, 255, 255, 0.9)" : "#171711";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "alphabetic";
+        ctx.fillText(fitTextWithEllipsis(ctx, c.name, colW - 3), cx, swY + swH + 13);
+
+        ctx.font = "700 8px monospace";
+        ctx.fillStyle = isNoir ? "rgba(255, 255, 255, 0.5)" : "#6f6c62";
+        ctx.fillText(c.hex.toUpperCase(), cx, swY + swH + 23);
+      });
+    }
+
+    // 5. Bio Remix Quote Box
+    drawNeoBox(
+      ctx,
+      bioBox.x,
+      bioBox.y,
+      bioBox.w,
+      bioBox.h,
+      16,
+      isNoir ? "#183324" : "#7755d9",
+      isNoir,
+      5,
+      0.2
+    );
+
+    const bioInnerX = bioBox.x + 15;
+    const bioInnerW = bioBox.w - 30;
+    const bioTopY = bioBox.y + 13;
+
+    ctx.font = '800 9px "Manrope", sans-serif';
+    ctx.fillStyle = isNoir ? "#d9ff43" : "rgba(255, 255, 255, 0.92)";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText("✦ BIO REMIX", bioInnerX, bioTopY + 8);
+
+    const bioQuoteStr = `"${(customBioText || data.bioRemix.text || "").trim()}"`;
+    ctx.font = '700 13px "IBM Plex Sans Thai", "Manrope", sans-serif';
+    ctx.fillStyle = "#ffffff";
+    const quoteLines = wrapCanvasLines(ctx, bioQuoteStr, bioInnerW, 2);
+    let bioCurY = bioTopY + 25;
+    for (const line of quoteLines) {
+      ctx.fillText(line, bioInnerX, bioCurY);
+      bioCurY += 16.5;
+    }
+
+    const bioSubStr = (customBioSubtext || data.bioRemix.subtext || "").trim();
+    if (bioSubStr) {
+      ctx.font = '500 10px "IBM Plex Sans Thai", "Manrope", sans-serif';
+      ctx.fillStyle = "rgba(255, 255, 255, 0.82)";
+      const subLines = wrapCanvasLines(ctx, bioSubStr, bioInnerW, 2);
+      for (const line of subLines) {
+        ctx.fillText(line, bioInnerX, bioCurY - 2);
+        bioCurY += 13;
+      }
+    }
+
+    // 6. Stats Bar (2 columns)
+    const drawStatCard = (
+      box: { x: number; y: number; w: number; h: number },
+      val: string,
+      label: string
+    ) => {
+      drawNeoBox(
+        ctx,
+        box.x,
+        box.y,
+        box.w,
+        box.h,
+        12,
+        isNoir ? "#202018" : "#fffdf8",
+        isNoir,
+        4,
+        0.18
+      );
+      const cx = box.x + 2 + (box.w - 6) / 2;
+      ctx.font = '800 15px "Manrope", "IBM Plex Sans Thai", sans-serif';
+      ctx.fillStyle = isNoir ? "#fdfbf7" : "#171711";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "alphabetic";
+      ctx.fillText(fitTextWithEllipsis(ctx, val, box.w - 16), cx, box.y + 22);
+
+      ctx.font = '700 8px "Manrope", sans-serif';
+      ctx.fillStyle = isNoir ? "rgba(255, 255, 255, 0.6)" : "#6f6c62";
+      ctx.fillText(label, cx, box.y + 34);
+    };
+
+    drawStatCard(
+      statLeftBox,
+      (customFollowerRatio || data.stats.followerRatio || "1.0x").trim(),
+      "FOLLOWER RATIO"
+    );
+    drawStatCard(
+      statRightBox,
+      (customPostDensity || data.stats.postDensity || "0").trim(),
+      "POSTS ANALYZED"
+    );
+
+    // 7. Footer Card Notice
+    ctx.beginPath();
+    ctx.moveTo(footerBox.x, footerBox.y);
+    ctx.lineTo(footerBox.x + footerBox.w, footerBox.y);
+    ctx.strokeStyle = isNoir ? "rgba(255, 255, 255, 0.15)" : "rgba(23, 23, 17, 0.14)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    const footerTextY = footerBox.y + footerBox.h - 3;
+    ctx.font = '600 9px "Manrope", sans-serif';
+    ctx.fillStyle = isNoir ? "rgba(255, 255, 255, 0.5)" : "#6f6c62";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText("NO DATA STORED", footerBox.x, footerTextY);
+
+    ctx.font = '800 9px "Manrope", sans-serif';
+    ctx.fillStyle = isNoir ? "#d9ff43" : "#171711";
+    ctx.textAlign = "center";
+    ctx.fillText("igotyou.app", 180, footerTextY);
+
+    ctx.font = '600 9px "Manrope", sans-serif';
+    ctx.fillStyle = isNoir ? "rgba(255, 255, 255, 0.5)" : "#6f6c62";
+    ctx.textAlign = "right";
+    ctx.fillText("#IGOTYOU", footerBox.x + footerBox.w, footerTextY);
+
+    ctx.restore(); // end card clip
+
+    // Outer 3px card border
+    ctx.save();
+    traceRoundedRect(ctx, 1.5, 1.5, 357, 637, 22.5);
+    ctx.strokeStyle = isNoir ? "#2d2d24" : "#171711";
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.restore(); // end scale(pixelRatio, pixelRatio)
 
     return new Promise<Blob>((resolve, reject) => {
       finalCanvas.toBlob(
@@ -717,8 +1270,16 @@ export default function StoryCardModal({
               }}
             >
               {/* Top Header */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 1 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <div
+                data-card-header
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  zIndex: 1,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
                   <span
                     style={{
                       width: "28px",
@@ -730,6 +1291,7 @@ export default function StoryCardModal({
                       placeItems: "center",
                       fontSize: "14px",
                       fontWeight: 800,
+                      flexShrink: 0,
                     }}
                   >
                     ✦
@@ -739,6 +1301,8 @@ export default function StoryCardModal({
                       font: "800 16px/1 Manrope, sans-serif",
                       letterSpacing: "-0.04em",
                       color: isNoir ? "#fdfbf7" : "#171711",
+                      whiteSpace: "nowrap",
+                      flexShrink: 0,
                     }}
                   >
                     IGOTYOU WRAPPED
@@ -758,6 +1322,8 @@ export default function StoryCardModal({
                     fontWeight: 800,
                     fontFamily: "Manrope, sans-serif",
                     letterSpacing: "0.02em",
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
                   }}
                 >
                   2026 EDITION
@@ -765,7 +1331,7 @@ export default function StoryCardModal({
               </div>
 
               {/* Persona Hero Section - Single Line Compact Layout */}
-              <div style={{ zIndex: 1 }}>
+              <div data-card-persona style={{ zIndex: 1 }}>
                 <div
                   style={{
                     display: "flex",
@@ -781,40 +1347,52 @@ export default function StoryCardModal({
                       color: isNoir ? "#d9ff43" : "#7755d9",
                       letterSpacing: "0.1em",
                       textTransform: "uppercase",
+                      whiteSpace: "nowrap",
+                      flexShrink: 0,
                     }}
                   >
                     PROFILE PERSONA
                   </span>
-                  <div
-                    contentEditable
-                    suppressContentEditableWarning
-                    onBlur={(e) => setCustomHandle(e.currentTarget.innerText || "")}
+                  <input
+                    type="text"
+                    value={customHandle}
+                    onChange={(e) => handleUpdateHandle(e.target.value)}
+                    aria-label="แก้ไขชื่อบัญชี IG บนการ์ด"
                     style={{
+                      flex: 1,
+                      minWidth: 0,
+                      background: "transparent",
+                      border: "none",
+                      padding: 0,
+                      margin: 0,
                       fontSize: "12px",
                       fontWeight: 700,
-                      color: isNoir ? "rgba(255,255,255,0.7)" : "#6f6c62",
+                      color: isNoir ? "rgba(255,255,255,0.72)" : "#6f6c62",
                       letterSpacing: "-0.01em",
                       outline: "none",
                       cursor: "text",
                       textAlign: "right",
-                      maxWidth: "180px",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
                     }}
                     title="คลิกเพื่อแก้ไขชื่อบัญชี IG"
-                  >
-                    {customHandle}
-                  </div>
+                  />
                 </div>
 
-                <div
-                  contentEditable
-                  suppressContentEditableWarning
-                  onBlur={(e) => setCustomTitle(formatSingleLine(e.currentTarget.innerText || ""))}
+                <input
+                  data-card-title
+                  type="text"
+                  value={customTitle}
+                  onChange={(e) => handleUpdateTitle(e.target.value, false)}
+                  onBlur={(e) => handleUpdateTitle(e.target.value, true)}
+                  aria-label="แก้ไขฉายา Persona บนการ์ด"
                   style={{
                     display: "block",
                     width: "100%",
+                    background: "transparent",
+                    border: "none",
+                    padding: 0,
                     fontSize:
                       customTitle.length > 26
                         ? "17px"
@@ -836,11 +1414,12 @@ export default function StoryCardModal({
                     cursor: "text",
                   }}
                   title="คลิกเพื่อแก้ไขฉายา (แสดงผลบรรทัดเดียว)"
-                >
-                  {customTitle}
-                </div>
+                />
 
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "5px" }}>
+                <div
+                  data-card-tags
+                  style={{ display: "flex", flexWrap: "wrap", gap: "5px" }}
+                >
                   {data.persona.tags.map((tag, i) => (
                     <span
                       key={i}
@@ -852,6 +1431,8 @@ export default function StoryCardModal({
                         fontWeight: 700,
                         background: isNoir ? "#23231b" : "#fffdf8",
                         color: isNoir ? "#fdfbf7" : "#171711",
+                        whiteSpace: "nowrap",
+                        flexShrink: 0,
                       }}
                     >
                       #{tag}
@@ -920,6 +1501,7 @@ export default function StoryCardModal({
 
               {/* Aesthetic Score & Color DNA Showcase Panel */}
               <div
+                data-card-aesthetic
                 style={{
                   background: isNoir ? "#202018" : "#fffdf8",
                   borderTop: isNoir ? "2px solid rgba(255,255,255,0.18)" : "2px solid #171711",
@@ -935,28 +1517,43 @@ export default function StoryCardModal({
                 }}
               >
                 {/* Aesthetic Score Row */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <span
                       style={{
+                        display: "block",
                         fontSize: "9px",
                         fontWeight: 800,
                         color: isNoir ? "#d9ff43" : "#7755d9",
                         letterSpacing: "0.08em",
+                        whiteSpace: "nowrap",
                       }}
                     >
                       AESTHETIC AUDIT
                     </span>
-                    <div
+                    <input
+                      type="text"
+                      value={customVerdict}
+                      onChange={(e) => handleUpdateVerdict(e.target.value)}
+                      aria-label="แก้ไขคำตัดสินโทนภาพบนการ์ด"
                       style={{
+                        display: "block",
+                        width: "100%",
+                        background: "transparent",
+                        border: "none",
+                        padding: 0,
                         fontSize: "12px",
                         fontWeight: 800,
                         color: isNoir ? "#fdfbf7" : "#171711",
                         marginTop: "1px",
+                        outline: "none",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        cursor: "text",
                       }}
-                    >
-                      {data.aestheticScore.verdict || "คุมโทนเก่งมาก!"}
-                    </div>
+                      title="คลิกเพื่อแก้ไขคำตัดสินโทนภาพ"
+                    />
                   </div>
                   <div
                     style={{
@@ -971,18 +1568,21 @@ export default function StoryCardModal({
                       display: "flex",
                       alignItems: "baseline",
                       gap: "2px",
+                      whiteSpace: "nowrap",
+                      flexShrink: 0,
                     }}
                   >
-                    <span style={{ font: "800 17px/1 Manrope, sans-serif" }}>
+                    <span style={{ font: "800 17px/1 Manrope, sans-serif", whiteSpace: "nowrap" }}>
                       {data.aestheticScore.score}
                     </span>
-                    <span style={{ fontSize: "10px", fontWeight: 700 }}>/100</span>
+                    <span style={{ fontSize: "10px", fontWeight: 700, whiteSpace: "nowrap" }}>/100</span>
                   </div>
                 </div>
 
                 {/* Color DNA Swatches */}
                 <div>
                   <div
+                    data-card-swatches
                     style={{
                       display: "flex",
                       height: "26px",
@@ -1047,6 +1647,7 @@ export default function StoryCardModal({
                             color: isNoir ? "rgba(255,255,255,0.5)" : "#6f6c62",
                             lineHeight: 1.1,
                             marginTop: "1px",
+                            whiteSpace: "nowrap",
                           }}
                         >
                           {c.hex.toUpperCase()}
@@ -1059,6 +1660,7 @@ export default function StoryCardModal({
 
               {/* Bio Remix Quote */}
               <div
+                data-card-bio
                 style={{
                   background: isNoir ? "#183324" : "#7755d9",
                   color: "white",
@@ -1081,17 +1683,66 @@ export default function StoryCardModal({
                     display: "flex",
                     alignItems: "center",
                     gap: "4px",
+                    whiteSpace: "nowrap",
                   }}
                 >
-                  <Sparkles className="w-3 h-3" />
-                  <span>BIO REMIX</span>
+                  <Sparkles className="w-3 h-3 shrink-0" />
+                  <span style={{ whiteSpace: "nowrap" }}>BIO REMIX</span>
                 </div>
-                <div style={{ fontSize: "13px", fontWeight: 700, margin: "3px 0 2px", lineHeight: 1.3 }}>
-                  "{data.bioRemix.text}"
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    fontSize: "13px",
+                    fontWeight: 700,
+                    margin: "3px 0 2px",
+                    lineHeight: 1.3,
+                  }}
+                >
+                  <span>"</span>
+                  <input
+                    type="text"
+                    value={customBioText}
+                    onChange={(e) => handleUpdateBioText(e.target.value)}
+                    aria-label="แก้ไขคำคม Bio Remix บนการ์ด"
+                    style={{
+                      flex: 1,
+                      minWidth: 0,
+                      background: "transparent",
+                      border: "none",
+                      padding: 0,
+                      margin: 0,
+                      fontSize: "13px",
+                      fontWeight: 700,
+                      color: "white",
+                      lineHeight: 1.3,
+                      outline: "none",
+                      cursor: "text",
+                    }}
+                    title="คลิกเพื่อแก้ไขคำคมไบโอ"
+                  />
+                  <span>"</span>
                 </div>
-                <div style={{ fontSize: "10px", opacity: 0.8, lineHeight: 1.25 }}>
-                  {data.bioRemix.subtext}
-                </div>
+                <input
+                  type="text"
+                  value={customBioSubtext}
+                  onChange={(e) => handleUpdateBioSubtext(e.target.value)}
+                  aria-label="แก้ไขคำแซวเสริม Bio Remix บนการ์ด"
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    background: "transparent",
+                    border: "none",
+                    padding: 0,
+                    margin: 0,
+                    fontSize: "10px",
+                    color: "rgba(255,255,255,0.82)",
+                    lineHeight: 1.25,
+                    outline: "none",
+                    cursor: "text",
+                  }}
+                  title="คลิกเพื่อแก้ไขคำแซวไบโอ"
+                />
               </div>
 
               {/* Stats Bar */}
@@ -1104,6 +1755,7 @@ export default function StoryCardModal({
                 }}
               >
                 <div
+                  data-card-stat-left
                   style={{
                     background: isNoir ? "#202018" : "#fffdf8",
                     borderTop: isNoir ? "2px solid rgba(255,255,255,0.18)" : "2px solid #171711",
@@ -1115,14 +1767,25 @@ export default function StoryCardModal({
                     textAlign: "center",
                   }}
                 >
-                  <div
+                  <input
+                    type="text"
+                    value={customFollowerRatio}
+                    onChange={(e) => handleUpdateFollowerRatio(e.target.value)}
+                    aria-label="แก้ไขตัวเลข Follower Ratio บนการ์ด"
                     style={{
+                      width: "100%",
+                      background: "transparent",
+                      border: "none",
+                      padding: 0,
+                      margin: 0,
+                      textAlign: "center",
                       font: "800 15px/1 Manrope, sans-serif",
                       color: isNoir ? "#fdfbf7" : "#171711",
+                      outline: "none",
+                      cursor: "text",
                     }}
-                  >
-                    {data.stats.followerRatio}
-                  </div>
+                    title="คลิกเพื่อแก้ไขตัวเลข Follower Ratio"
+                  />
                   <div
                     style={{
                       fontSize: "8px",
@@ -1130,12 +1793,14 @@ export default function StoryCardModal({
                       fontWeight: 700,
                       marginTop: "2px",
                       textTransform: "uppercase",
+                      whiteSpace: "nowrap",
                     }}
                   >
                     Follower Ratio
                   </div>
                 </div>
                 <div
+                  data-card-stat-right
                   style={{
                     background: isNoir ? "#202018" : "#fffdf8",
                     borderTop: isNoir ? "2px solid rgba(255,255,255,0.18)" : "2px solid #171711",
@@ -1147,14 +1812,25 @@ export default function StoryCardModal({
                     textAlign: "center",
                   }}
                 >
-                  <div
+                  <input
+                    type="text"
+                    value={customPostDensity}
+                    onChange={(e) => handleUpdatePostDensity(e.target.value)}
+                    aria-label="แก้ไขตัวเลข Posts Analyzed บนการ์ด"
                     style={{
+                      width: "100%",
+                      background: "transparent",
+                      border: "none",
+                      padding: 0,
+                      margin: 0,
+                      textAlign: "center",
                       font: "800 15px/1 Manrope, sans-serif",
                       color: isNoir ? "#fdfbf7" : "#171711",
+                      outline: "none",
+                      cursor: "text",
                     }}
-                  >
-                    {data.stats.postDensity}
-                  </div>
+                    title="คลิกเพื่อแก้ไขจำนวนโพสต์"
+                  />
                   <div
                     style={{
                       fontSize: "8px",
@@ -1162,6 +1838,7 @@ export default function StoryCardModal({
                       fontWeight: 700,
                       marginTop: "2px",
                       textTransform: "uppercase",
+                      whiteSpace: "nowrap",
                     }}
                   >
                     Posts Analyzed
@@ -1171,6 +1848,7 @@ export default function StoryCardModal({
 
               {/* Footer Card Notice */}
               <div
+                data-card-footer
                 style={{
                   display: "flex",
                   justifyContent: "space-between",
@@ -1183,17 +1861,19 @@ export default function StoryCardModal({
                   zIndex: 1,
                 }}
               >
-                <span>NO DATA STORED</span>
+                <span style={{ whiteSpace: "nowrap", flexShrink: 0 }}>NO DATA STORED</span>
                 <span
                   style={{
                     fontWeight: 800,
                     color: isNoir ? "#d9ff43" : "#171711",
                     letterSpacing: "0.05em",
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
                   }}
                 >
                   igotyou.app
                 </span>
-                <span>#IGOTYOU</span>
+                <span style={{ whiteSpace: "nowrap", flexShrink: 0 }}>#IGOTYOU</span>
               </div>
             </div>
           </div>
@@ -1653,10 +2333,10 @@ export default function StoryCardModal({
               </div>
             </div>
 
-            {/* Text Inputs for Handle & Persona */}
+            {/* Text Inputs for Handle, Persona, Verdict & Bio */}
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               <span style={{ fontSize: "11px", fontWeight: 700, color: "rgba(255,255,255,0.6)" }}>
-                ข้อความบนการ์ด:
+                ข้อความบนการ์ด (หรือคลิกแก้บนการ์ดโดยตรง):
               </span>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1.3fr", gap: "8px" }}>
                 <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
@@ -1664,7 +2344,7 @@ export default function StoryCardModal({
                   <input
                     type="text"
                     value={customHandle}
-                    onChange={(e) => setCustomHandle(e.target.value)}
+                    onChange={(e) => handleUpdateHandle(e.target.value)}
                     placeholder="@username"
                     style={{
                       background: "rgba(255,255,255,0.08)",
@@ -1683,8 +2363,49 @@ export default function StoryCardModal({
                   <input
                     type="text"
                     value={customTitle}
-                    onChange={(e) => setCustomTitle(formatSingleLine(e.target.value))}
+                    onChange={(e) => handleUpdateTitle(e.target.value, false)}
+                    onBlur={(e) => handleUpdateTitle(e.target.value, true)}
                     placeholder="ฉายาโปรไฟล์"
+                    style={{
+                      background: "rgba(255,255,255,0.08)",
+                      border: "1px solid rgba(255,255,255,0.2)",
+                      borderRadius: "8px",
+                      padding: "6px 10px",
+                      fontSize: "12px",
+                      color: "white",
+                      fontWeight: 700,
+                      outline: "none",
+                    }}
+                  />
+                </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1.3fr", gap: "8px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+                  <label style={{ fontSize: "10px", color: "rgba(255,255,255,0.6)", fontWeight: 600 }}>คำตัดสินโทนภาพ</label>
+                  <input
+                    type="text"
+                    value={customVerdict}
+                    onChange={(e) => handleUpdateVerdict(e.target.value)}
+                    placeholder="คุมโทนเก่งมาก!"
+                    style={{
+                      background: "rgba(255,255,255,0.08)",
+                      border: "1px solid rgba(255,255,255,0.2)",
+                      borderRadius: "8px",
+                      padding: "6px 10px",
+                      fontSize: "12px",
+                      color: "white",
+                      fontWeight: 700,
+                      outline: "none",
+                    }}
+                  />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+                  <label style={{ fontSize: "10px", color: "rgba(255,255,255,0.6)", fontWeight: 600 }}>คำคม Bio Remix</label>
+                  <input
+                    type="text"
+                    value={customBioText}
+                    onChange={(e) => handleUpdateBioText(e.target.value)}
+                    placeholder="คำคมประจำโปรไฟล์"
                     style={{
                       background: "rgba(255,255,255,0.08)",
                       border: "1px solid rgba(255,255,255,0.2)",
